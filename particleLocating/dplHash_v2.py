@@ -404,14 +404,19 @@ class dplHash:
     # Given kwrd, decide on scratch or project
     scratchSubDirList = self.metaData['filePaths']['scratchSubDirList']
     projectSubDirList = self.metaData['filePaths']['projectSubDirList']
+    gitSubDirList = self.metData['filePaths']['gitDirList']
     if kwrd in scratchSubDirList:
       path = self.metaData['filePaths']['scratchDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
     elif kwrd in projectSubDirList:
       path = self.metaData['filePaths']['projectDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
+    elif kwrd in gitSubDirList:
+      path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
+      path += '/' + kwrd # immediately form the directory
     else:
-      print("possible kwrd in getPath2File must be listed in subDirectories in either project or scratch in YAML")
+      print("possible kwrd in getPath2File must be listed in subDirectories in \
+            either project scratch or git in YAML")
       print("or you have to code in some exception")
       raise KeyError
     # given kwrd, decide on file extension (ie tif or text or yaml)

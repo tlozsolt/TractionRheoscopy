@@ -35,8 +35,15 @@ filePaths:
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
   projectDirectory_ODSY: /n/spaepen_lab/zsolt
+  tractionRheoscopyGit_ODSY: /n/spaepen_lab/zsolt/SCRIPTS/TractionRheoscopy # Hard 100 MB limit but updated with git
+  tractionRheoscopyGit_MBP: /User/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
 
-  scratchSubDirList:
+  gitDirList: # files that permanent and updated/synced with git. Hard 100 Mb total git repo size limit. NO IMAGES
+    - metaDataYAML
+    - particleLocating
+    - stressStrainAnalysis
+
+  scratchSubDirList: # Files that are temporary and wil not generally be saved permanently
     - preprocessing
     - decon
     - postDecon
@@ -44,8 +51,7 @@ filePaths:
     - rawTiff
     - smartCrop
 
-  projectSubDirList:
-    - metaDataYAML
+  projectSubDirList: # Files that are permanent and should be archived or a reused
     - log
     - psfPath
     - darkTiff
