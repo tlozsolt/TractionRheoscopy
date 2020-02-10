@@ -1,0 +1,294 @@
+# traction force rheology metaData template
+filePaths:
+  #fName_prefix: deconScriptHashing_ # filename_prefix
+  #
+  #metaDataYaml_MBP: /Users/zsolt/Colloid/SCRIPTS/shearRun09102018h_metaData_scriptTesting.yaml #path to this file
+  #metaDataYaml_ODSY: /path/to/yaml/on/odsy
+  # raw tiff files for importing
+  #rawTiff_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/rawImageSeries #path for input raw Tiff files for MacBookPro
+  #rawTiff_SS: /path/to/tiff/image/sequence #path for input raw Tiff files for Storage Server
+  #rawTiff_ODSY: /n/spaepen_lab/zsolt/DATA # ... for Odyssey shared storage filesystem
+  #
+  # dark images for importing
+  #darkTiff_MBP: /Users/zsolt/Colloid/DATA/testImagesCodeDebug/calibration/darkImage_65ms_camera2922_zStack.tif
+  #darkTiff_SS: /path/to/dark/storage/server/stack
+  #darkTiff_ODSY: /n/spaepen_lab/zsolt/calibration/darkImage_65ms_camera2922_1024px_20190430
+  #
+  # psf path, input
+  #psfPath_MBP: /Users/zsolt/Colloid/DATA/psf
+  #psfPath_SS: /path/to/psf/files/on/storage/server
+  #psfPath_ODSY: /n/spaepen_lab/zsolt/psf/psf_dim1024x1024
+  # currently only contains type gel stacks with 209 zslices
+  # sample every 10 um from 100um to 200 um real sample depth
+  #
+  # image output paths
+  # scratchDirectory is temporary but specific to this metaData file.
+  #   This parent directory is created to hold tiff files that are produced during intermediate stages of
+  #   image processing and are too large and numerous for long term storage.
+  #   You could however, in principle, recompute all
+  #   intermediate stages given the rawTiff (which is archived on storage server) and the analysis scripts that are
+  #   saved in the project directory (see below)
+  scratchDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
+  scratchDirectory_SS: /path/to/working/directory/specific/to/this/metaData/file
+  scratchDirectory_ODSY: /parent/scratch/directory/where/intermediate/results/will/be/saved/without/longterm/backup
+
+  # projectDirectory is permanent and specific to this metaDataFile
+  projectDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
+  projectDirectory_ODSY: /n/spaepen_lab/zsolt
+
+  scratchSubDirList:
+    - preprocessing
+    - decon
+    - postDecon
+    - flatField
+    - rawTiff
+    - smartCrop
+
+  projectSubDirList:
+    - metaDataYAML
+    - log
+    - psfPath
+    - darkTiff
+    - fullStackPath
+    - calibration # includes rheology, notes, piezo position
+    - locations
+    - dplPath # note that files written to dplPath are **all** the script files,
+              # which also have hard coded extensions such as "extension='_preprocessing.ijm'
+              # not the default extensions read from the yaml file as is the case for all other directories
+
+  #preprocessOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/preprocessingOut #subdirectories will be created for each hashvalue
+  #preprocessOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
+  #preprocessOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
+  #
+  #flatField_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/flatField
+  #flatField_SS: /path/to/working/directory/specific/to/this/metaData/file/flatField
+  #flatField_ODSY: /parent/scratch/directory/where/intermediate/results/will/be/saved/without/longterm/backup/flatField
+  #
+  #deconOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/deconOut #subdirectories will be created for each hashvalue
+  #deconOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
+  #deconOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
+  #
+  #postDeconOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/postDeconOut #subdirectories will be created for each hashvalue
+  #postDeconOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
+  #postDeconOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
+  #
+  # output parent directories for particle locations, before trajectory linking
+  #locationsHashed_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/locationsHashed
+  #locationsHashed_SS: /path/to/particle/locations/output # subdirectories will be created
+  #locationsHashed_ODSY: /path/to/particle/locations/output # subdirectories will be created
+  #
+  # path to master dpl bash execute script
+  #dplPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/dplScripts
+  #dplPath_SS: /path/to/decon/particle/locating/top/level/bash/script
+  #dplPath_ODSY: /path/to/decon/particle/locating/top/level/bash/script
+  # 
+  # calibration data
+  gelRheology: /path/to/gel/rheology/on/stoargeServer/
+  experimentTable: /path/to/table/of/shearParameters/
+  piezoPath: /path/to/piezo/motion/output/and/control/files/
+  fullStackPath: /path/to/full/zStacks/to/determine/absolute/gel/and/sediment/and/grid/locations/
+  notesPath: /path/to/notes/during/image/acquisition/
+  #
+  # software paths
+  #dplPath_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionForceRheology/particleLocating
+  fijiPath_MBP: /Applications/Fiji.app/Contents/MacOS/ImageJ-macosx # note this is an executable
+  fijiPath_ODSY: /path/to/fiji/on/odyssyey/ # Check that the fast FFT libraries are also installed
+  matlabPath_ODSY: /path/to/MATLAB/if/not/standard/modulue/
+  matlabPath_MBP: /Applications/MATLAB_R2018b.app/bin/matlab
+  particleLocatingSCRIPTS_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionForceRheology/particleLocating
+  particleLocatingSCRIPTS_ODSY: /path/to/dpl/module/git
+  DL2Path_ODSY: /path/to/deconLab2/jar/file
+  DL2Path_MBP: /Applications/Fiji.app/plugins
+  javaPath_MBP: java
+  javaPath_ODSY: java
+  loadPython_ODSY: module load Anaconda3/5.0.1-fasrc02
+  loadMatlab_ODSY: module load matlab/R2018b-fasrc01
+################
+fileNamePrefix:
+  global: tfrGel09052019b_shearRun05062019i_
+  preprocessing: preProcess_
+  decon: decon_
+  postDecon: postDecon8Bit_
+  locations: locations_
+  flatField: flatField_
+  smartCrop: smartCrop_
+  metaDataYAML: metaData_scriptTesting
+  log: log_
+  rawTiff: tfrGel09052019b_shearRun05062019i_ # may not be necessary as I only read from the raw directory and never write to it.
+  dplPath: dplScript_
+  darkTiff: darkImage_65ms_camera2922_zStack # does not have global fileNamePrefix
+############
+fileExtensions:
+   preprocessing: .tif
+   hash: .yaml
+   log: .yaml
+   decon: .tif
+   postDecon: .tif
+   flatField: .tif
+   rawTiff: .tif
+   metaDataYAML: .yaml
+   psfPath: .tif
+   darkTiff: .tif
+   fullStackPath: .tif
+   calibration: .text # includes rheology, notes, piezo position, its not clear that all the files will have this extension.
+   dplPath: .x
+   smartCrop: .tif
+#######
+imageParam:
+  xDim: 1024 # full image dimension in x direction, units of pixels
+  yDim: 1024 # ...and in in y
+  zDim: 597 # number of z -slices
+  timeSteps: 1 # total number of number of time steps
+  shearTime: [1, 226] # shear start and stop timesteps assuming zero indexing
+  px2Micron: [0.230, 0.230, 0.15] # list of multiplicative factors to convert px to micron
+  stackTime: 176 # time to acquire a stack in seconds
+  stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
+  gelSedimentLocation: 202 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+  gelSedimentLocation_fullStack: 0 # location of gel/sediment transition in full stack image, not imaging stack
+  piezoPos: # position of the objective piezo as read off optical encoder at various locations
+    imageStackBottom: 220 
+    imageStackTop: 350
+    coverslip: 100
+    gelSediment: 245
+#######
+#######
+shearParam:
+  exptIntention: strain sweep to locate yield point # shear processing to crystallize, oscillatory rheology at freq, etc
+  waveform: triangle # triangle, triangle wave, sine, ...
+  velocity: 0.00000 # velocity of plate in microns per second
+  a: 0.000000 # step size, typical target is two steps per second given serial bandwidth 
+  oscillations: 1 # number of repeated oscillations 
+#######
+#######
+pipeline: # note that this is an **ordered** list of step (ie dict keywords) and boolean values except that start
+  - hash: True # maybe we dont need a rawTiff "step" Not clear. We do need to know where the rawTiff files are stored
+  - rawTiff: True # Everything starts with the microscope image, but this could be False if analysis has been restarted
+  - preprocessing: False
+  - flatField: True
+  - decon: True
+  - smartCrop: True
+  - postDecon: True
+  - locations: False
+  - tracking: False
+hash:
+  software: python
+  crop: True
+  dimensions:
+    gel:
+      xyz: [128,128,110] # XYZ dimensions of the hash
+      minOverlap: [20,20,30] # minimum overlap in XYZ
+    sed:
+      xyz: [128,128,110]
+      minOverlap: [20,20,30]
+
+preprocessing:
+  software: ImageJ
+  crop: False # does this step do any cropping on top of the initial hash?
+  bkSubtractBool: True # is the background subtracted prior to deconvolution?
+  bkSubtractMethod: gaussian # method names, rbFilter, gaussian
+  params:
+    width: 40 # width of gaussian in pixels
+    32BitFloat: True
+    16BitConv: True
+
+flatField:
+  software: python
+  crop: False # This is a bit misleading because the images are first actually cropped according to hash parameters in Flatfield, but there is no cropping in addition to the hash.
+  crop2Hash: True
+  returnType: uint16 # after flatfielding what the is the data type of a single pixel? unit16 in "unisgned 16 bit integer"
+  flatStack_method: gaussianBlur # description of how the the flatStack is formed. Either a guassian blur or an actual microscope image of an optical phantom
+  sigma: 15 # standard deviation of gaussian used
+  dim: 3D # slice by slice in 2D or full 3D?
+  darkFrame_method: darkStackAvg
+
+decon:
+  software: DeconvolutionLab2 # string saying what software was used to carry out decon
+  crop: False # does this step do any cropping on top of the initial hash?
+  method: RLTV # string specifying deconvolution method, probably Richardson-Lucy with Total Variation Regularization
+  iterations: 20 # number of iterations for deconvolution
+  lambda: 0.001 # regularization parameter
+  psf_info: theorectical generated by Huygens
+  path2PSF: see filePaths
+  garbageSlices: 2 # number of z-slices to discard after deconvolution
+  apodization:
+    bool: True
+    lateral: 'NO'
+    axial: 'NO'
+  padding:
+    bool: True
+    lateral: E2
+    axial: E2
+
+smartCrop:
+  crop: True
+  fftCrop: # Crop just to get rid of garbage due to periodic boundary conditions on FFT
+    bool: True
+    X: 10
+    Y: 10
+    Z: 17
+  sedGelCrop: # additional axial trimming to get rid of sediment slices from gel stack or gel slices from sediment for maxEnt histogram thresholding.
+    bool: True
+    method: zGradAvgXY
+    offset: 4 # number of z-slices above(+) or below(-) relative to the index position of max value
+    minValue: 2000 # smallest value of gradient to ensure that you have found a true peak
+    maxDev: 10 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
+
+postDecon:
+  software: ImageJ
+  crop: False # How many pixels to trim off the image borders?
+  threshold:
+    bool: True
+    method: MaxEnt
+    background: dark
+    range: no-reset
+  mosaic:
+    bool: True
+    gaussianCurvature:
+      bool: True
+      filter_name: Gausian Curvature 3D # Yes, Guassian is misspelled
+      iter: 50
+    meanCurvature2D:
+      bool: True
+      filter_name: "[MC (Mean Curvature)]"
+      method: "[No split]"
+      iter: 1
+  outputType: uint8
+#######
+#######
+locating:
+  crop: False
+  locatingScriptPath: /path/to/matlab/locating/and/submission/scripts/used/
+  matlabVariable: [] # list of key:value pairs for all the variables matlab needs to run
+  bandPassBool: False # does the locating code cary out a band pass filter for any reason? 
+  deconvolvedBool: True # is the image deconvolved prior to locating?
+  iterBool: True # use iterative locating?
+  sedimentParam: # list of particle locations for locating the sediment 
+    outputSuffix: _sed 
+    lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
+    lobject: [27, 27, 27] # Only used if image is bandpass filtered
+    diameters: [13, 13, 17] # somewhat larger than feature size 
+    mask_size: [9, 9, 13] # somewhat smaller than feature size 
+    min_separation: [5, 5, 9] # merge two local maxima if within this distance. Set equal to smaller than core size
+    masscut_initial: 0 # initial mass cut
+    masscut_residuals: 3000000 # mass cut during interative locativing
+    false_particle_size: [17, 17, 19] # for core shell this should be somewhat smaller than
+                                      # 2*(nearest neighbor distance)- (core diameter)
+    bridgeThreshold: 0.5 # i dont think this is used either
+    zeroPxThreshold: 200 # max overlap with zero pixels
+  gelParam: #list of particle location values used for locating the gel particles
+    outputSuffix: _gel 
+    lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
+    lobject: [27, 27, 27]
+    diameters: [31, 31, 33]
+    mask_size: [23, 23, 25]
+    min_separation: [19, 19, 21] # These should comparitively large relative to the diameters since the gel is sparse. 
+    masscut_initial: 0 # initial mass cut
+    masscut_residuals: 3000000 # mass cut during interative locativing
+    false_particle_size: [29, 29, 29]
+    bridgeThreshold: 0.5 # i dont think this is used either
+    zeroPxThreshold: 200 # mobject: [27, 27, 29]
+ODSY_Resources:
+  queue: serial_requeue 
+  time: 360 # requested time in units of minutes
+  cores: 1 # number of requested cores
+  mem: 16000 # memory pool for all cores in units of Mb
