@@ -18,6 +18,7 @@ The class generates a hashtable that when given a positive number could yield:
     [ ] some kind of makeAll function that will create all the necessary scripts in the correct directories and optionally submit them
           and record job submission numbers etc.
     [x] migrate git repo to github and away from code.harvard.edu
+    [+] write change on odsy and push to local branch 
 """
 
 class dplHash:
