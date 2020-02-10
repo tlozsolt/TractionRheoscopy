@@ -1418,7 +1418,7 @@ class dplHash:
 if __name__ == "__main__":
   # Tests to run
   # -load yaml file and call some simple hashValue entries
-  yamlTestingPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/template/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   #print(dplInst.getNNBHashValues(160))
