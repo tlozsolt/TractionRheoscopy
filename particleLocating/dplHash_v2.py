@@ -17,6 +17,7 @@ The class generates a hashtable that when given a positive number could yield:
           preprocessing, deconvolution, postDecon processing, and particle location
     [ ] some kind of makeAll function that will create all the necessary scripts in the correct directories and optionally submit them
           and record job submission numbers etc.
+    [x] migrate git repo to github and away from code.harvard.edu
 """
 
 class dplHash:
