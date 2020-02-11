@@ -383,6 +383,7 @@ class dplHash:
   def getPath2File(self,hashValue, kwrd ='rawTiff' ,computer='ODSY',extension='default',pathOnlyBool=False,fileNameOnlyBool=False):
     """
     kwrd options
+      - particleLocating
       - metaDataYAML
       - hash (?)
       - log
@@ -404,7 +405,7 @@ class dplHash:
     # Given kwrd, decide on scratch or project
     scratchSubDirList = self.metaData['filePaths']['scratchSubDirList']
     projectSubDirList = self.metaData['filePaths']['projectSubDirList']
-    gitSubDirList = self.metData['filePaths']['gitDirList']
+    gitSubDirList = self.metaData['filePaths']['gitDirList']
     if kwrd in scratchSubDirList:
       path = self.metaData['filePaths']['scratchDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
@@ -412,6 +413,7 @@ class dplHash:
       path = self.metaData['filePaths']['projectDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
     elif kwrd in gitSubDirList:
+      print('tractionRheoscopyGit_'+str(computer))
       path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
     else:
@@ -440,7 +442,7 @@ class dplHash:
       fName += self.metaData['fileNamePrefix'][str(kwrd)]
       fName += fileExt
 
-    elif (kwrd in scratchSubDirList or kwrd in projectSubDirList) and kwrd not in self.metaData['fileNamePrefix']:
+    elif (kwrd in scratchSubDirList or kwrd in projectSubDirList or kwrd in gitSubDirList) and kwrd not in self.metaData['fileNamePrefix']:
       # I think this case should only occur in cases where I really want to return a path to a directory and not
       # a path to a specific file. For the kwrds currnently listed this includes:
       # - psfPath
@@ -705,7 +707,9 @@ class dplHash:
     """
     # import flatField and other necessary modules
     flatFieldScript = 'import sys\n'
-    flatFieldScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
+    gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    #flatFieldScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
+    flatFieldScript += 'sys.path.insert(0,\"' + gitDir + '\")\n'
     flatFieldScript +='import flatField\n\n'
     flatFieldScript += 'import dplHash_v2 as dplHash\n'
     # open the raw file
@@ -779,7 +783,8 @@ class dplHash:
       -maybe natively takes a 32 bit image, converts to 8 bit with some thresholding.
          I dont know the best thing to do with threholding at the moment
     """
-    locatingScriptDirectory = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]
+    #locatingScriptDirectory = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]
+    locatingScriptDirectory = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
     #inputFilePath = self.metaData['filePaths']['postDeconOutPath_'+computer]
     inputFilePath = self.getPath2File(hashValue,kwrd='postDecon',computer=computer,pathOnlyBool=True)
     #inputFilePath = self.getPath2File(hashValue,kwrd='postDecon',computer=computer,pathOnlyBool=True)
@@ -1015,7 +1020,9 @@ class dplHash:
     :return:
     """
     outScript = 'import sys\n'
-    outScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
+    gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    #outScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
+    outScript += 'sys.path.insert(0,\"' + gitDir +'\")\n'
     outScript +='import flatField\n'
     outScript += 'import dplHash_v2 as dplHash\n'
     outScript += 'dplInst = dplHash.dplHash(\'' + self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
@@ -1088,7 +1095,9 @@ class dplHash:
       elif computer == 'MBP' : output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
-      output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
+      gitDir = self.getPath2File(0, kwrd='particleLocating', computer=computer, pathOnlyBool=True, extension='')
+      output += 'sys.path.append(\'' + gitDir + '\');\n'
+      #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
       output += 'import dplHash_v2 as dplHash;\n'
       output += 'hashObject = dplHash.dplHash(\'${yamlPath}\');\n'
       output += 'hashObject.makeAllScripts($hashValue,computer=\'${computer}\');\n'
@@ -1103,7 +1112,9 @@ class dplHash:
       elif computer == 'MBP' : output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
-      output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
+      #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
+      gitDir = self.getPath2File(0, kwrd='particleLocating', computer=computer, pathOnlyBool=True, extension='')
+      output += 'sys.path.append(\'' + gitDir + '\');\n'
       output += 'import dplHash_v2 as dplHash;\n'
       output += 'hashObject = dplHash.dplHash(\'${yamlPath}\');\n'
       output += 'hashObject.writeLog($hashValue,\''+ str(pipeLine) + '\',computer=\'${computer}\')\n'
@@ -1423,7 +1434,7 @@ class dplHash:
 if __name__ == "__main__":
   # Tests to run
   # -load yaml file and call some simple hashValue entries
-  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/template/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   #print(dplInst.getNNBHashValues(160))
@@ -1457,7 +1468,7 @@ if __name__ == "__main__":
 
   #   -postprocess,
   #print(dplInst.metaData["hashDimensions"])
-  print(dplInst.makeAllScripts(250,computer='MBP'))
+  #print(dplInst.makeAllScripts(0,computer='MBP'))
   print(dplInst.makeDPL_bashScript(computer = 'MBP'))
 
   #   -particle locate
