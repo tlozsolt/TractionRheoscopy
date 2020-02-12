@@ -106,7 +106,7 @@ filePaths:
   DL2Path_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/plugins
   DL2Path_MBP: /Applications/Fiji.app/plugins
   javaPath_MBP: java
-  javaPath_ODSY: module load Java/1.8 \n java
+  javaPath_ODSY: module load Java/1.8
   loadPython_ODSY: module load Anaconda3/5.0.1-fasrc02
   loadMatlab_ODSY: module load matlab/R2018b-fasrc01
 ################

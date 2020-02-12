@@ -605,7 +605,9 @@ class dplHash:
       -psf synthetic Double-Helix 3.0 30.0 10.0 size 200 100 100 intensity 255.0 
       -algorithm RIF 0.1000 -out mip MI1 -path home
     """
-    outputText = self.metaData['filePaths']['javaPath_'+computer]
+    if computer == 'ODSY': outputText = self.metaData['filePaths']['javaPath_'+computer] + '\n'
+    else: outputText = ""
+    outputTest += 'java '
     outputText += ' -Xms1024m -Xmx16g -jar '+self.metaData['filePaths']['DL2Path_'+computer]+'/'+ 'DeconvolutionLab_2.jar Run '
     # decide on where the input file is to be read from given the pipeLineBool section in metData
     # choose the right bksubtracted input image for the input hashValue
