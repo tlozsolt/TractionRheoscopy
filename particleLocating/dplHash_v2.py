@@ -1092,7 +1092,8 @@ class dplHash:
 
     def exec_hash():
       if computer == 'ODSY':
-        output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
+        output = self.metaData['filePaths']['loadPython_ODSY'] + '\n'
+        output += "source activate tractionRheoscopy\n"
       elif computer == 'MBP' : output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
@@ -1108,8 +1109,7 @@ class dplHash:
       return output
 
     def logPython(pipeLine):
-      if computer == 'ODSY':
-        output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
+      #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
       elif computer == 'MBP' : output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
@@ -1126,8 +1126,7 @@ class dplHash:
       flatFieldScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_flatField.py')
       flatFieldScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', flatFieldScript_explicitHash)
       extension = '.py' # note that extension as a kwarg in getPath2File() is outside the scope...
-      if computer == 'ODSY':
-        output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
+      #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
       else: output="" # initialize to empty string
       output += 'python '
       output += flatFieldScript + ' 1>' + flatFieldScript[0:-1*len(extension)] \
@@ -1152,7 +1151,7 @@ class dplHash:
       smartCropScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_smartCrop.py')
       smartCropScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', smartCropScript_explicitHash)
       extension = '.py'
-      if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
+      #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
       else: output="" # initialize to empty string
       output += 'python '
       output += smartCropScript + ' 1>' + smartCropScript[0:-1*len(extension)] \
