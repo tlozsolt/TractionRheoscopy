@@ -1110,7 +1110,7 @@ class dplHash:
 
     def logPython(pipeLine):
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
-      elif computer == 'MBP' : output = ""
+      if computer == 'MBP' : output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
       #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
@@ -1127,7 +1127,7 @@ class dplHash:
       flatFieldScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', flatFieldScript_explicitHash)
       extension = '.py' # note that extension as a kwarg in getPath2File() is outside the scope...
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
-      else: output="" # initialize to empty string
+      output="" # initialize to empty string
       output += 'python '
       output += flatFieldScript + ' 1>' + flatFieldScript[0:-1*len(extension)] \
                 + '.log 2> ' + flatFieldScript[0:-1*len(extension)] + '.err \n'
@@ -1152,7 +1152,7 @@ class dplHash:
       smartCropScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', smartCropScript_explicitHash)
       extension = '.py'
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
-      else: output="" # initialize to empty string
+      output="" # initialize to empty string
       output += 'python '
       output += smartCropScript + ' 1>' + smartCropScript[0:-1*len(extension)] \
                 + '.log 2> ' + smartCropScript[0:-1*len(extension)] + '.err \n'
