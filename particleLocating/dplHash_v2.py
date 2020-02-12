@@ -1112,7 +1112,8 @@ class dplHash:
 
     def logPython(pipeLine):
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
-      if computer == 'MBP' : output = ""
+      #if computer == 'MBP' : output = ""
+      output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
       #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
