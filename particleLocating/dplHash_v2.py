@@ -607,7 +607,7 @@ class dplHash:
     """
     if computer == 'ODSY': outputText = self.metaData['filePaths']['javaPath_'+computer] + '\n'
     else: outputText = ""
-    outputTest += 'java '
+    outputText += 'java '
     outputText += ' -Xms1024m -Xmx16g -jar '+self.metaData['filePaths']['DL2Path_'+computer]+'/'+ 'DeconvolutionLab_2.jar Run '
     # decide on where the input file is to be read from given the pipeLineBool section in metData
     # choose the right bksubtracted input image for the input hashValue
