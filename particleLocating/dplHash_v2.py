@@ -890,6 +890,12 @@ class dplHash:
       outputScript += 'run(\"Threshold...\");\n'
       outputScript += 'run(\"NaN Background\",\"stack\");\n'
       outputScript += 'run(\"Enhance Contrast\", \"saturated=0.0\");\n'
+    elif self.metaData['postDecon']['threshold']['method'] == 'Default':
+      outputScript += 'setAutoThreshold(\"Deafult dark no-reset stack\");\n'
+      outputScript += 'run(\"Threshold...\");\n'
+      outputScript += 'run(\"NaN Background\",\"stack\");\n'
+      outputScript += 'run(\"Enhance Contrast\", \"saturated=0.0\");\n'
+
 
     outputScript += 'run("8-bit");\n' # Convert to 8bit
     mosaicYAML = self.metaData['postDecon']['mosaic']
@@ -1440,6 +1446,7 @@ if __name__ == "__main__":
   yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
+  print(dplInst.queryHash(350))
   #print(dplInst.getNNBHashValues(160))
   #print(dplInst.getOverlap(161,160))
   #print(dplInst.getCropIndex(160))
