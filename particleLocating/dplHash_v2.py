@@ -1357,9 +1357,10 @@ class dplHash:
     2> myjob.${SLURM_ARRAY_TASK_ID}.err
     """
     header  = "#!/usr/bin/env bash\n\n"
-    header += "#SBATCH -J " + self.metaData['fileNames']['global_prefix'] + "\n"
-    header += "#SBATCH -o " + self.metaData['fileNames']['global_prefix'] + "dplLocating_%A_%a.out\n"
-    header += "#SBATCH -e " + self.metaData['fileNames']['global_prefix'] + "dplLocating_%A_%a.err\n"
+    name = self.metaData['fileNamePrefix']['global']
+    header += "#SBATCH -J " + name + "\n"
+    header += "#SBATCH -o " + name + "dplLocating_%A_%a.out\n"
+    header += "#SBATCH -e " + name + "dplLocating_%A_%a.err\n"
     #header += "#SBATCH -e JobArray_locating_all.err\n"
     header += "#SBATCH -p "+str(self.metaData['ODSY_Resources']['queue'])+"\n"
     footer  = "#SBATCH -n "+str(self.metaData['ODSY_Resources']['cores'])+"\n"
@@ -1405,12 +1406,15 @@ class dplHash:
       # and that bash is sensitive to white space. ie 'HASHVALUE=122' will work, but 'HASHVALUE = 122' will not work
       # now $HASHVALUE can be passed instead of $SLURM_ARRAY_TASK_ID
       # call bash  with the bash variable $HASHVALUE which will execute a bash file with the correct hashValue as each serial_requeue cycles through jobArray  
-      fName_dpl = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]+'/'+'dplScript.x'
+      #fName_dpl = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]+'/'+'dplScript.x'
+      fName_tmp = self.getPath2File(0, kwrd='dplPath', computer=computer, extension='_exec_pipeline.x')
+      fName_dpl = re.sub('_hv[0-9]*_', '_', fName_tmp)
       output += "chmod +x "+fName_dpl+"\n"
       output += fName_dpl + " $HASHVALUE\n"
-      fName_SBATCH = self.metaData['fileNames']['global_prefix']+"dpl_leaf"+str(jobs).zfill(3)+'.sbatch'
-      with open(self.metaData['filePaths']['sbatchPath_'+computer]+'/'+fName_SBATCH,'w') as f: f.write(output)
-    return "submission script *.sbatch file(s) written to: " + self.metaData['filePaths']['sbatchPath_'+computer]
+      #fName_SBATCH = self.metaData['fileNames']['global_prefix']+"dpl_leaf"+str(jobs).zfill(3)+'.sbatch'
+      fName_SBATCH = self.getPath2File(0,kwrd='dplPath',computer=computer,extension="dpl_leaf"+str(jobs).zfill(3)+'.sbatch')
+      with open(fName_SBATCH,'w') as f: f.write(output)
+    return "submission script *.sbatch file(s) written to: " + self.getPath2File(0,kwrd='dplPath',computer=computer,pathOnlyBool=True)
 
   def getMissingValues(partial,complete):
     """
@@ -1450,6 +1454,7 @@ if __name__ == "__main__":
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   print(len(dplInst.hash.keys()))
+  dplInst.makeSubmitScripts()
   #print(dplInst.queryHash(350))
   #print(dplInst.getNNBHashValues(160))
   #print(dplInst.getOverlap(161,160))
