@@ -413,8 +413,9 @@ class dplHash:
       path = self.metaData['filePaths']['projectDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
     elif kwrd in gitSubDirList:
-      print('tractionRheoscopyGit_'+str(computer))
+      #print('tractionRheoscopyGit_'+str(computer))
       path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
+      if kwrd == 'kilfoil_matlab': path += '/particleLocating'
       path += '/' + kwrd # immediately form the directory
     else:
       print("possible kwrd in getPath2File must be listed in subDirectories in \
@@ -787,7 +788,7 @@ class dplHash:
          I dont know the best thing to do with threholding at the moment
     """
     #locatingScriptDirectory = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]
-    locatingScriptDirectory = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    locatingScriptDirectory = self.getPath2File(0,kwrd='kilfoil_matlab',computer = computer,pathOnlyBool = True,extension='')
     #inputFilePath = self.metaData['filePaths']['postDeconOutPath_'+computer]
     inputFilePath = self.getPath2File(hashValue,kwrd='postDecon',computer=computer,pathOnlyBool=True)
     #inputFilePath = self.getPath2File(hashValue,kwrd='postDecon',computer=computer,pathOnlyBool=True)
@@ -829,7 +830,8 @@ class dplHash:
                      +"/" + "iterative_residual_locating_SAUBS.m')"
     #output_fName = self.metaData['filePaths']['locationsHashed_'+computer]+'/'
     #output_fName += self.metaData['fileNames']['global_prefix']+self.metaData['fileNames']['location_prefix']+'hv'+str(hashValue).zfill(5)+'.m'
-    output_fName = self.getPath2File(hashValue,kwrd='dplPath',computer=computer,extension='_particleLocating.m')
+    output_fName = self.getPath2File(hashValue,kwrd='dplPath',computer=computer,extension='_locating.m')
+    # Note, that fileName and function names in MatLab can be no more than 63 characters.
     with open(output_fName,'w') as f: f.write(output)
     return "Particle location matlab *.m file for hashValue "+str(hashValue) +" created at: "+output_fName
 
@@ -1478,7 +1480,7 @@ if __name__ == "__main__":
 
   #   -postprocess,
   #print(dplInst.metaData["hashDimensions"])
-  #print(dplInst.makeAllScripts(0,computer='MBP'))
+  print(dplInst.makeAllScripts(0,computer='MBP'))
   print(dplInst.makeDPL_bashScript(computer = 'MBP'))
 
   #   -particle locate

@@ -41,6 +41,7 @@ filePaths:
   gitDirList: # files that permanent and updated/synced with git. Hard 100 Mb total git repo size limit. NO IMAGES
     - metaDataYAML
     - particleLocating
+    - kilfoil_matlab
     - stressStrainAnalysis
 
   scratchSubDirList: # Files that are temporary and wil not generally be saved permanently
@@ -174,7 +175,7 @@ pipeline: # note that this is an **ordered** list of step (ie dict keywords) and
   - decon: True
   - smartCrop: True
   - postDecon: True
-  - locations: False
+  - locations: True
   - tracking: False
 hash:
   software: python
@@ -244,7 +245,7 @@ postDecon:
   crop: False # How many pixels to trim off the image borders?
   threshold:
     bool: True
-    method: MaxEnt
+    method: Default
     background: dark
     range: no-reset
   mosaic:
@@ -268,16 +269,19 @@ locating:
   bandPassBool: False # does the locating code cary out a band pass filter for any reason? 
   deconvolvedBool: True # is the image deconvolved prior to locating?
   iterBool: True # use iterative locating?
-  sedimentParam: # list of particle locations for locating the sediment 
+  sedimentParam: # list of particle locations for locating the sediment
+    # Note that object size will depend **strongly** on the type of thresholding done in postDecon.
+    # MaxEnt will give small particles (typically 2-3 pixels in xy and a few more in z, while Default will give
+    # closer to actual size of [4,4,11] px
     outputSuffix: _sed 
     lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
     lobject: [27, 27, 27] # Only used if image is bandpass filtered
-    diameters: [13, 13, 17] # somewhat larger than feature size 
-    mask_size: [9, 9, 13] # somewhat smaller than feature size 
-    min_separation: [5, 5, 9] # merge two local maxima if within this distance. Set equal to smaller than core size
+    diameters: [5, 5, 13] # somewhat larger than feature size
+    mask_size: [3, 3, 7] # somewhat smaller than feature size
+    min_separation: [3, 3, 5] # merge two local maxima if within this distance. Set equal to smaller than core size
     masscut_initial: 0 # initial mass cut
-    masscut_residuals: 3000000 # mass cut during interative locativing
-    false_particle_size: [17, 17, 19] # for core shell this should be somewhat smaller than
+    masscut_residuals: 1000 # mass cut during interative locativing
+    false_particle_size: [7, 7, 13] # for core shell this should be somewhat smaller than
                                       # 2*(nearest neighbor distance)- (core diameter)
     bridgeThreshold: 0.5 # i dont think this is used either
     zeroPxThreshold: 200 # max overlap with zero pixels
@@ -285,12 +289,12 @@ locating:
     outputSuffix: _gel 
     lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
     lobject: [27, 27, 27]
-    diameters: [31, 31, 33]
-    mask_size: [23, 23, 25]
-    min_separation: [19, 19, 21] # These should comparitively large relative to the diameters since the gel is sparse. 
+    diameters: [10, 10, 26]
+    mask_size: [5, 5, 15]
+    min_separation: [5, 5, 15] # These should comparitively large relative to the diameters since the gel is sparse.
     masscut_initial: 0 # initial mass cut
     masscut_residuals: 3000000 # mass cut during interative locativing
-    false_particle_size: [29, 29, 29]
+    false_particle_size: [13, 13, 27]
     bridgeThreshold: 0.5 # i dont think this is used either
     zeroPxThreshold: 200 # mobject: [27, 27, 29]
 ODSY_Resources:
