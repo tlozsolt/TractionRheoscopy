@@ -883,16 +883,17 @@ class dplHash:
     # -manual threshold parameters
     # -autothreshold based on MaxEntropy
 
-    if self.metaData['postDecon']['threshold']['method'] == 'Manual':
+    thresholdMeth = self.metaData['postDecon']['threshold']['method'][str(self.sedOrGel(hashValue))]
+    if thresholdMeth == 'Manual':
       if self.sedOrGel(hashValue) == 'sed': thresholdMin,thresholdMax = self.metaData['postDecon']['threshold32Bit_SED']
       elif self.sedOrGel(hashValue) == 'gel': thresholdMin,thresholdMax = self.metaData['postDecon']['threshold32Bit_SED']
       # add the relevant commands to the script to carry out manual global thresholding
-    elif self.metaData['postDecon']['threshold']['method'] == 'MaxEnt':
+    elif thresholdMeth == 'MaxEnt':
       outputScript += 'setAutoThreshold(\"MaxEntropy dark no-reset stack\");\n'
       outputScript += 'run(\"Threshold...\");\n'
       outputScript += 'run(\"NaN Background\",\"stack\");\n'
       outputScript += 'run(\"Enhance Contrast\", \"saturated=0.0\");\n'
-    elif self.metaData['postDecon']['threshold']['method'] == 'Default':
+    elif thresholdMeth == 'Default':
       outputScript += 'setAutoThreshold(\"Deafult dark no-reset stack\");\n'
       outputScript += 'run(\"Threshold...\");\n'
       outputScript += 'run(\"NaN Background\",\"stack\");\n'
@@ -1192,8 +1193,8 @@ class dplHash:
       output += ""
       return output
 
-    def exec_locations():
-      particleLocatingScript_explicitHash = self.getPath2File(0,kwrd='dplPath', computer=computer, extension = '_particleLocating.m')
+    def exec_locating():
+      particleLocatingScript_explicitHash = self.getPath2File(0,kwrd='dplPath', computer=computer, extension = '_locating.m')
       particleLocatingScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', particleLocatingScript_explicitHash)
       extension = '.m'
       if computer == 'ODSY': output = self.metaData['filePaths']['loadMatlab_ODSY'] +'\n' +'matlab '
@@ -1220,7 +1221,7 @@ class dplHash:
       if elt[1] == True:
         try:
           masterScript += eval("exec_" + elt[0] + "()")
-          if elt[0] in ['decon','postDecon','locations','tracking']: masterScript += logPython(elt[0])
+          if elt[0] in ['decon','postDecon','locating','tracking']: masterScript += logPython(elt[0])
         # This is a miserable design because any error in exec functions will be suppressed as likely NameError
         except NameError:
           print("exec_" + elt[0] +"(), probably has a bug. Try explicitly calling the function without eval() and try again")
@@ -1448,7 +1449,8 @@ if __name__ == "__main__":
   yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
-  print(dplInst.queryHash(350))
+  print(len(dplInst.hash.keys()))
+  #print(dplInst.queryHash(350))
   #print(dplInst.getNNBHashValues(160))
   #print(dplInst.getOverlap(161,160))
   #print(dplInst.getCropIndex(160))

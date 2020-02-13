@@ -175,18 +175,18 @@ pipeline: # note that this is an **ordered** list of step (ie dict keywords) and
   - decon: True
   - smartCrop: True
   - postDecon: True
-  - locations: True
+  - locating: True
   - tracking: False
 hash:
   software: python
   crop: True
   dimensions:
     gel:
-      xyz: [128,128,110] # XYZ dimensions of the hash
-      minOverlap: [20,20,30] # minimum overlap in XYZ
+      xyz: [256,256,110] # XYZ dimensions of the hash
+      minOverlap: [30,30,30] # minimum overlap in XYZ
     sed:
-      xyz: [128,128,110]
-      minOverlap: [20,20,30]
+      xyz: [256,256,110]
+      minOverlap: [30,30,30]
 
 preprocessing:
   software: ImageJ
@@ -245,7 +245,9 @@ postDecon:
   crop: False # How many pixels to trim off the image borders?
   threshold:
     bool: True
-    method: Default
+    method:
+      gel: MaxEnt
+      sed: Default
     background: dark
     range: no-reset
   mosaic:
