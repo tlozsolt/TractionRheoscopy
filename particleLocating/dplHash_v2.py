@@ -827,7 +827,8 @@ class dplHash:
     #output_fName = self.metaData['filePaths']['deconOutPath_'+computer]+'/'+'deconScript_hv'+str(hashValue).zfill(5)+'.x'
     output += "addpath '"+locatingScriptDirectory+"'\n"
     output += "run('"+locatingScriptDirectory\
-                     +"/" + "iterative_residual_locating_SAUBS.m')"
+                     +"/" + "iterative_residual_locating_SAUBS.m')\n"
+    output += "exit"
     #output_fName = self.metaData['filePaths']['locationsHashed_'+computer]+'/'
     #output_fName += self.metaData['fileNames']['global_prefix']+self.metaData['fileNames']['location_prefix']+'hv'+str(hashValue).zfill(5)+'.m'
     output_fName = self.getPath2File(hashValue,kwrd='dplPath',computer=computer,extension='_locating.m')
