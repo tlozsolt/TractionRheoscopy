@@ -1178,15 +1178,19 @@ class dplHash:
       postDeconScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_postDecon.ijm')
       postDeconScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', postDeconScript_explicitHash)
       extension = '.ijm'
-      output = "export DISPLAY=:123 \n"
-      output += "Xvfb $DISPLAY -auth /dev/null & (\n"
+      output = "xvfb-run "
+      #output = "export DISPLAY=:123 \n"
+      #output += "Xvfb $DISPLAY -auth /dev/null & (\n"
       # Mosaic plugin do no work with --headless flag in fiji. Googled problem.\
       # solution on mosaic suite headless issue on forum.image.sc
+      # This solution involve bakgrounding Xvfb, which will prevent matlab from quitting on subsequent locating step
+      # xvfb-run is a utility that is available on ODSY and can be installed which creates a random Xvfb display
+      # on a random channel (equivalent to DISPLAY:123") and then closes the instances after completion.
       if computer == 'ODSY': output += self.metaData['filePaths']['fijiPath_ODSY']
       elif computer == 'MBP': output += self.metaData['filePaths']['fijiPath_MBP']
       output += " -batch " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
                 + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
-      output += ')\n' # dont forget the closing parenthesis started with hack around --headless not working
+      #output += ')\n' # dont forget the closing parenthesis started with hack around --headless not working
       #output += " --headless -macro " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
       #         + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
       #output += 'wait \n' # for whatever reason this causes it to hang after closing FIJI
