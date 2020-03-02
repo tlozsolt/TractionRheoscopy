@@ -8,17 +8,17 @@ The class generates a hashtable that when given a positive number could yield:
     
     [+] script to preoprocess and crop a given xyzt chunk (imageJ)
     [+] script to deconvolve the images with the parameters listed 
-         in metaData (imageJ or deconvolution Lab 2)
-    [ ] script to further process decon output to format matlab input tiff (ie 8 bit tiff, thresholded background) (imageJ)
+        in metaData (imageJ or deconvolution Lab 2)
+    [+] script to further process decon output to format matlab input tiff (ie 8 bit tiff, thresholded background) (imageJ)
     [+] particle locate using iterative locating in matlab 
-    [-] bash script to execute these scripts in order on oddyysey. 
-    [ ] submission scripts (yes plural if more than 10k chunks are needed) that handles
+    [+] bash script to execute these scripts in order on oddyysey. 
+    [+] submission scripts (yes plural if more than 10k chunks are needed) that handles
           resource request, error and output, module loading and submit bash script to execute 
           preprocessing, deconvolution, postDecon processing, and particle location
-    [ ] some kind of makeAll function that will create all the necessary scripts in the correct directories and optionally submit them
+    [+] some kind of makeAll function that will create all the necessary scripts in the correct directories and optionally submit them
           and record job submission numbers etc.
-    [x] migrate git repo to github and away from code.harvard.edu
-    [x] write change on odsy and push to local branch 
+    [+] migrate git repo to github and away from code.harvard.edu
+    [+] write change on odsy and push to local branch 
 """
 
 class dplHash:
@@ -67,10 +67,16 @@ class dplHash:
     zChunks_gel = math.ceil((zDim_gel - zDim_minOverlap)/(zDimGel_crop - zDim_minOverlap))
     # create an empty dictionary with keys spanning the hash size
     hashSize = timeSteps*(zChunks_sed + zChunks_gel)*xyChunks*xyChunks
-    self.metaData['hashDimensions'] = {'hashSize':hashSize,'xyChunks':xyChunks,'zChunks_sed':zChunks_sed, 'zChunks_gel':zChunks_gel,'timeSteps':timeSteps}
+    self.metaData['hashDimensions'] = {'hashSize':hashSize,\
+                                       'xyChunks':xyChunks,\
+                                       'zChunks_sed':zChunks_sed,\
+                                       'zChunks_gel':zChunks_gel,\
+                                       'timeSteps':timeSteps}
     #print(hashSize, timeSteps, zChunks_sed, zChunks_gel,xyChunks)
     # Generate, for each hashValue, the xyz cutoffs...permutations on 3 choices, each, on x and y
-    # to generate x points, we start at left (ie 0), add the cropped dimension until we exceed the full dimension, and then shift the rightmost point to end at rightmost extent. Same for y
+    # to generate x points, we start at left (ie 0), \
+    # add the cropped dimension until we exceed the full dimension, \
+    # and then shift the rightmost point to end at rightmost extent. Same for y
     xCrop = []
     for n in range(xyChunks):
       if n==0: leftPt=0
@@ -98,7 +104,8 @@ class dplHash:
     #      hash: '68':(9,3,16) and
     #      inverseHash: '9,3,16':68
     # but we cannot pass '9,3,16' to the job queuing as a hashValue
-    # additionally, converting '68' to 68 is simplest possible type conversion that will most probably work as the default
+    # additionally, converting '68' to 68 is simplest possible type conversion \
+    # that will most probably work as the default
     # on any level of the job control whether in python, bash or whatever the SLURM is written in.
     # This type conversion is also handled in this class by using the method queryHash
     keyCount = 0
@@ -109,13 +116,25 @@ class dplHash:
             hashTable[str(keyCount)] = dict([('xyztCropTuples',[xCrop[x],xCrop[y],zCrop[z],t])])
             hashTable[str(keyCount)]['material'] = material[z]
             hashTable[str(keyCount)]['index'] = (x,y,z,t)
-            hashInverse[str(x)+ ',' + str(y)+ ',' +str(z)+ ','+ str(t)]=keyCount # are the keys unique? Yes but commas are required
-            keyCount += 1 
-    # I have to check that 'the bounds are working the way I think they are. In particular the overlaps need to added/subtracted somewhere and this, I think, depends on the direction and start point from which I am counting.
-    # to generate z, we split case into sediment and gel, propagating from gel bottom up until we past gel/sediment and propagate down from TEM grid until we get past gel/sediment. No shifting at the end necessary since this is just going to influence how much gel/sediment overlap is in each chunk. 
-    # we should make these into functions along with wrapping the dimension counting into functions as well. Additionally, there is likely a better yaml implementation to put dimensions used into an easier to use data structure. Can we view line comments in yaml after importing? Definately yes if you make the commens part of the data structure. Then everything is a value and text string...
-    # I feel like the rest of this is a nested for loop over 
-    # indices:  time, no. of gel and  no of sed chunks, xy chunks, 
+            hashInverse[str(x)+ ',' + str(y)+ ',' +str(z)+ ','+ str(t)]=keyCount
+            # are the keys unique? Yes but commas are required to avoid '1110' <- 1,11,0 pr 11,1,0 or 1,1,10
+            keyCount += 1
+    """
+    I have to check that 'the bounds are working the way I think they are. \
+    In particular the overlaps need to added/subtracted somewhere and this, \
+    I think, depends on the direction and start point from which I am counting.
+    To generate z, we split case into sediment and gel, propagating from gel bottom \
+    up until we past gel/sediment and propagate down from TEM grid until we get past gel/sediment.\
+    No shifting at the end necessary since this is just going to influence \
+    how much gel/sediment overlap is in each chunk. \
+    We should make these into functions along with wrapping the dimension counting into functions as well.\
+    Additionally, there is likely a better yaml implementation to put dimensions used into \
+    an easier to use data structure. \
+    Can we view line comments in yaml after importing? Definately yes if you make the comments \
+    part of the data structure. Then everything is a value and text string...
+    I feel like the rest of this is a nested for loop over 
+    indices:  time, no. of gel and  no of sed chunks, xy chunks, 
+    """
     self.hash = hashTable
     self.invHash = hashInverse
 
@@ -139,6 +158,23 @@ class dplHash:
     :return: hashValue
     """
     return self.invHash[self.index2key(index)]
+
+  def time2HVList(self,time,material):
+    """
+    returns a list of all hashValues for a specified time and material
+    """
+    out = []
+    for hv in [int(elt) for elt in self.hash.keys()]:
+      if self.queryHash(hv)['xyztCropTuples'][3] == time:
+        if material not in ['sed','gel', 'all']:
+          print("time2HVList called with unsupported material type: ", material)
+          raise KeyError
+        elif material == 'all': out.append(hv)
+        elif self.queryHash(hv)['material'] == material:
+          out.append(hv)
+        else: pass
+      else: pass
+    return out
 
   def getNNBHashValues(self,hashValue):
     """
@@ -579,16 +615,23 @@ class dplHash:
       raise TypeError
     outputText += 'algorithm = " -algorithm '+deconMethod_str+' '+str(n_iteration)+' '+str(regParam)+'"\n'    
     outputText += 'parameters = " -path '+self.metaData['filePaths']['deconOutPath_'+computer]
-    outputText += ' -out stack '+self.metaData['filePaths']['fName_prefix']+'decon_hv'+str(hashValue).zfill(5)+' -monitor no -stats save"\n'
+    outputText += ' -out stack '+self.metaData['filePaths']['fName_prefix']+'decon_hv'+str(hashValue).zfill(5)\
+                  + ' -monitor no -stats save"\n'
     outputText += 'run("DeconvolutionLab2 Run", image + psf + algorithm + parameters);\n'
     """
-    # convert output to 8 bit and get rid of the background and garbage slices and save output
-    #
-    # The following code is flawed for subtle implementations reasons. Fiji proceeds to the next line of a macro prior to the previous command finishing
-    # For example, it will attempt to assign the title *prior* to deconvoltuion finishing. There is no way around this without using a full scripting
-    # language. At this point, it might be better to just save the 32 bit output, not additional scaling, and complete the image analysis in matlab
-    # during particle locating. 
-    outputText += 'deconResultTitle = getTitle();\n' # select the 32 bit output #convert to 8 bit, set the lookup table but dont alter image, and save
+    convert output to 8 bit and get rid of the background and garbage slices and save output
+    
+    The following code is flawed for subtle implementations reasons. \
+    Fiji proceeds to the next line of a macro prior to the previous command finishing
+    For example, it will attempt to assign the title *prior* to deconvoltuion finishing. \
+    There is no way around this without using a full scripting language. \
+    At this point, it might be better to just save the 32 bit output, not additional scaling, \
+    and complete the image analysis in matlab during particle locating.\ 
+    
+    outputText += 'deconResultTitle = getTitle();\n' # select the 32 bit output \
+                                                     # convert to 8 bit, \
+                                                     set the lookup table but dont alter image, \
+                                                     and save
     outputText += 'selectWindow(deconResultTitle);\n'
     outputText += 'run("8-bit");\n'
     fName = self.metaData['filePaths']['fName_prefix']+'decon_hv'+str(hashValue).zfill(5)+'.tif'
@@ -964,7 +1007,9 @@ class dplHash:
       #cropTriple = [(crop[i],dim[i]-crop[i]) for i in range(len(crop))]
       # crop the stack using stack[crop : dim - crop]
       #fullStack = flatField.cropStack(fullStack,cropTriple)
-      fullStack = fullStack[crop[2]:dim[0]-crop[2], crop[1]:dim[1]-crop[1],crop[0]:dim[2]-crop[0]] # crop is xyz while dim is zyx
+      fullStack = fullStack[crop[2]:dim[0]-crop[2], \
+                  crop[1]:dim[1]-crop[1],\
+                  crop[0]:dim[2]-crop[0]] # crop is xyz while dim is zyx
       for i in range(len(refPos)):
         refPos[i] = (refPos[i][0] + crop[i], refPos[i][1] - crop[i])
       originLog = [originLog[n] + crop[n] for n in range(len(crop))]
@@ -1038,7 +1083,8 @@ class dplHash:
     outScript += 'sys.path.insert(0,\"' + gitDir +'\")\n'
     outScript +='import flatField\n'
     outScript += 'import dplHash_v2 as dplHash\n'
-    outScript += 'dplInst = dplHash.dplHash(\'' + self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
+    outScript += 'dplInst = dplHash.dplHash(\'' + \
+                 self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
     if output == 'log':
       outScript += 'yamlLog = dplInst.smartCrop(' + str(hashValue) + ', computer = \'' + computer + '\')\n'
       outScript += 'dplInst.writeLog('\
@@ -1087,7 +1133,8 @@ class dplHash:
 
   def makeDPL_bashScript(self,computer='ODSY'):
     """
-    make a bash script to call and excure decon particle location. The bash file is created once and called for each hashValue
+    make a bash script to call and excure decon particle location. \
+    The bash file is created once and called for each hashValue
     [ ] takes as input a hashValue as input ie /dpl.x 250
     [ ] automatically cycles through the pipeline steps in the corresponding yaml file and adds those steps with \
         true boolean flags.
@@ -1183,7 +1230,7 @@ class dplHash:
         output += "Xvfb $DISPLAY -auth /dev/null & (\n"
         output += self.metaData['filePaths']['fijiPath_MBP']
       elif computer == 'ODSY':
-        output = "xvfb-run "
+        output = "/usr/bin/xvfb-run "
         output += self.metaData['filePaths']['fijiPath_ODSY']
       # Mosaic plugin do no work with --headless flag in fiji. Googled problem.\
       # solution on mosaic suite headless issue on forum.image.sc
@@ -1192,7 +1239,8 @@ class dplHash:
       # on a random channel (equivalent to DISPLAY:123") and then closes the instances after completion.
       output += " -batch " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
                 + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
-      if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with hack around --headless not working
+      # if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with \
+                                              # hack around --headless not working
       #output += " --headless -macro " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
       #         + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
       output += 'wait \n' # for whatever reason this causes it to hang after closing FIJI
@@ -1201,7 +1249,8 @@ class dplHash:
       return output
 
     def exec_locating():
-      particleLocatingScript_explicitHash = self.getPath2File(0,kwrd='dplPath', computer=computer, extension = '_locating.m')
+      particleLocatingScript_explicitHash = self.getPath2File(0,kwrd='dplPath', \
+                                                              computer=computer, extension = '_locating.m')
       particleLocatingScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', particleLocatingScript_explicitHash)
       extension = '.m'
       if computer == 'ODSY': output = self.metaData['filePaths']['loadMatlab_ODSY'] +'\n' +'matlab '
@@ -1231,7 +1280,8 @@ class dplHash:
           if elt[0] in ['decon','postDecon','locating','tracking']: masterScript += logPython(elt[0])
         # This is a miserable design because any error in exec functions will be suppressed as likely NameError
         except NameError:
-          print("exec_" + elt[0] +"(), probably has a bug. Try explicitly calling the function without eval() and try again")
+          print("exec_" + elt[0] +"(), probably has a bug. \
+                                  Try explicitly calling the function without eval() and try again")
 
     output_fName_explicitHash = self.getPath2File(0,kwrd='dplPath', computer=computer,extension = '_exec_pipeline.x')
     output_fName = re.sub('_hv[0-9]*_', '_', output_fName_explicitHash)
@@ -1243,12 +1293,14 @@ class dplHash:
 
   def makeDPL_bashScript_legacy(self,computer='ODSY',dplBool=[1,1,1,1,1]):
    """
-   make a bash script to call and execute Decon Particle Locating. This bash files thats created here is created once and call for each hashvalue
+   make a bash script to call and execute Decon Particle Locating. This bash files thats created here \
+   is created once and call for each hashvalue
      [+] takes as input $HASHVALUE parameter from submit script. (ie set HASHVALUE = $1 or something to that effect)
          and file is executed for hashvalue 34298 as "./dpl.x 34298"
      [+] Call this python class and generate the directories and necessary files specific for the passed hashvalue
          -> This requires single python call to write the files to be executed below
-     [+] call fiji and execute the preprocessing script (open, crop, gaussian bksubtract) whose filename will be something containing $hashValue five zeropadded
+     [+] call fiji and execute the preprocessing script (open, crop, gaussian bksubtract) whose filename \
+         will be something containing $hashValue five zeropadded
          looks like $fijiPth --headless -macro someFileNamePrefix$i{hashvalue} > hv${hashValue}.log 
      [+] call java and execute DL2 with command line commands. 
      [+] call fiji and execute postDecon script to convert 32 bit to 8 bit and some basic thresholding
@@ -1325,21 +1377,31 @@ class dplHash:
 
   def makeSubmitScripts(self,computer='ODSY',resubmitBool=False):
     """
-    Create a submission script for the given yaml file. Including *ALL* relevant chunks etc. Dynamically create the correct number of 
-    submission scripts for case where the number of chunks exceeds 10k. All jobs should be submitted to serial requue 
-    This submit script has to manipulate bash variables ${SLURM_ARRAY_TASK_ID} and run the correct bash submission file for the hashValue
-    [-] Most boneheaded way of doing this is to create a different bash file for each hashValue and a few submission scripts with bash variables
-        giving the leaf value (ie 00 01 02 would allow for 30k subjobs.) 
-    [-] Other option is that each subjob creates the scripts required by taking as input the hashValue and the python hashTable. Do we really need 50k files?
-        In what instance can't 50k files be replaced by a function that takes 50k input? Isnt the hashTable class I've created literally the function I need?
-        I could just call python with a variable passed by bash and hard coded leaf values and then this program generates potentially unique scripts? 
-        or passes values downstream? I dont know how to pass values to fiji for example, I pass values to DL2, I could pass values to matlab if I
-        rewrote locating_input_parameters to take in SED or GEL and a unique path. Does this really matter? How long will it take to make all the files
-        for 50k chunks? And if file gneeration *also* happens in parallel then this is negliblge computing cost. File generation is milliseconds on an hour job
-        We also may not need two indices for jobs longer than 10k...just use job_array values 9999-19999 and the job array *length* is less than 10k and
-        the jobarray value naturally corresponds to the hashValue. FALSE: we do need two indices for jobarray longer than 10k as the max value is one less 
-        than the max array size, which for ODSY is 10k.  
-     [+] OK, so the submit script should call this python function and yaml file, write the relevant fiji and scripts, run them, and save the output  
+    Create a submission script for the given yaml file. Including *ALL* relevant chunks etc. \
+    Dynamically create the correct number of submission scripts for case where the number of chunks exceeds 10k.\
+    All jobs should be submitted to serial requue
+    This submit script has to manipulate bash variables ${SLURM_ARRAY_TASK_ID} and run the correct\
+    bash submission file for the hashValue
+    [-] Most boneheaded way of doing this is to create a different bash file for each hashValue and a \
+    few submission scripts with bash variables giving the leaf value (ie 00 01 02 would allow for 30k subjobs.)
+    [-] Other option is that each subjob creates the scripts required by taking as input \
+        the hashValue and the python hashTable. Do we really need 50k files?
+        In what instance can't 50k files be replaced by a function that takes 50k input? \
+        Isnt the hashTable class I've created literally the function I need?
+        I could just call python with a variable passed by bash and hard coded leaf values and \
+        then this program generates potentially unique scripts?
+        or passes values downstream? I dont know how to pass values to fiji for example, \
+        I pass values to DL2, I could pass values to matlab if I
+        rewrote locating_input_parameters to take in SED or GEL and a unique path. \
+        Does this really matter? How long will it take to make all the files
+        for 50k chunks? And if file gneeration *also* happens in parallel then this is \
+        negliblge computing cost. File generation is milliseconds on an hour job
+        We also may not need two indices for jobs longer than 10k...just use job_array values 9999-19999 \
+        and the job array *length* is less than 10k and the jobarray value naturally corresponds to the hashValue. \
+        FALSE: we do need two indices for jobarray longer than 10k as the max value is \
+        one less than the max array size, which for ODSY is 10k.
+     [+] OK, so the submit script should call this python function and yaml file,
+        write the relevant fiji and scripts, run them, and save the output
  
     COPY most recent submission script from Odyssey here 
     
@@ -1348,8 +1410,11 @@ class dplHash:
     #SBATCH -J JobArray			# JobArray scehduling type used for submitting a group of similar serial jobs all at once.
     #SBATCH -o JobArray_locating_all.out	# Output file
     #SBATCH -e JobArray_locating_all.err	# Error file
-    #SBATCH -p serial_requeue		# Requested queue, serial_requeue has lowest wait but maybe killed/restarted without warning
-    #SBATCH --array=0-134			# Probably the size of the job array. For locating this would be set to the number of time steps with indexing starting at 1.
+    #SBATCH -p serial_requeue		# Requested queue, serial_requeue has lowest wait \
+                                    # but maybe killed/restarted without warning
+    #SBATCH --array=0-134			# Probably the size of the job array. \
+                                    #For locating this would be set to the number of time steps \
+                                    # with indexing starting at 1.
     #SBATCH -n 1				# Number of requested cores
     #SBATCH -t 360			# Requested runtime in Days-HH:MM, 240 is equiv to 0-02:00
     #SBATCH --mem=128000			# Memory pool for all cores in Mb
@@ -1377,7 +1442,8 @@ class dplHash:
     
     if resubmitBool == False:
       # compute the number of jobArrays and set up second index if necessary
-      hashSize = self.metaData['hashDimensions']['hashSize'] # 'hashDimension' is created during initialization and is not on the yaml file
+      hashSize = self.metaData['hashDimensions']['hashSize'] # 'hashDimension' is created during initialization \
+                                                             # and is not on the yaml file
       leaf = math.floor(hashSize/10000)
       # now figure out what array index you need given the hashSize and number of leaves
       nTail_jobArray = hashSize - 10000*leaf
@@ -1412,16 +1478,19 @@ class dplHash:
       # Note the bash expression $(( )) means "arithemtic interpretation" 
       # and that bash is sensitive to white space. ie 'HASHVALUE=122' will work, but 'HASHVALUE = 122' will not work
       # now $HASHVALUE can be passed instead of $SLURM_ARRAY_TASK_ID
-      # call bash  with the bash variable $HASHVALUE which will execute a bash file with the correct hashValue as each serial_requeue cycles through jobArray  
+      # call bash  with the bash variable $HASHVALUE which will execute a bash file with the correct hashValue as \
+      # each serial_requeue cycles through jobArray
       #fName_dpl = self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]+'/'+'dplScript.x'
       fName_tmp = self.getPath2File(0, kwrd='dplPath', computer=computer, extension='_exec_pipeline.x')
       fName_dpl = re.sub('_hv[0-9]*_', '_', fName_tmp)
       output += "chmod +x "+fName_dpl+"\n"
       output += fName_dpl + " $HASHVALUE\n"
       #fName_SBATCH = self.metaData['fileNames']['global_prefix']+"dpl_leaf"+str(jobs).zfill(3)+'.sbatch'
-      fName_SBATCH = self.getPath2File(0,kwrd='dplPath',computer=computer,extension="dpl_leaf"+str(jobs).zfill(3)+'.sbatch')
+      fName_SBATCH = self.getPath2File(0,kwrd='dplPath',computer=computer,\
+                                       extension="dpl_leaf"+str(jobs).zfill(3)+'.sbatch')
       with open(fName_SBATCH,'w') as f: f.write(output)
-    return "submission script *.sbatch file(s) written to: " + self.getPath2File(0,kwrd='dplPath',computer=computer,pathOnlyBool=True)
+    return "submission script *.sbatch file(s) written to: "\
+           + self.getPath2File(0,kwrd='dplPath',computer=computer,pathOnlyBool=True)
 
   def getMissingValues(partial,complete):
     """
@@ -1457,7 +1526,8 @@ class dplHash:
 if __name__ == "__main__":
   # Tests to run
   # -load yaml file and call some simple hashValue entries
-  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy\
+                     /metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   print(len(dplInst.hash.keys()))

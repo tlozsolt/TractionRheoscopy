@@ -58,6 +58,21 @@ class hashStitch:
         # I think this could be implemented as some kind of discrete convolution on the counting matrix.
         # just like averaging is a convolution with a kernel [0.3,0.3,0.3]
 
+    def clearCanvas(self):
+        # just resets the canvas values to initial zeros, without reinit the whole instance
+        (gelBottom,sedGelInt,sedTop) = (0,self.imageParamDict['gelSedimentLocation'],self.imageParamDict['zDim'])
+        (xDim,yDim) = (self.imageParamDict['xDim'],self.imageParamDict['yDim'])
+        self.sedCanvas = (np.zeros((sedTop - sedGelInt,yDim, xDim),dtype=np.float64), \
+                          np.zeros((sedTop - sedGelInt,yDim, xDim),dtype=int) \
+                          )
+        self.gelCanvas = (np.zeros((sedGelInt,yDim, xDim),dtype=np.float64), \
+                          np.zeros((sedGelInt,yDim, xDim),dtype=int) \
+                          )
+        self.allCanvas = (np.zeros((sedTop,yDim, xDim),dtype=np.float64), \
+                          np.zeros((sedTop,yDim, xDim),dtype=int) \
+                          )
+
+
     def openImage(self,hv,step='postDecon', computer = 'ODSY'):
         fPath = self.dplInst.getPath2File(hv,kwrd=step,computer=computer)
         return flatField.zStack2Mem(fPath)
@@ -160,3 +175,49 @@ class hashStitch:
             raise TypeError
         else: pass
 
+    def makeQuilt(self, dplInst, time = 'all', step='postDecon',computer = 'ODSY',canvasType='all'):
+        """
+        This function takes in an instance of dplHash class object and some extra flags (step and computer)
+        and creates a stitched image of all the available hashes in the given folder keeping in mind
+        that it will create seperate z-stacks for each timepoint
+        It is designed to run to completion, and if there are errors like missing files it will print
+        a warning but otherwise continue.
+        :param dplInst:
+        :param time: either a string 'all', a single int, or a list of int specifying which time points to stitch
+        :param step: string from pipeline, probably rawTiff or postDecon
+        :param computer: string ODSY or MBP
+        :return: none, but extensive print statements if some hashValues were not found.
+        """
+        # [+] with time flag: if all -> generate a list of times and call makeQuilt on the list recursively
+        #     if time is a list, make a for loop and call makeQuilt recursively on each elt
+        if time == 'all':
+            time = [n for n in range(dplInst.metaData['imageParam']['timeSteps'])]
+            makeQuilt(dplInst, time = time, step=step, compute=computer)
+        elif type(time) == list:
+            for t in time:
+                makeQuilt(dplInst, time=t, step=step, compute=computer)
+                # I think I need to rezero the self.allCanvas after I complete a single time
+                # just create another function that reinitializes the canvas. clearCanvas()
+                self.clearCanvas()
+        else:
+            # now kwrd imput variable time is definitely a single time step
+            hvListOneTime = dplInst.time2HVList(time,'all')# List of all hashValues for the given time step.
+            for hv in hvListOneTime:
+                try:
+                    self.placeHash(hv,step=step,computer=computer,canvasType=canvasType)
+                except FileNotFoundError:
+                    print("There are likely some missing hashValues")
+                    print("time: ", str(time)," hv: ", str(hv), "step: ", step)
+                    pass
+            # Save the stitched image and also the image of the count stack.
+            fOut = dplInst.getPath2File()
+
+
+            # [ ] try to open the file, if failed print error statement but continue on
+            #     for each file in a given time point, run the placeHash on allCanvas
+            # [ ] save the result to an 8 bit tiff stack to a path specified in yaml file
+            # [ ] we should add stitching as another pipeline step and change the pipeline control
+            #     scripts to stop at locating as both tracking and stitching require complete jobs.
+
+if __name__ == "__main__":
+    #
