@@ -1,6 +1,7 @@
 import numpy as np
 import flatField
 import dplHash_v2 as dpl
+import yaml
 
 """
 Inputs 
@@ -45,10 +46,10 @@ class hashStitch:
                           np.zeros((sedTop - sedGelInt,yDim, xDim),dtype=int)\
                           )
         self.gelCanvas = (np.zeros((sedGelInt,yDim, xDim),dtype=np.float64), \
-                          np.zeros((sedGelInt,yDim, xDim),dtype=int) \
+                          np.zeros((sedGelInt,yDim, xDim),dtype=np.uint8) \
                           )
-        self.allCanvas = (np.zeros((sedTop,yDim, xDim),dtype=np.float64), \
-                          np.zeros((sedTop,yDim, xDim),dtype=int) \
+        self.allCanvas = (np.zeros((sedTop,yDim, xDim),dtype=np.uint16), \
+                          np.zeros((sedTop,yDim, xDim),dtype=np.uint8) \
                           )
         # I think we need a new data construct that is pair of arrays for each canvas.
         # The canvas includes an array of stitched img values (ie just the stitched image)
@@ -68,7 +69,7 @@ class hashStitch:
         self.gelCanvas = (np.zeros((sedGelInt,yDim, xDim),dtype=np.float64), \
                           np.zeros((sedGelInt,yDim, xDim),dtype=int) \
                           )
-        self.allCanvas = (np.zeros((sedTop,yDim, xDim),dtype=np.float64), \
+        self.allCanvas = (np.zeros((sedTop,yDim, xDim),dtype=np.uint32), \
                           np.zeros((sedTop,yDim, xDim),dtype=int) \
                           )
 
@@ -99,18 +100,19 @@ class hashStitch:
         dim = np.array([0,0,0])
         # I need to integrate up through step listed in arguement as a safegaurd against incomplete jobs.
         for key in pipelineSteps:
+          logEntry = yamlLog[key]
           if key != step:
             try:
-              logEntry = yamlLog[key]
+              print("key/step: ", key,step)
               origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
               dim += logEntry['dim']
             except KeyError:
               print("There is something wrong when comparing pipeline to log. Perhaps incomplete job?")
               raise KeyError
           else: # break out of the for loop after you hit step kwrd arguement
-              origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
-              dim += logEntry['dim']
-              break
+            origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
+            dim += logEntry['dim']
+            break
         return (origin,dim)
 
     def hashStitch(self,subCanvas,hashImg):
@@ -150,6 +152,7 @@ class hashStitch:
         """
         # get the integrated origin and dim
         origin,dim = self.integrateTransVect(hashValue,step=step,computer=computer)
+        print(str(origin),str(dim))
         imageHash = self.openImage(hashValue,step=step,computer=computer)
         # decide on whether you want to placeHash on sed, gel, or both based on the canvas arguement
         if canvasType =='all':
@@ -192,25 +195,26 @@ class hashStitch:
         #     if time is a list, make a for loop and call makeQuilt recursively on each elt
         if time == 'all':
             time = [n for n in range(dplInst.metaData['imageParam']['timeSteps'])]
-            makeQuilt(dplInst, time = time, step=step, compute=computer)
+            self.makeQuilt(dplInst, time = time, step=step, computer=computer)
         elif type(time) == list:
             for t in time:
-                makeQuilt(dplInst, time=t, step=step, compute=computer)
+                self.makeQuilt(dplInst, time=t, step=step, computer=computer)
                 # I think I need to rezero the self.allCanvas after I complete a single time
                 # just create another function that reinitializes the canvas. clearCanvas()
-                self.clearCanvas()
+                #self.clearCanvas()
         else:
             # now kwrd imput variable time is definitely a single time step
             hvListOneTime = dplInst.time2HVList(time,'all')# List of all hashValues for the given time step.
             for hv in hvListOneTime:
                 try:
+                    print(hv)
                     self.placeHash(hv,step=step,computer=computer,canvasType=canvasType)
                 except FileNotFoundError:
                     print("There are likely some missing hashValues")
                     print("time: ", str(time)," hv: ", str(hv), "step: ", step)
                     pass
             # Save the stitched image and also the image of the count stack.
-            fOut = dplInst.getPath2File()
+            #fOut = dplInst.getPath2File()
 
 
             # [ ] try to open the file, if failed print error statement but continue on
@@ -220,4 +224,15 @@ class hashStitch:
             #     scripts to stop at locating as both tracking and stitching require complete jobs.
 
 if __name__ == "__main__":
-    #
+    import dplHash_v2 as dplHash
+    yamlPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/'\
+               'metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
+
+    stitchInst = hashStitch(yamlPath)
+    dplInst = dplHash.dplHash(yamlPath)
+    stitchInst.makeQuilt(dplInst,time='all',step = 'flatField',computer='MBP')
+    fOutPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/stitch'
+    flatField.array2tif(stitchInst.allCanvas[0],fOutPath+'/canvas.tiff')
+    flatField.array2tif(stitchInst.allCanvas[1],fOutPath+'/count.tiff')
+
+

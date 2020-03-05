@@ -312,12 +312,15 @@ class dplHash:
     # figure out what exactly is the data structure contained in the yaml file...its a list of dictionary key? Really?
     pipelineList = self.metaData['pipeline']
     pairList = [(list(elt.keys())[0],list(elt.values())[0]) for elt in pipelineList]
+    pairListTrue = []
     for pair in pairList:
       # delete all the false entries
-      if pair[1] == False:
-        pairList.remove(pair)
+      if pair[1] == True:
+        pairListTrue.append(pair)
       else: pass
+    pairList = pairListTrue # now pairList only contains True entries without modifying the list in place.
     keyList = [elt[0] for elt in pairList]
+    if out == 'keyList': return keyList
     # find where the kwrd is in the list
     # find nearest up- and down- stream keywords that is True.
     outputKey = 'initial'
@@ -1123,12 +1126,15 @@ class dplHash:
     """
     self.makeScratchDir(computer)
     # insert boolean flag based on yaml metaData file to choose preprocessing or flatfielding.
-    self.makePreprocessing_imageJ(hashValue,computer)
-    self.makeFlatFielding_python(hashValue,computer)
-    self.makeDeconDL2_javaCommandLine(hashValue,computer)
-    self.makeSmartCrop(hashValue,computer)
-    self.makePostDecon_imageJ(hashValue,computer)
-    self.makeParticleLocating_matlab(hashValue,computer)
+    keyList = self.getPipelineStep('hash',out='keyList') # This is a list of all the steps that have true flags in yaml
+    print('keyList: ', keyList)
+    #for elt in keyList: print(elt)
+    if 'preprocessing' in keyList: self.makePreprocessing_imageJ(hashValue,computer)
+    if 'flatField' in keyList : self.makeFlatFielding_python(hashValue,computer)
+    if 'decon' in keyList : self.makeDeconDL2_javaCommandLine(hashValue,computer)
+    if 'smartCrop' in keyList : self.makeSmartCrop(hashValue,computer)
+    if 'postDecon' in keyList : self.makePostDecon_imageJ(hashValue,computer)
+    if 'locating' in keyList : self.makeParticleLocating_matlab(hashValue,computer)
     return None
 
   def makeDPL_bashScript(self,computer='ODSY'):
@@ -1526,12 +1532,14 @@ class dplHash:
 if __name__ == "__main__":
   # Tests to run
   # -load yaml file and call some simple hashValue entries
-  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy\
-                     /metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy\
+  #                   /metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
+                    'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   print(len(dplInst.hash.keys()))
-  dplInst.makeSubmitScripts()
+  #dplInst.makeSubmitScripts()
   #print(dplInst.queryHash(350))
   #print(dplInst.getNNBHashValues(160))
   #print(dplInst.getOverlap(161,160))
@@ -1557,7 +1565,6 @@ if __name__ == "__main__":
   # print(smartCropOutput)
   # print(type(smartCropOutput))
   # dplInst.writeLog(249,'smartCrop',smartCropOutput, computer = 'MBP')
-
   #   -decon,
   #print(dplInst.metaData['filePaths']['psfPath_MBP'])
   #print(dplInst.makeDeconDL2_javaCommandLine(1, computer='MBP'))
