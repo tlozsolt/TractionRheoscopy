@@ -445,6 +445,7 @@ class dplHash:
     scratchSubDirList = self.metaData['filePaths']['scratchSubDirList']
     projectSubDirList = self.metaData['filePaths']['projectSubDirList']
     gitSubDirList = self.metaData['filePaths']['gitDirList']
+    calibrationSubDirList = self.metaData['filePaths']['calibrationSubDirList']
     if kwrd in scratchSubDirList:
       path = self.metaData['filePaths']['scratchDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
@@ -455,6 +456,9 @@ class dplHash:
       #print('tractionRheoscopyGit_'+str(computer))
       path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
       if kwrd == 'kilfoil_matlab': path += '/particleLocating'
+      path += '/' + kwrd # immediately form the directory
+    elif kwrd in calibrationSubDirList:
+      path = self.metaData['filePaths']['calibrationDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
     else:
       print("possible kwrd in getPath2File must be listed in subDirectories in \
@@ -482,7 +486,11 @@ class dplHash:
       fName += self.metaData['fileNamePrefix'][str(kwrd)]
       fName += fileExt
 
-    elif (kwrd in scratchSubDirList or kwrd in projectSubDirList or kwrd in gitSubDirList) and kwrd not in self.metaData['fileNamePrefix']:
+    elif (kwrd in scratchSubDirList\
+          or kwrd in projectSubDirList\
+          or kwrd in gitSubDirList\
+          or kwrd in calibrationSubDirList)\
+          and kwrd not in self.metaData['fileNamePrefix']:
       # I think this case should only occur in cases where I really want to return a path to a directory and not
       # a path to a specific file. For the kwrds currnently listed this includes:
       # - psfPath
@@ -1532,10 +1540,10 @@ class dplHash:
 if __name__ == "__main__":
   # Tests to run
   # -load yaml file and call some simple hashValue entries
-  #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy\
-  #                   /metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
-  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
-                    'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
+  yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy'\
+                    '/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
+  #                  'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
   print(len(dplInst.hash.keys()))
