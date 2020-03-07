@@ -352,6 +352,8 @@ class dplHash:
     possible pipelineStep values:
     rawTiff, hash, preprocessing,flatField, decon, smartCrop, postDecon, locations, tracking
 
+    Generally it will append, however if the first step hash is called again, it will overwrite the existing log file
+
     <processing step name>:
       cropBool: boolean flag on whether this step introduced cropping/hashing
       origin: [vector pointing from the origin in the outout of the step realtive to the origin of the previous step]
@@ -363,9 +365,9 @@ class dplHash:
     """
     # open the file and if not present create it in a permanent (not scratch) directory.
     logFilePath = self.getPath2File(hashValue,kwrd='log',computer=computer)
-    f = open(logFilePath,'a')
     # append the file with the following yaml text with maybe an additional case for the initalization
     if pipelineStep == 'hash':
+      f = open(logFilePath, 'w') # overwrite any existing logFile if the first step is hash
       # from the metaData hashTable, get the origin, dimensions and for good measure some other details like ref pos etc
       metaData = self.queryHash(hashValue)
       origin = [metaData['xyztCropTuples'][n][0] for n in range(3)]
@@ -379,8 +381,10 @@ class dplHash:
       log += "  index: [" + self.index2key(index) + "]\n"
       log += "  material: " + self.sedOrGel(hashValue) +"\n"
       f.write(log)
+      f.close()
     elif pipelineStep == 'rawTiff': print("called writelog for rawTiff step, but there is nothing to record")
     else: # we are not initializing now
+      f = open(logFilePath, 'a') # append the file if step is anything except hash
       log = pipelineStep + ":\n"
       log += "  crop: " + str(self.metaData[pipelineStep]['crop']) + " # Any cropping on this step?\n"
       log += "  time: " + str(datetime.now()) + "# current time, YYYY-MM-DD HH:MM:SS \n"
@@ -397,7 +401,7 @@ class dplHash:
             log += "  " + key + ": [" + self.index2key(returnIndexDict[0][key])+"]\n"
         else: print("There is some missing or extra key that you are trying to log..")
       f.write(log)
-    f.close()
+      f.close()
 
   def loadStack_imageJ(self,hashValue, imgType='sequence',computer='ODSY'):
     """
