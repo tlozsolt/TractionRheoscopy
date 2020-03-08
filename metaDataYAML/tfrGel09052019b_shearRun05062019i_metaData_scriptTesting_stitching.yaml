@@ -38,6 +38,13 @@ filePaths:
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
 
+  # referenceDirectory hold files that should be permanent but are too large for HOME and so must be put in SCRATCH
+  # Its is possible that when $PROJECT is up and running on ODSY that these should be moved there to prevent needless
+  # copying.
+  calibrationDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
+  calibrationDirectory_ODSY: /n/holyscratch01/spaepen_lab/calibration
+  calibrationDirectory_SS: /path/to/calibration/files/on/storage/server
+
   gitDirList: # files that permanent and updated/synced with git. Hard 100 Mb total git repo size limit. NO IMAGES
     - metaDataYAML
     - particleLocating
@@ -52,10 +59,12 @@ filePaths:
     - rawTiff
     - smartCrop
 
-  projectSubDirList: # Files that are permanent and should be archived or a reused
-    - log
+  calibrationSubDirList: # files that should be permanent, but too large for $HOME. Dont need a new folder for each run.
     - psfPath
     - darkTiff
+
+  projectSubDirList: # Files that are permanent and should be archived or a reused
+    - log
     - fullStackPath
     - calibration # includes rheology, notes, piezo position
     - locations
