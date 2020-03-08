@@ -1127,7 +1127,7 @@ class dplHash:
     self.makeScratchDir(computer)
     # insert boolean flag based on yaml metaData file to choose preprocessing or flatfielding.
     keyList = self.getPipelineStep('hash',out='keyList') # This is a list of all the steps that have true flags in yaml
-    print('keyList: ', keyList)
+    #print('keyList: ', keyList)
     #for elt in keyList: print(elt)
     if 'preprocessing' in keyList: self.makePreprocessing_imageJ(hashValue,computer)
     if 'flatField' in keyList : self.makeFlatFielding_python(hashValue,computer)

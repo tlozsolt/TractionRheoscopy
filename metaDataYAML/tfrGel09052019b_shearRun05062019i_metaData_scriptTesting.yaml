@@ -1,40 +1,12 @@
 # traction rheoscopy metaData template
 filePaths:
-  #fName_prefix: deconScriptHashing_ # filename_prefix
-  #
-  #metaDataYaml_MBP: /Users/zsolt/Colloid/SCRIPTS/shearRun09102018h_metaData_scriptTesting.yaml #path to this file
-  #metaDataYaml_ODSY: /path/to/yaml/on/odsy
-  # raw tiff files for importing
-  #rawTiff_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/rawImageSeries #path for input raw Tiff files for MacBookPro
-  #rawTiff_SS: /path/to/tiff/image/sequence #path for input raw Tiff files for Storage Server
-  #rawTiff_ODSY: /n/spaepen_lab/zsolt/DATA # ... for Odyssey shared storage filesystem
-  #
-  # dark images for importing
-  #darkTiff_MBP: /Users/zsolt/Colloid/DATA/testImagesCodeDebug/calibration/darkImage_65ms_camera2922_zStack.tif
-  #darkTiff_SS: /path/to/dark/storage/server/stack
-  #darkTiff_ODSY: /n/spaepen_lab/zsolt/calibration/darkImage_65ms_camera2922_1024px_20190430
-  #
-  # psf path, input
-  #psfPath_MBP: /Users/zsolt/Colloid/DATA/psf
-  #psfPath_SS: /path/to/psf/files/on/storage/server
-  #psfPath_ODSY: /n/spaepen_lab/zsolt/psf/psf_dim1024x1024
-  # currently only contains type gel stacks with 209 zslices
-  # sample every 10 um from 100um to 200 um real sample depth
-  #
-  # image output paths
-  # scratchDirectory is temporary but specific to this metaData file.
-  #   This parent directory is created to hold tiff files that are produced during intermediate stages of
-  #   image processing and are too large and numerous for long term storage.
-  #   You could however, in principle, recompute all
-  #   intermediate stages given the rawTiff (which is archived on storage server) and the analysis scripts that are
-  #   saved in the project directory (see below)
   scratchDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
   scratchDirectory_SS: /path/to/working/directory/specific/to/this/metaData/file
   scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/dpl_test # intermediate storage, no long term backup. Folder for each run
 
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
-  projectDirectory_ODSY: /n/spaepen_lab/zsolt/DATA
+  projectDirectory_ODSY: /n/home04/jzterdik/DATA
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
 
@@ -62,32 +34,6 @@ filePaths:
     - dplPath # note that files written to dplPath are **all** the script files,
               # which also have hard coded extensions such as "extension='_preprocessing.ijm'
               # not the default extensions read from the yaml file as is the case for all other directories
-
-  #preprocessOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/preprocessingOut #subdirectories will be created for each hashvalue
-  #preprocessOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
-  #preprocessOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
-  #
-  #flatField_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/flatField
-  #flatField_SS: /path/to/working/directory/specific/to/this/metaData/file/flatField
-  #flatField_ODSY: /parent/scratch/directory/where/intermediate/results/will/be/saved/without/longterm/backup/flatField
-  #
-  #deconOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/deconOut #subdirectories will be created for each hashvalue
-  #deconOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
-  #deconOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
-  #
-  #postDeconOutPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/postDeconOut #subdirectories will be created for each hashvalue
-  #postDeconOutPath_SS: /path/to/output/parent/output/directory #subdirectories will be created for each hashvalue
-  #postDeconOutPath_ODSY: /path/to/output/parent/output/directory/on/odyssey
-  #
-  # output parent directories for particle locations, before trajectory linking
-  #locationsHashed_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/locationsHashed
-  #locationsHashed_SS: /path/to/particle/locations/output # subdirectories will be created
-  #locationsHashed_ODSY: /path/to/particle/locations/output # subdirectories will be created
-  #
-  # path to master dpl bash execute script
-  #dplPath_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/dplScripts
-  #dplPath_SS: /path/to/decon/particle/locating/top/level/bash/script
-  #dplPath_ODSY: /path/to/decon/particle/locating/top/level/bash/script
   # 
   # calibration data
   gelRheology: /path/to/gel/rheology/on/stoargeServer/
@@ -100,14 +46,16 @@ filePaths:
   #dplPath_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionForceRheology/particleLocating
   fijiPath_MBP: /Applications/Fiji.app/Contents/MacOS/ImageJ-macosx # note this is an executable
   fijiPath_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/ImageJ-linux64 # Check that the fast FFT and Mosaic libraries are also installed
+
   matlabPath_ODSY: /path/to/MATLAB/if/not/standard/modulue/
   matlabPath_MBP: /Applications/MATLAB_R2018b.app/bin/matlab
-  # particleLocatingSCRIPTS_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/particleLocating
-  # particleLocatingSCRIPTS_ODSY: /path/to/dpl/module/git
+
   DL2Path_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/plugins
   DL2Path_MBP: /Applications/Fiji.app/plugins
+
   javaPath_MBP: java
   javaPath_ODSY: module load Java/1.8
+
   loadPython_ODSY: module load Anaconda3/5.0.1-fasrc02
   loadMatlab_ODSY: module load matlab/R2018b-fasrc01
 ################
