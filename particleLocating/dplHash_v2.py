@@ -1149,13 +1149,14 @@ class dplHash:
     if 'locating' in keyList : self.makeParticleLocating_matlab(hashValue,computer)
     return None
 
-  def makeDPL_bashScript(self,computer='ODSY'):
+  def makeDPL_bashScript(self,computer='ODSY', errorLog = 'singleFile'):
     """
     make a bash script to call and excure decon particle location. \
     The bash file is created once and called for each hashValue
-    [ ] takes as input a hashValue as input ie /dpl.x 250
-    [ ] automatically cycles through the pipeline steps in the corresponding yaml file and adds those steps with \
+    [+] takes as input a hashValue as input ie /dpl.x 250
+    [+] automatically cycles through the pipeline steps in the corresponding yaml file and adds those steps with \
         true boolean flags.
+    [+] has an optional keywrod arguement to produce s single error and log file
     :param computer:
     :return:
     """
@@ -1166,6 +1167,16 @@ class dplHash:
     pipeline = self.metaData['pipeline']
     # now cycle over the pipeline keys and get the relevant filepaths and add the relevant pieces to bash exec script
     # I think the lines to execute bash commands should be added a nested function like exec_smartCrop or exec_postDecon
+
+    def makeErrorLogFile():
+      """
+      Returns a string of the fullPath to the log and error files that should be used if errorLog flag is "singleFile"
+      :return:
+      """
+      dplPath = self.getPath2File(0,kwrd='dplPath',computer=computer,pathOnlyBool=True) + '/'
+      dplPath += self.metaData['fileNamePrefix']['global']+'${hashValue}'
+      logFile, errorFile = dplPath +'.log', dplPath + '.err'
+      return (logFile,errorFile)
 
     def exec_hash():
       if computer == 'ODSY':
@@ -1207,7 +1218,10 @@ class dplHash:
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
       output="" # initialize to empty string
       output += 'python '
-      output += flatFieldScript + ' 1>' + flatFieldScript[0:-1*len(extension)] \
+      if errorLog == 'singleFile':
+        (logFile, errorFile) = makeErrorLogFile()
+        output += flatFieldScript + ' 1>> ' + logFile + ' 2>> ' + errorFile + '\n'
+      else: output += flatFieldScript + ' 1>' + flatFieldScript[0:-1*len(extension)] \
                 + '.log 2> ' + flatFieldScript[0:-1*len(extension)] + '.err \n'
       output += 'wait \n'
       output += 'echo \"flatFielding is done!\"\n'
@@ -1218,7 +1232,10 @@ class dplHash:
       deconScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_decon.x')
       deconScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', deconScript_explicitHash)
       extension = '.x'
-      output = deconScript + ' 1>' + deconScript[0:-1*len(extension)] \
+      if errorLog == 'singleFile':
+        (logFile, errorFile) = makeErrorLogFile()
+        output = deconScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+      else: output = deconScript + ' 1>' + deconScript[0:-1*len(extension)] \
                 + '.log 2> ' + deconScript[0:-1*len(extension)] + '.err \n'
       output += 'wait \n'
       output += 'echo \"deconvolution done!\"\n'
@@ -1232,7 +1249,10 @@ class dplHash:
       #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
       output="" # initialize to empty string
       output += 'python '
-      output += smartCropScript + ' 1>' + smartCropScript[0:-1*len(extension)] \
+      if errorLog == 'singleFile':
+        (logFile, errorFile) = makeErrorLogFile()
+        output += smartCropScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+      else: output += smartCropScript + ' 1>' + smartCropScript[0:-1*len(extension)] \
                 + '.log 2> ' + smartCropScript[0:-1*len(extension)] + '.err \n'
       output += 'wait \n'
       output += 'echo \"smartCrop done!\"\n'
@@ -1255,9 +1275,13 @@ class dplHash:
       # This solution involve bakgrounding Xvfb, which will prevent matlab from quitting on subsequent locating step
       # xvfb-run is a utility that is available on ODSY and can be installed which creates a random Xvfb display
       # on a random channel (equivalent to DISPLAY:123") and then closes the instances after completion.
-      output += " -batch " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
+      output += " -batch "
+      if errorLog == 'singleFile':
+        (logFile, errorFile) = makeErrorLogFile()
+        output += postDeconScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+      else: output += postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
                 + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
-      # if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with \
+      if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with \
                                               # hack around --headless not working
       #output += " --headless -macro " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
       #         + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
@@ -1275,8 +1299,11 @@ class dplHash:
       elif computer == 'MBP': output = self.metaData['filePaths']['matlabPath_'+ computer]
       output += " -nodisplay -nosplash -r "\
               "\"run(\'" + particleLocatingScript +"\'); exit\""
-      output += " 1> " + particleLocatingScript[0:-1*len(extension)] + '.log' \
-                + "2> " + particleLocatingScript[0:-1*len(extension)] + ".err \n"
+      if errorLog == 'singleFile':
+        (logFile, errorFile) = makeErrorLogFile()
+        output += ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+      else: output += " 1> " + particleLocatingScript[0:-1*len(extension)] + '.log' \
+                + " 2> " + particleLocatingScript[0:-1*len(extension)] + ".err \n"
       output += 'wait \n'
       output += 'echo \"particleLocating done!\"\n'
       output += ""
