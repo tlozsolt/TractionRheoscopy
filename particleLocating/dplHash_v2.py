@@ -1268,7 +1268,7 @@ class dplHash:
         output += "Xvfb $DISPLAY -auth /dev/null & (\n"
         output += self.metaData['filePaths']['fijiPath_MBP']
       elif computer == 'ODSY':
-        output = "/usr/bin/xvfb-run "
+        output = "/n/home04/jzterdik/SOFTWARE/usr/bin/xvfb-run "
         output += self.metaData['filePaths']['fijiPath_ODSY']
       # Mosaic plugin do no work with --headless flag in fiji. Googled problem.\
       # solution on mosaic suite headless issue on forum.image.sc
