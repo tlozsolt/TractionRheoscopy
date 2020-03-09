@@ -1055,10 +1055,10 @@ class dplHash:
       offset = metaData['sedGelCrop']['offset']
       zSlices = fullStack.shape[0]
       if sedGel[0] == 'sed': # crop from the bottom
-        fullStack = fullStack[maxIndex + offset : zSlices ,:,:] # we need to add the offset...raise lower extent
-        refPos[2] = (refPos[2][0] + maxIndex + offset,refPos[2][1])
-        originLog[2] = originLog[2] + maxIndex + offset
-        dimLog[2] = dimLog[2] - (maxIndex + offset)
+        fullStack = fullStack[maxIndex - offset : zSlices ,:,:] # We need to use the offset to relax the cropping
+        refPos[2] = (refPos[2][0] + maxIndex - offset,refPos[2][1])
+        originLog[2] = originLog[2] + maxIndex - offset
+        dimLog[2] = dimLog[2] - (maxIndex - offset)
         print("Warning, on smartCrop, check to make sure you have enough slices to crop given offset")
       elif sedGel[0] == 'gel':
         fullStack = fullStack[0:maxIndex - offset,:,:]
