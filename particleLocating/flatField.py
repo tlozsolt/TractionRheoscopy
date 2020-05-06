@@ -81,7 +81,7 @@ def getSliceDim(slice):
 
 def array2tif(array,path):
     """ This function creates a tif file from the input array
-        It inherits everything (size and dtype) from the underling array
+        It inherits everything (size and dtype) from the underlying array
         INPUT:
           array: numpy array, either 2D slice, zStack, or time series
           path: path to write the file
@@ -118,7 +118,7 @@ def gaussBlur(slice,sigma=50):
         OUTPUT:
         blurred image as a numpy array
     """
-    return ndimage.filters.gaussian_filter(slice, sigma)
+    return ndimage.gaussian_filter(slice, sigma)
 
 def gaussBlurStack(stack,sigma=50,dz=1,parBool=False):
     """ I want to do something like:
@@ -143,7 +143,7 @@ def gaussBlurStack(stack,sigma=50,dz=1,parBool=False):
         singleFunction(database enetry) vs decorated function(database, list of entries) execute in parallel
     """
     """ Apply a 2D gaussian blur to each slice in a stack"""
-    flatStack = np.empty(stack.shape)
+    flatStack = np.empty(stack.shape,dtype=stack.dtype)
     for z in range(0,flatStack.shape[0],dz):
         flatStack[z,:,:] = gaussBlur(stack[z,:,:],sigma = sigma)
         #print("gaussBlur on slice z: ",z)

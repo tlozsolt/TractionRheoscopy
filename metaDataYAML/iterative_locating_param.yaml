@@ -1,0 +1,14 @@
+locating:
+  software: python
+  crop: False
+  iterative:
+    bool: True # do iterative locating?
+    maxIter: 20 # how many interative loops to do befroe force quitting?
+    mask:
+      sed: [9, 7, 7] # keep in mind this can be much larger than a single particle diameter
+      gel: [9,19,19] # pixel order is [z,y,x]
+  sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
+    - { diameter: [7, 5, 5], minmass: 0, preprocess: False, max_iterations: 20}
+    - { diameter: [5, 5, 5], minmass: 100, preprocess: False, max_iterations: 20}
+  gel:
+    - {diameter: [7,19,19], minmass: 5000, preprocess: False, max_iterations: 20}

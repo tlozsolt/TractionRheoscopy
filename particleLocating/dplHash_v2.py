@@ -1,5 +1,8 @@
-import yaml, os, math, glob, flatField, re
+import yaml, os, math, glob, re, functools
+import flatField, pyFiji, threshold, curvatureFilter
 from datetime import datetime
+import numpy as np
+import locating
 """
 This file is used to create a deconvolution particle locating (dpl) Hash table
 for a given set of colloid microscopy xyzt stacks and complete metaData yaml file.
@@ -37,34 +40,52 @@ class dplHash:
     # xy chunks are directly computed given chunk size, minimum overlap, and full xy dimensions
     xyDim_full = [self.metaData['imageParam']['xDim'],self.metaData['imageParam']['yDim']]
     #xyDim_crop = [self.metaData['deconvolution']['deconCropXDim'], self.metaData['deconvolution']['deconCropYDim']]
+
+    # how big should each hash be in xy? Also check that sed and gel are the same size, but futre versions
+    # might allow for different xy dimensions for sed and and gel. (probably not though)
     xyDim_gel = self.metaData['hash']['dimensions']['gel']['xyz'][:2]
     xyDim_sed = self.metaData['hash']['dimensions']['sed']['xyz'][:2]
-    if xyDim_gel == xyDim_sed: xyDim_crop = xyDim_sed
+    if xyDim_gel == xyDim_sed:
+      xyDim_crop = xyDim_sed
     else:
       print("Material dependent xy dimensions for gel vs sed are not supported yet")
       raise KeyError
 
     #xyDim_minOverlap = [self.metaData['deconvolution']['minXOverlap'],self.metaData['deconvolution']['minYOverlap']]
+
+    # read in min overlap for gel and sed
     xyzDim_minOverlap_gel = self.metaData['hash']['dimensions']['gel']['minOverlap']
     xyzDim_minOverlap_sed = self.metaData['hash']['dimensions']['sed']['minOverlap']
+
+    # check that overlap is same for gel and sed, however future version mights allow for different overlaps
     if xyzDim_minOverlap_gel == xyzDim_minOverlap_sed:
       xyDim_minOverlap = xyzDim_minOverlap_gel[:2]
       zDim_minOverlap = xyzDim_minOverlap_gel[2]
     else:
       print("Material dependent xyz overlaps for gel vs sed are not supported yet (but xy may be different from z)")
       raise KeyError
+
+    # compute the number of hashes in x and y
     xyChunks = math.ceil((xyDim_full[0] - xyDim_minOverlap[0])/(xyDim_crop[0]-xyDim_minOverlap[0]))
+
     # z chunks are computed separately for gel and sediment and based on min overlap and z dimension in gel and sed portions
     zDim_full = self.metaData['imageParam']['zDim']
-    zDim_gel = self.metaData['imageParam']['gelSedimentLocation']
-    zDim_sed = zDim_full - zDim_gel
-    #zDimGel_crop = self.metaData['deconvolution']['deconCropZDimGel']
+    gelSedZPos = self.metaData['imageParam']['gelSedimentLocation']
+
+    # Get the z bounds for gel and sediment taking into account the min overlap of gel into sed and vice-versa
+    zDim_gelMinMax = (0,gelSedZPos + self.metaData['hash']['dimensions']['gel']['pxOverlap_w_sed'])
+    zDim_sedMinMax = (gelSedZPos - self.metaData['hash']['dimensions']['sed']['pxOverlap_w_gel'],zDim_full)
+    zDim_sed = zDim_sedMinMax[1] - zDim_sedMinMax[0]
+    zDim_gel = zDim_gelMinMax[1] - zDim_gelMinMax[0]
+
+    # how big are the chunks in z for sed and gel?
     zDimGel_crop = self.metaData['hash']['dimensions']['gel']['xyz'][2]
     zDimSed_crop = self.metaData['hash']['dimensions']['sed']['xyz'][2]
-    #zDimSed_crop = self.metaData['deconvolution']['deconCropZDimSediment']
-    #zDim_minOverlap = self.metaData['deconvolution']['minZOverlap']
+
+    # compute the number of chunks
     zChunks_sed = math.ceil((zDim_sed - zDim_minOverlap)/(zDimSed_crop - zDim_minOverlap))
     zChunks_gel = math.ceil((zDim_gel - zDim_minOverlap)/(zDimGel_crop - zDim_minOverlap))
+
     # create an empty dictionary with keys spanning the hash size
     hashSize = timeSteps*(zChunks_sed + zChunks_gel)*xyChunks*xyChunks
     self.metaData['hashDimensions'] = {'hashSize':hashSize,\
@@ -72,29 +93,51 @@ class dplHash:
                                        'zChunks_sed':zChunks_sed,\
                                        'zChunks_gel':zChunks_gel,\
                                        'timeSteps':timeSteps}
-    #print(hashSize, timeSteps, zChunks_sed, zChunks_gel,xyChunks)
     # Generate, for each hashValue, the xyz cutoffs...permutations on 3 choices, each, on x and y
     # to generate x points, we start at left (ie 0), \
     # add the cropped dimension until we exceed the full dimension, \
     # and then shift the rightmost point to end at rightmost extent. Same for y
+    centerPtListXY = np.linspace(np.floor(xyDim_crop[0] / 2),
+                               np.ceil(xyDim_full[0] - xyDim_crop[0] / 2),
+                               num=xyChunks)
+    centerPtListZ_gel = np.linspace(np.floor(zDim_gelMinMax[0] + zDimGel_crop/2),\
+                                    np.ceil(zDim_gelMinMax[1]  - zDimGel_crop/2),\
+                                    num=zChunks_gel)
+    centerPtListZ_sed = np.linspace(np.floor(zDim_sedMinMax[0] + zDimSed_crop/2), \
+                                    np.ceil(zDim_sedMinMax[1]  - zDimSed_crop/2), \
+                                    num=zChunks_sed)
     xCrop = []
-    for n in range(xyChunks):
-      if n==0: leftPt=0
-      elif n>0 and n<(len(range(xyChunks))-1): leftPt=n*xyDim_crop[0] - xyDim_minOverlap[0]
-      else: leftPt = xyDim_full[0] - xyDim_crop[0]
-      xCrop.append((leftPt,leftPt+xyDim_crop[0]))
+    for center in centerPtListXY:
+      xCrop.append((int(center-xyDim_crop[0]/2),\
+                    int(center + xyDim_crop[0]/2)))
+    #for n in range(xyChunks):
+    #  if n==0: leftPt=0
+    #  elif n>0 and n<(len(range(xyChunks))-1): leftPt=n*xyDim_crop[0] - xyDim_minOverlap[0]
+    #  else: leftPt = xyDim_full[0] - xyDim_crop[0]
+    #  xCrop.append((leftPt,leftPt+xyDim_crop[0]))
     zCrop = [] # list of all the z-positions for gel and sediment
     material = [] # list of str specifiying whether material is sed or gel
-    for n in range(zChunks_gel):
-      if n==0: bottomPt=0
-      else: bottomPt=n*(zDimGel_crop - zDim_minOverlap)
-      zCrop.append((bottomPt,bottomPt+zDimGel_crop))
+
+    for center in centerPtListZ_gel:
+      zCrop.append((int(center-zDimGel_crop/2),\
+                    int(center + zDimGel_crop/2)))
       material.append('gel')
-    for n in range(zChunks_sed):
-      if n==0: topPt = zDim_full
-      else: topPt = zDim_full - n*(zDimSed_crop - zDim_minOverlap)
-      zCrop.append((topPt-zDimSed_crop,topPt))
+    for center in centerPtListZ_sed:
+      zCrop.append((int(center-zDimSed_crop/2), \
+                    int(center + zDimSed_crop/2)))
       material.append('sed')
+
+    #for n in range(zChunks_gel):
+    #  if n==0: bottomPt=0
+    #  else: bottomPt=n*(zDimGel_crop - zDim_minOverlap)
+    #  zCrop.append((bottomPt,bottomPt+zDimGel_crop))
+    #  material.append('gel')
+    #for n in range(zChunks_sed):
+    #  if n==0: topPt = zDim_full
+    #  else: topPt = zDim_full - n*(zDimSed_crop - zDim_minOverlap)
+    #  zCrop.append((topPt-zDimSed_crop,topPt))
+    #  material.append('sed')
+
     hashTable={}
     hashInverse = {}
     # Do we need a hashInverse table? Yes because the job flow requires numbers to be passed to the
@@ -159,6 +202,21 @@ class dplHash:
     """
     return self.invHash[self.index2key(index)]
 
+  def checkHashBounds(self):
+    """ Carries out a sequence of queries along hash and prints the output.
+        return None
+    """
+    x_hvList = [self.queryInvHash((x,0,0,0)) for x in range(self.metaData['hashDimensions']['xyChunks'])]
+    y_hvList = [self.queryInvHash((0,y,0,0)) for y in range(self.metaData['hashDimensions']['xyChunks'])]
+    z_hvList = [self.queryInvHash((0,0,z,0)) for z in range(self.metaData['hashDimensions']['zChunks_sed']\
+                                                        +self.metaData['hashDimensions']['zChunks_gel']) ]
+    print("Along x:\n")
+    for x in x_hvList: print('HashValue: {} '.format(x), self.queryHash(x))
+    print("Along y:")
+    for x in y_hvList: print('HashValue: {} '.format(x), self.queryHash(x))
+    print("Along z:")
+    for x in z_hvList: print('HashValue: {} '.format(x), self.queryHash(x))
+
   def time2HVList(self,time,material):
     """
     returns a list of all hashValues for a specified time and material
@@ -191,7 +249,7 @@ class dplHash:
     hashNNB['gel'] = []
     # look up the associated xyzt index value by querying hash table
     index = self.queryHash(hashValue)['index']
-    print("index is: ", index)
+    #print("index is: ", index)
     # generate all possible nnb index keys adding/subtracting to the index values
     indexList = []
     for dz in [-1,0,1]:
@@ -393,13 +451,12 @@ class dplHash:
         # This should be true for preprocessing, flatField, decon, postDecon, locations, and tracking
         log += "  origin: [0,0,0] # vector pointing from origin of previous step to output of this step\n"
         log += "  dim: [0,0,0] # change in the xyz dimensions from previous step\n"
-      else:
-        # This is either hashParam or a function that is going to crop (ie smartCrop and maybe something else in the future)
-        if pipelineStep == 'smartCrop':
-        # format the return data of the function
-          for key in returnIndexDict[0].keys(): # dont know why returnIndexDict is a tuple...
-            log += "  " + key + ": [" + self.index2key(returnIndexDict[0][key])+"]\n"
-        else: print("There is some missing or extra key that you are trying to log..")
+      if pipelineStep != 'decon':
+        for key in returnIndexDict[0][pipelineStep].keys(): # dont know why returnIndexDict is a tuple...
+            try: log += "  " + key + ": [" + self.index2key(returnIndexDict[0][pipelineStep][key])+"]\n"
+            except TypeError:
+              log += "  " + key + ": "+ str(returnIndexDict[0][pipelineStep][key]) +"\n"
+      else: pass
       f.write(log)
       f.close()
 
@@ -470,7 +527,7 @@ class dplHash:
       print("or you have to code in some exception")
       raise KeyError
     # given kwrd, decide on file extension (ie tif or text or yaml)
-    if extension == 'default': fileExt = self.metaData['fileExtensions'][str(kwrd)]
+    if extension == 'default' and pathOnlyBool ==False: fileExt = self.metaData['fileExtensions'][str(kwrd)]
     else: fileExt=extension
 
     # now build the fileName keeping in mind that I will need exceptions for some keywords
@@ -684,7 +741,7 @@ class dplHash:
     # compute absolute height (in um) above the coverslip for the hashValue
     zCropTuple_px = self.hash[str(hashValue)]['xyztCropTuples'][2]  
     zOffset_um = self.metaData['imageParam']['piezoPos']['imageStackBottom']-self.metaData['imageParam']['piezoPos']['coverslip']
-    zHeight_um = self.metaData['imageParam']['px2Micron'][2]*zCropTuple_px[0] + zOffset_um # int specifying the real height of the bottom of the chunk relative to the coverslip...aboslute position in um
+    zHeight_um = self.metaData['imageParam']['px2Micron']['z']*zCropTuple_px[0] + zOffset_um # int specifying the real height of the bottom of the chunk relative to the coverslip...aboslute position in um
     # parse the psf filenames to extract material type and absolute z-position abvove coverslip. Filename tags should be typeSED or typeGEL, and z*
     #psfPath = self.metaData['filePaths']['psfPath_'+computer]
     psfPath = self.getPath2File(hashValue,kwrd='psfPath',computer=computer,pathOnlyBool=True)
@@ -703,7 +760,10 @@ class dplHash:
       height = zHeightList[n][0]
       #print(height,zHeight_um)
       if height<zHeight_um: psfIndex +=1
-    psfFilePath_str = zHeightList[psfIndex][1]
+    try: psfFilePath_str = zHeightList[psfIndex][1]
+    except IndexError:
+      psfFilePath_str = zHeightList[-1][1]
+      print("Using last psf since hash height {} is greater than highest available psf {}".format(zHeight_um,len(zHeightList)))
     ##
     outputText += ' -psf file '+psfFilePath_str
     ##
@@ -711,7 +771,7 @@ class dplHash:
     ##
     deconMethod_str = self.metaData['decon']['method']
     if deconMethod_str == 'RLTV':
-      regParam,n_iteration = self.metaData['decon']['lambda'], self.metaData['decon']['iterations']
+      regParam,n_iteration = self.metaData['decon']['lambda'][materialStr], self.metaData['decon']['iterations']
     else:
       print("You are using a decon method that is not programmed in yet. Shouldnt be hard to do though!")
       raise TypeError
@@ -754,7 +814,72 @@ class dplHash:
     with open(output_fName,'w') as f: f.write(output)
     return 'ImageJ preprocessing macro created for hashValue ' + str(hashValue) +' created at :'+output_fName
 
-  def makeFlatFielding_python(self,hashValue,computer='ODSY'):
+  def flatField_python(self,hashValue,computer='ODSY',output='log'):
+    """
+    Carries out flat field correction following:
+        https://en.wikipedia.org/wiki/Flat-field_correction
+    Most of the underlying functions are in flatField.py.
+    ToDo:
+      -> Incorpate the possible parameters from yaml file into script. Currently a lot of param and options are
+         available nominally in the script, however there are not actually used or referenced in the function. This
+         is very misleading. I think its possible that a part of the functionality has already been programmed
+         but wasnever implemented in this function as it was as a combined makeFlatField file and function.
+    :param hashValue:
+    :param computer:
+    :return:
+    """
+    # set up the input and output fileNames and keyword
+    inputkwrd = self.getPipelineStep('flatField',stream='up')
+    rawPath = self.getPath2File(hashValue,kwrd = inputkwrd ,computer=computer)
+    darkPath = self.getPath2File(hashValue,kwrd='darkTiff',computer=computer)
+    outPath = self.getPath2File(hashValue,kwrd='flatField',computer=computer)
+
+    # load stacks
+    rawStack = flatField.zStack2Mem(rawPath)
+    darkStack = flatField.zStack2Mem(darkPath)
+    masterDark = flatField.zProject(darkStack)
+
+    # crop according to the yaml file and read off the crop parameters specific to hashValue from metaData
+    if self.metaData['flatField']['crop2Hash'] == True:
+        cropIndex = self.getCropIndex(hashValue)
+        rawStack = flatField.cropStack(rawStack,cropIndex)
+        masterDark = flatField.cropStack(masterDark,cropIndex[0:2])
+
+    # carry out flatFielding
+    flatStack = flatField.gaussBlurStack(rawStack,sigma=self.metaData['flatField']['sigma'])
+    corrStack = flatField.correctImageStack(rawStack,masterDark,flatStack)
+
+    if output == 'log': # save corrected image to the right outPath...proably preprocessing subdirectory
+        flatField.array2tif(corrStack,outPath)
+        return {'flatField':{'flatStack_method':'gaussianBlur', 'sigma': 15}}
+    else: print("Output flag {} is not supported in flatField_python".format(output))
+
+  def makeFlatField_python(self,hashValue,computer='ODSY'):
+    """
+    param hashValue: int
+    param computer: str
+    return: None, but will write a python script for the specified hashValue
+    """
+    # import flatField and other necessary modules
+    gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    flatFieldScript = 'import sys\n'
+    flatFieldScript += 'sys.path.insert(0,\"' + gitDir + '\")\n'
+    flatFieldScript +='import flatField\n\n'
+    flatFieldScript += 'import dplHash_v2 as dplHash\n'
+
+    flatFieldScript += 'hashObject = dplHash.dplHash(\'' \
+                       + self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) \
+                       + '\')\n'
+    flatFieldScript += 'returnDict = hashObject.flatField_python({hv},output=\'{output}\',computer=\'{computer}\')\n'\
+      .format(hv=hashValue,output='log',computer=computer)
+    flatFieldScript += 'hashObject.writeLog({hv},\'flatField\',returnDict,computer=\'{computer}\')\n'.format(hv=hashValue,computer=computer)
+
+    # write to file
+    output_fName = self.getPath2File(hashValue,kwrd='dplPath',extension='_flatField.py',computer=computer)
+    with open(output_fName,'w') as f: f.write(flatFieldScript)
+    return "flatField python script for hashValue {} created at: {}".format(hashValue,output_fName)
+
+  def makeFlatFielding_python_depracated(self,hashValue,computer='ODSY'):
     """
     Will create a python script to carry out flat field correction following
         https://en.wikipedia.org/wiki/Flat-field_correction
@@ -808,6 +933,23 @@ class dplHash:
     output_fName = self.getPath2File(hashValue,kwrd='dplPath',extension='_flatField.py',computer=computer)
     with open(output_fName,'w') as f: f.write(flatFieldScript)
     return "Flatfielding python script for hashValue "+str(hashValue) +" created at: "+output_fName
+
+  def makePostDeconCombined(self,hashValue,computer='ODSY'):
+    gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    yamlPath = self.getPath2File(hashValue,kwrd='metaDataYAML', computer=computer)
+
+    postDeconScript  = 'import sys\n'
+    postDeconScript += 'sys.path.insert(0,\"' + gitDir + '\")\n'
+    postDeconScript += 'import postDeconCombined\n'
+    postDeconScript += 'inst = postDeconCombined.PostDecon(\'{yamlPath}\',{hashValue})\n'.format(yamlPath=yamlPath, \
+                                                                                           hashValue=hashValue)
+    postDeconScript += 'inst.smartCrop(computer=\'{computer}\')\n'.format(computer=computer)
+    postDeconScript += 'inst.postDecon(computer=\'{computer}\')\n'.format(computer=computer)
+    postDeconScript += 'inst.locations(computer=\'{}\')\n'.format(computer)
+    postDeconScript += 'inst.saveLocationDF(computer=\'{computer}\')\n'.format(computer = computer)
+    output_fName = self.getPath2File(hashValue,kwrd='dplPath',extension='_postDeconCombined.py',computer=computer)
+    with open(output_fName,'w') as f: f.write(postDeconScript)
+    return "postDeconCombined python script for hashValue {} created at {}".format(hashValue, output_fName)
 
   def makeParticleLocating_matlab(self,hashValue, computer='ODSY'):
     """ output the lines to run iteratuve particle location in matlab
@@ -1067,8 +1209,6 @@ class dplHash:
         print("Warning, on smartCrop, check to make sure you have enough slices to crop given offset")
 
     # save the fully cropped file.
-    output_fName = self.getPath2File(hashValue,kwrd='smartCrop',extension='.tif',computer=computer)
-    flatField.array2tif(fullStack,output_fName)
     #refPos_fName = self.getPath2File(hashValue,kwrd='smartCrop', extension='.yaml', computer = computer)
     #with open(refPos_fName,'w') as f:
     #  yaml.dump(self.hash[str(hashValue)],f)
@@ -1076,14 +1216,49 @@ class dplHash:
     #  f.close()
     ## return a total cropping done with final reference pixel locations given.
     if output == 'log':
-      #yamlLog  = "smartCrop:\n"\
-      #yamlLog += "  cropBool: True\n"
-      #yamlLog += "  origin: [" + self.index2key(originLog) + "]\n"
-      #yamlLog += "  dim: [" + self.index2key(dimLog) + "]\n"
-      #yamlLog += "  time: " + str(time)
-      #return yamlLog
+      output_fName = self.getPath2File(hashValue, kwrd='smartCrop', extension='.tif', computer=computer)
+      flatField.array2tif(fullStack, output_fName)
       return {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}
+    elif output =='np.array':
+      return [fullStack, {'smartCrop': {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}}]
     else: return refPos
+
+  def integrateTransVect(self, hv, step='postDecon', computer='ODSY'):
+    """
+    Reads the yaml log file and returns the integrated translation vector for that specific hashValue
+    :param hv:  hashValue
+    :param step: step in pipeline that we should integrate up through. This should be done by searching the log \\
+                 file and not by reading the pipeline from yaml as, in principle the pipeline from yaml could
+                 reflect a job that was restarted.
+    :param computer:
+    :return: tuple giving global (x,y,z) of hash chunk origin.
+    """
+    # open the yaml log file and parse it
+    with open(self.getPath2File(hv, kwrd='log', computer=computer), 'r') as stream:
+      yamlLog = yaml.load(stream, Loader=yaml.SafeLoader)
+    pipeline = self.metaData['pipeline']
+    # create a list of pipeline steps that were both flagged as true and would be included in the log
+    keyList = [list(elt.keys())[0] for elt in pipeline]
+    bool = [list(elt.values())[0] for elt in pipeline]
+    pipelineSteps = [keyList[n] for n in range(len(keyList)) if bool[n] == True and keyList[n] != 'rawTiff']
+    origin = np.array([0, 0, 0])
+    dim = np.array([0, 0, 0])
+    # I need to integrate up through step listed in arguement as a safegaurd against incomplete jobs.
+    for key in pipelineSteps:
+      logEntry = yamlLog[key]
+      if key != step:
+        try:
+          #print("key/step: ", key, step)
+          origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
+          dim += logEntry['dim']
+        except KeyError:
+          print("There is something wrong when comparing pipeline to log. Perhaps incomplete job?")
+          raise KeyError
+      else:  # break out of the for loop after you hit step kwrd arguement
+        origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
+        dim += logEntry['dim']
+        break
+    return (origin, dim)
 
   def makeSmartCrop(self,hashValue,computer='ODSY', output = 'log'):
     """
@@ -1102,16 +1277,135 @@ class dplHash:
                  self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
     if output == 'log':
       outScript += 'yamlLog = dplInst.smartCrop(' + str(hashValue) + ', computer = \'' + computer + '\')\n'
-      outScript += 'dplInst.writeLog('\
-              + str(hashValue)\
-              + ',\'smartCrop\',yamlLog,'\
-              + 'computer=\'' + str(computer)\
-              +'\')\n' # this still needs to be written and output/input matching
+      outScript += 'dplInst.writeLog(' \
+                   + str(hashValue) \
+                   + ',\'smartCrop\',yamlLog,' \
+                   + 'computer=\'' + str(computer) \
+                   +'\')\n' # this still needs to be written and output/input matching
     else: outScript += 'print(dplInst.smartCrop(' + str(hashValue) + ', computer = \'' + computer + '\'))\n'
 
     output_fName = self.getPath2File(hashValue,kwrd='dplPath',computer=computer,extension='_smartCrop.py')
     with open(output_fName,'w') as f: f.write(outScript)
     return print('makeSmartCrop created for hashValue: ' + str(hashValue))
+
+  def postDecon_python(self,hashValue,computer='ODSY',input = 'file', output = 'log'):
+    """
+    this function calls threshold.py, creates and instance of threshold class, and applies the threshold
+    for the specified hashValue. Most parameters are read from the yaml file even when no other option
+    is available; this is done to allow for future changes in thresholding algorithm for example.
+    :param hashValue:
+    :param computer:
+    :param output:
+    :return:
+    """
+
+    # read in the correct upstream input data
+    metaData = self.metaData['postDecon']
+    inputKwrd = self.getPipelineStep('postDecon') # by default this returns the upstream step
+    if input == 'file':
+      inputPath = self.getPath2File(hashValue,kwrd=inputKwrd,computer = computer)
+    #fullStack = flatField.zStack2Mem(inputPath) # this is just reading in the "full stack" before cropping but after hashing etc
+    #refPos = self.getCropIndex(hashValue)
+    originLog = [0,0,0] # relative changes in origin and dimensions to be updated and recorded in writeLog()
+    dimLog = [0,0,0]
+
+    # read in threshold parameters
+    blockDim = metaData['threshold']['local']['blockDim']['X']
+    print("Warning, blockDim is only coded for single values at the moment. Using blockDim X")
+    parBool = metaData['threshold']['local']['parallel']['bool']
+    n_xyz = tuple(metaData['threshold']['local']['sample']['n_xyz']) # convert to tuple as yaml only supports lists, very mionor change
+    n_jobs = metaData['threshold']['local']['parallel']['n_jobs']
+
+    # read in postThresholdFilter parameters
+    material = self.sedOrGel(hashValue)
+    if metaData['software'] == 'python' or metaData['software'] == 'Python':
+      filterBool = metaData['postThresholdFilter'][material]['bool']
+      methodParamList = metaData['postThresholdFilter'][material]['methodParamList']
+      # methodParamList is a list of dictionaries containing all the filters and parameters that need to be applied.
+    else:
+      print('postDeconPython called, but yaml file says software is {} not \'python\' of \'Python\''.format(metaData['software']))
+      raise KeyError
+
+
+    # apply the threshold
+    if input == 'file': inst = threshold.arrayThreshold(inputPath)
+    else: inst = threshold.arrayThreshold(input)
+    inst.imgArray = inst.recastImage(inst.imgArray,'uint16')
+    tmp = inst.localThreshold(blockDim,n_xyz=n_xyz, parBool = parBool, n_jobs=n_jobs)
+    # This returns a list of points and threshold values that need to be interpolated
+    inst.thresholdArray = inst.interpolateThreshold(tmp[0],tmp[1])
+    pos16bit,neg16bit = inst.applyThreshold()
+
+    # now decide if we need filter and apply app the filter steps in order
+    def filterDict2Func(filterDict):
+      """
+      local function that takes a filterDictionary stored in yaml and returns a function to apply that filter
+      when passed an imageArray.
+      :param filterDict: typically something like {method: totalVariation, iter: 20}
+      :return: function, something like threshold.CF(imageArray,filterType = 2, total_iter =iter,)
+      """
+      method = filterDict['method']
+      if method in {'totalVariation', 'meanCurvature', 'gaussianCurvature','gaussianBlur'}:
+        if method == 'totalVariation':
+          # I think this should return a function that will apply the given curvautre filter
+          # and the parameters to the stack that is passed later on
+          return functools.partial(curvatureFilter.tvFilter_stack,iter=filterDict['iter'],n_jobs = filterDict['n_jobs'])
+        elif method == 'gaussianBlur':
+          return functools.partial(curvatureFilter.gaussBlur_stack,sigma=filterDict['sigma'],n_jobs = filterDict['n_jobs'])
+        else: pass
+      else: print('Filter {} is not currently supported'.format(method))
+
+    if filterBool == True:
+      for filterDict in methodParamList:
+        filterFunc = filterDict2Func(filterDict)
+        pos16bit = filterFunc(pos16bit)
+        # currently three options for filtering are available: total variation, guassian blur, and meanCurvature
+        # I should create a function that takes a methodParamList and returns a function that only needs an
+        # array onto which the filter is applied. This should also be parrallel and inherit that same parallel param as
+        # thresholding.
+    pos8bit = threshold.arrayThreshold.recastImage(pos16bit,'uint8')
+    output_fName = self.getPath2File(hashValue,kwrd='postDecon',extension='.tif',computer=computer)
+    if metaData['crop'] ==True:
+      print("Cropping is not currently supported on postDecon. All cropping should be done on smartCrop, upstream of postDecon.")
+      raise KeyError
+    elif metaData['crop'] == False and output == 'log':
+      flatField.array2tif(pos8bit, output_fName)
+      return {'origin': originLog, 'dim': dimLog}
+    elif metaData['crop'] == False and output == 'tifPath':
+      flatField.array2tif(pos8bit, output_fName)
+      print('Thresholded image was saved to file: \n')
+      print(output_fName)
+      return output_fName
+    elif metaData['crop'] == False and output == 'pyFiji':
+      tempDir = self.getPath2File(hashValue,kwrd='pyFiji',computer=computer,pathOnlyBool=True)
+      print(pyFiji.send2Fiji(pos8bit,wdir = tempDir))
+    elif metaData['crop'] == False and output == 'np.array':
+      return [pos8bit, {'postDecon': {'origin' : originLog, 'dim' : dimLog}}]
+    else: print("output variable is not recognized: {}".format(output))
+
+  def makePostDecon_python(self,hashValue,computer='ODSY', output = 'log'):
+    """
+    This function creates a script to execute python based thresholding after smartCrop.
+    It is not that different from what is executed in threshold.py if __name__ == '__main__'
+    :param hashValue:
+    :param computer:
+    :param output:
+    :return:
+    """
+    outScript = 'import sys\n'
+    gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
+    #outScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
+    outScript += 'sys.path.insert(0,\"' + gitDir +'\")\n'
+    outScript +='import flatField\n'
+    outScript +='import threshold\n'
+    outScript += 'import dplHash_v2 as dplHash\n'
+    outScript += 'dplInst = dplHash.dplHash(\'' + \
+                 self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
+    outScript += 'dplInst.postDecon_python({hashValue},computer=\'{computer}\',output=\'{output}\')'.format(
+      hashValue=hashValue,computer=computer,output=output)
+    output_fName = self.getPath2File(hashValue,kwrd='dplPath',computer=computer,extension='_postDecon.py')
+    with open(output_fName,'w') as f: f.write(outScript)
+    return print('makePostDecon_python created for hashValue: {}'.format(hashValue))
 
   def makeScratchDir(self,computer='ODSY'):
     """
@@ -1126,15 +1420,26 @@ class dplHash:
       #print("This is a scratch dir: ", d)
       if not os.path.exists(d): os.makedirs(d)
 
-
   def makeAllScripts(self,hashValue,computer='ODSY'):
     """
     single python method to create all the scripts for a given hashValue.
-    Currently 4 scripts are created:
-      [+] postprocessing and back ground subtraction in imageJ 
-      [+] deconvolution in deconvolution lab 2 using java
-      [+] postDecon preocessing to convert output 32 bit image to 8 bit and threshold in imageJ
-      [+] particle locating in matlab
+
+    Typically a full pipeline is:
+    -> make scratch directories
+    -> generate hash (which is implicit in calling this function)
+    -> flatField (python)
+    -> decon (java, deconlab 2)
+    -> postDeconCombined (all python, and no intermediate file writing)
+      -> smart Crop
+      -> thresholding
+      -> Curvature filter
+      -> locatings
+
+    There are also older options for sperate steps:
+    -> matlab particle locating with Kate's code
+    -> smartCrop as a separate steps
+    -> postDecon threshold and filtering in Fiji
+    -> preprocessing in Fiji instead of flatFielding in python.
     """
     self.makeScratchDir(computer)
     # insert boolean flag based on yaml metaData file to choose preprocessing or flatfielding.
@@ -1142,11 +1447,22 @@ class dplHash:
     #print('keyList: ', keyList)
     #for elt in keyList: print(elt)
     if 'preprocessing' in keyList: self.makePreprocessing_imageJ(hashValue,computer)
-    if 'flatField' in keyList : self.makeFlatFielding_python(hashValue,computer)
+    if 'flatField' in keyList : self.makeFlatField_python(hashValue,computer)
     if 'decon' in keyList : self.makeDeconDL2_javaCommandLine(hashValue,computer)
-    if 'smartCrop' in keyList : self.makeSmartCrop(hashValue,computer)
-    if 'postDecon' in keyList : self.makePostDecon_imageJ(hashValue,computer)
-    if 'locating' in keyList : self.makeParticleLocating_matlab(hashValue,computer)
+    if 'smartCrop' in keyList \
+            and 'postDecon' in keyList \
+            and 'locating' in keyList \
+            and self.metaData['locating']['software'] == 'python':
+      # write combined PostDecon file
+      self.makePostDeconCombined(hashValue, computer)
+    else:
+      if 'smartCrop' in keyList : self.makeSmartCrop(hashValue,computer)
+      if 'postDecon' in keyList :
+        software = self.metaData['postDecon']['software']
+        if software == 'ImageJ': self.makePostDecon_imageJ(hashValue,computer)
+        elif software== 'python': self.makePostDecon_python(hashValue, computer=computer)
+        else: print("software for postDecon is {software}, and is not ImageJ or python".format(software))
+      if 'locating' in keyList : self.makeParticleLocating_matlab(hashValue,computer)
     return None
 
   def makeDPL_bashScript(self,computer='ODSY', errorLog = 'singleFile'):
@@ -1259,36 +1575,70 @@ class dplHash:
       output += ""
       return output
 
-    def exec_postDecon():
-      postDeconScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_postDecon.ijm')
-      postDeconScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', postDeconScript_explicitHash)
-      extension = '.ijm'
-      if computer == 'MBP':
-        output = "export DISPLAY=:123 \n"
-        output += "Xvfb $DISPLAY -auth /dev/null & (\n"
-        output += self.metaData['filePaths']['fijiPath_MBP']
-      elif computer == 'ODSY':
-        output = "/n/home04/jzterdik/SOFTWARE/usr/bin/xvfb-run "
-        output += self.metaData['filePaths']['fijiPath_ODSY']
-      # Mosaic plugin do no work with --headless flag in fiji. Googled problem.\
-      # solution on mosaic suite headless issue on forum.image.sc
-      # This solution involve bakgrounding Xvfb, which will prevent matlab from quitting on subsequent locating step
-      # xvfb-run is a utility that is available on ODSY and can be installed which creates a random Xvfb display
-      # on a random channel (equivalent to DISPLAY:123") and then closes the instances after completion.
-      output += " -batch "
+    def exec_postDeconCombined():
+      script_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_postDeconCombined.py')
+      script = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', script_explicitHash)
+      extension = '.py'
+      #if computer == 'ODSY': output = self.metaData['filePaths']['loadPython_ODSY'] + '\n\n'
+      output="" # initialize to empty string
+      output += 'python '
       if errorLog == 'singleFile':
         (logFile, errorFile) = makeErrorLogFile()
-        output += postDeconScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
-      else: output += postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
-                + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
-      if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with \
-                                              # hack around --headless not working
-      #output += " --headless -macro " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
-      #         + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
-      output += 'wait \n' # for whatever reason this causes it to hang after closing FIJI
-      output += 'echo \"postDecon is done!\"\n'
+        output += script + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+      else: output += script + ' 1>' + script[0:-1*len(extension)] \
+                      + '.log 2> ' + script[0:-1*len(extension)] + '.err \n'
+      output += 'wait \n'
+      output += 'echo \"postDeconCombined done!\"\n'
       output += ""
       return output
+
+    def exec_postDecon():
+      if self.metaData['postDecon']['software'] == 'ImageJ':
+        postDeconScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_postDecon.ijm')
+        postDeconScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', postDeconScript_explicitHash)
+        extension = '.ijm'
+        if computer == 'MBP':
+          output = "export DISPLAY=:123 \n"
+          output += "Xvfb $DISPLAY -auth /dev/null & (\n"
+          output += self.metaData['filePaths']['fijiPath_MBP']
+        elif computer == 'ODSY':
+          output = "/n/home04/jzterdik/SOFTWARE/usr/bin/xvfb-run "
+          output += self.metaData['filePaths']['fijiPath_ODSY']
+        # Mosaic plugin do no work with --headless flag in fiji. Googled problem.\
+        # solution on mosaic suite headless issue on forum.image.sc
+        # This solution involve bakgrounding Xvfb, which will prevent matlab from quitting on subsequent locating step
+        # xvfb-run is a utility that is available on ODSY and can be installed which creates a random Xvfb display
+        # on a random channel (equivalent to DISPLAY:123") and then closes the instances after completion.
+        output += " -batch "
+        if errorLog == 'singleFile':
+          (logFile, errorFile) = makeErrorLogFile()
+          output += postDeconScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+        else: output += postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
+                  + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
+        if computer == "MBP": output += ')\n' # dont forget the closing parenthesis started with \
+                                                # hack around --headless not working
+        #output += " --headless -macro " + postDeconScript + ' 1>' + postDeconScript[0:-1*len(extension)] \
+        #         + '.log 2> ' + postDeconScript[0:-1*len(extension)] + '.err \n'
+        output += 'wait \n' # for whatever reason this causes it to hang after closing FIJI
+        output += 'echo \"postDecon is done!\"\n'
+        output += ""
+      elif self.metaData['postDecon']['software'] == 'python':
+        postDeconScript_explicitHash = self.getPath2File(0,kwrd='dplPath',computer=computer,extension='_postDecon.py')
+        postDeconScript = re.sub('_hv[0-9]*_','_hv${hvZeroPadded}_', postDeconScript_explicitHash)
+        extension = '.py'
+        output = 'python '
+        if errorLog == 'singleFile':
+          (logFile, errorFile) = makeErrorLogFile()
+          output += postDeconScript + ' 1>>' + logFile + ' 2>>' + errorFile + '\n'
+        else:
+          output += postDeconScript + ' 1>' + smartCropScript[0:-1 * len(extension)] \
+                    + '.log 2> ' + smartCropScript[0:-1 * len(extension)] + '.err \n'
+        output += 'wait \n'
+        output += 'echo \"postDecon done!\"\n'
+        output += ""
+      else: pass
+      return output
+
 
     def exec_locating():
       particleLocatingScript_explicitHash = self.getPath2File(0,kwrd='dplPath', \
@@ -1309,6 +1659,17 @@ class dplHash:
       output += ""
       return output
 
+    def postDeconCombinedBool():
+      """ Tests whether we should do postDeconCombined"""
+      keyList = self.getPipelineStep('hash', out='keyList')  # This is a list of all the steps that have true flags in yaml
+      if 'smartCrop' in keyList \
+              and 'postDecon' in keyList \
+              and 'locating' in keyList \
+              and self.metaData['locating']['software'] == 'python':
+        return True
+      else: return False
+
+
     # now loop over the pipeline and call the relevant exec functions
     pairList = [(list(elt.keys())[0],list(elt.values())[0]) for elt in pipeline]
     masterScript = "#!/usr/bin/env bash\n"
@@ -1318,15 +1679,43 @@ class dplHash:
     masterScript += "computer=" + str(computer) + "\n"
     masterScript += 'printf -v hvZeroPadded \"%05d\" ${hashValue}\n'  # create the zeroPadded bash variable
     masterScript += ""
-    for elt in pairList:
-      if elt[1] == True:
-        try:
-          masterScript += eval("exec_" + elt[0] + "()")
-          if elt[0] in ['decon','postDecon','locating','tracking']: masterScript += logPython(elt[0])
-        # This is a miserable design because any error in exec functions will be suppressed as likely NameError
-        except NameError:
-          print("exec_" + elt[0] +"(), probably has a bug. \
-                                  Try explicitly calling the function without eval() and try again")
+    postDeconCombinedFlag = False # have you called exec_postDeconCombined? \
+    # You might be tempted to call multiple times since this step is composed of multiple keys.
+    for step in pairList:
+      if step[1] == False: pass
+      elif step[0] == 'hash': masterScript += exec_hash()
+      elif step[0] == 'rawTiff': pass
+      elif step[0] == 'preprocessing': masterScript += exec_preprocessing()
+      elif step[0] == 'flatField': masterScript += exec_flatField()
+      elif step[0] == 'decon':
+        masterScript += exec_decon()
+        masterScript += logPython(step[0])
+      elif step[0] in ['smartCrop', 'postDecon', 'locating'] \
+              and postDeconCombinedBool() == True\
+              and postDeconCombinedFlag == False:
+        masterScript += exec_postDeconCombined()
+        postDeconCombinedFlag = True
+      elif step[0] == 'smartCrop' and postDeconCombinedBool() == False:
+        masterScript += exec_smartCrop()
+      elif step[0] == 'postDecon' and postDeconCombinedBool() == False:
+        masterScript += exec_postDecon()
+        masterScript += logPython(step[0])
+      elif step[0] == 'locating' and postDeconCombinedBool() == False:
+        masterScript += exec_locating()
+        masterScript += logPython(step[0])
+    else: print("There is some problem with pipeline key {} when making bash execuatable".format(step[0]))
+
+
+
+    #for elt in pairList:
+    #  if elt[1] == True:
+    #    try:
+    #      masterScript += eval("exec_" + elt[0] + "()")
+    #      if elt[0] in ['decon','postDecon','locating','tracking']: masterScript += logPython(elt[0])
+    #    # This is a miserable design because any error in exec functions will be suppressed as likely NameError
+    #    except NameError:
+    #      print("exec_" + elt[0] +"(), probably has a bug. \
+    #                              Try explicitly calling the function without eval() and try again")
 
     output_fName_explicitHash = self.getPath2File(0,kwrd='dplPath', computer=computer,extension = '_exec_pipeline.x')
     output_fName = re.sub('_hv[0-9]*_', '_', output_fName_explicitHash)
@@ -1570,14 +1959,19 @@ class dplHash:
 
 if __name__ == "__main__":
   # Tests to run
-  # -load yaml file and call some simple hashValue entries
+ #%% load yaml file and call some simple hashValue entries
   yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy'\
                     '/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
   #                  'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
   dplInst = dplHash(yamlTestingPath)
-  print(len(dplInst.hash.keys()))
+
+#%% test postDecon
+  #dplInst.postDecon_python(1,computer='MBP', output = 'pyFiji')
+
+
+  #%%
   #dplInst.makeSubmitScripts()
   #print(dplInst.queryHash(350))
   #print(dplInst.getNNBHashValues(160))
@@ -1585,46 +1979,51 @@ if __name__ == "__main__":
   #print(dplInst.getCropIndex(160))
   #print(dplInst.getCropIndex(161))
   #pipeline = dplInst.getPipelineStep('postDecon')
-
+  #%%
   # Test loading filePaths
   #for k in dplInst.metaData['filePaths']['scratchSubDirList']:
-    #print("filePath for keyworkd",str(k),": ",dplInst.getPath2File(0,kwrd=k, computer='MBP'))
+  #  print("filePath for keyworkd",str(k),": ",dplInst.getPath2File(0,kwrd=k, computer='MBP'))
   #for elt in dplInst.metaData: print(elt,':',dplInst.metaData[elt])
-  # -print scripts for each stage of dplHash
-
-  #   -flatField,
+  ## -print scripts for each stage of dplHash
+  ##%%
+  ##   -flatField,
   #print(dplInst.makeFlatFielding_python(0))
-
-  # writeLog
-  # for key in ['hash','flatField','decon','postDecon']:
-  #   print('writing log file for step: ' + key)
-  #   dplInst.writeLog(249,key,computer = 'MBP')
-
-  # smartCropOutput = dplInst.smartCrop(249,computer='MBP')
-  # print(smartCropOutput)
-  # print(type(smartCropOutput))
-  # dplInst.writeLog(249,'smartCrop',smartCropOutput, computer = 'MBP')
-  #   -decon,
+  ##%%
+  ## writeLog
+  #for key in ['hash','flatField','decon','postDecon']:
+  #  print('writing log file for step: ' + key)
+  #  dplInst.writeLog(249,key,computer = 'MBP')
+  ##%%
+  #smartCropOutput = dplInst.smartCrop(249,computer='MBP')
+  #print(smartCropOutput)
+  #print(type(smartCropOutput))
+  #dplInst.writeLog(249,'smartCrop',smartCropOutput, computer = 'MBP')
+  ##decon,
   #print(dplInst.metaData['filePaths']['psfPath_MBP'])
   #print(dplInst.makeDeconDL2_javaCommandLine(1, computer='MBP'))
+  #%%
+  #postprocess,
 
-  #   -postprocess,
-  #print(dplInst.metaData["hashDimensions"])
-  print(dplInst.makeAllScripts(0,computer='MBP'))
+  #dplInst.postDecon_python(1,computer='MBP',output='pyFiji')
+  #print(dplInst.postDecon_python(2,computer='MBP',output='pyFiji'))
+  print(dplInst.metaData["hashDimensions"])
+  #print(dplInst.makeAllScripts(80,computer='MBP'))
+  #dplInst.postDecon_python(85,computer='MBP',output='log')
   print(dplInst.makeDPL_bashScript(computer = 'MBP'))
+  #dplInst.writeLog(80,'flatField',{'flatField':{'a':1,'b':2}}, computer='MBP')
 
-  #   -particle locate
+  #particle locate
 
-  #   -stitch
+  #stitch
 
   #print(dplInst.smartCrop(250,computer='MBP'))
   # TODO:
-  #  [ ] create stitching functions, both particle locations and deconvolved images.
+  #  [+] create stitching functions, both particle locations and deconvolved images.
   #  [+] update filepaths to be operational on MBP, not just placeholders.
   #      -flatfield
   #      -deconvolution
   #      -postDecon
   #      -particle Location
   #  [+] move files around on MBP to allow for a single hashValue to be processed
-  #  [ ] FIJI upscaling? Not sure if this is necessary
-  #  [ ] create visualization fucntions to automatically slice and project samples from the deconvolved data.
+  #  [X] FIJI upscaling? Not sure if this is necessary
+  #  [-] create visualization fucntions to automatically slice and project samples from the deconvolved data.

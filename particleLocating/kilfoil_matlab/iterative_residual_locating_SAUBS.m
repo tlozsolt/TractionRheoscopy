@@ -207,7 +207,7 @@ end
 display('recording coordinates...')
 
 metaData = makeMetaData(lnoise,image_filename,lobject,diameters,min_separation,masscut_initial,masscut_residuals,false_particle_size,bridgeThreshold,zeroPxThreshold) % str dictionary of key-vale pairs
-fileID = fopen(output_filename,'a');
+fileID = fopen(output_filename,'w');
 formatSpec = '%s %s\n';
 [nrows,ncols] = size(metaData);
 for row = 1:nrows

@@ -32,7 +32,7 @@ Complicated: compute the nnb hashValue and implement a specified matching functi
 
 class hashStitch:
     """
-    A class for creating stitched images that are outputed from hashed decon particle locating image processing
+    A class for creating stitched images that are outputted from hashed decon particle locating image processing
     """
     def __init__(self,yamlPath):
         # initalize the dplInstance associated with the yamlPath
@@ -77,43 +77,42 @@ class hashStitch:
     def openImage(self,hv,step='postDecon', computer = 'ODSY'):
         fPath = self.dplInst.getPath2File(hv,kwrd=step,computer=computer)
         return flatField.zStack2Mem(fPath)
-
-    def integrateTransVect(self,hv,step='postDecon',computer='ODSY'):
-        """
-        Reads the yaml log file and returns the integrated translation vector for that specific hashValue
-        :param hv:  hashValue
-        :param step: step in pipeline that we should integrate up through. This should be done by searching the log \\
-                     file and not by reading the pipeline from yaml as, in principle the pipeline from yaml could
-                     reflect a job that was restarted.
-        :param computer:
-        :return: tuple giving global (x,y,z) of hash chunk origin.
-        """
-        # open the yaml file and parse it
-        with open(self.dplInst.getPath2File(hv,kwrd='log',computer=computer),'r') as stream:
-            yamlLog = yaml.load(stream,Loader=yaml.SafeLoader)
-        pipeline = self.dplInst.metaData['pipeline']
-        # create a list of pipeline steps that were both flagged as true and would be included in the log
-        keyList = [list(elt.keys())[0] for elt in pipeline]
-        bool = [list(elt.values())[0] for elt in pipeline]
-        pipelineSteps = [keyList[n] for n in range(len(keyList)) if bool[n]==True and keyList[n]!='rawTiff']
-        origin = np.array([0,0,0])
-        dim = np.array([0,0,0])
-        # I need to integrate up through step listed in arguement as a safegaurd against incomplete jobs.
-        for key in pipelineSteps:
-          logEntry = yamlLog[key]
-          if key != step:
-            try:
-              print("key/step: ", key,step)
-              origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
-              dim += logEntry['dim']
-            except KeyError:
-              print("There is something wrong when comparing pipeline to log. Perhaps incomplete job?")
-              raise KeyError
-          else: # break out of the for loop after you hit step kwrd arguement
-            origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
-            dim += logEntry['dim']
-            break
-        return (origin,dim)
+#    def integrateTransVect(self,hv,step='postDecon',computer='ODSY'):
+#        """
+#        Reads the yaml log file and returns the integrated translation vector for that specific hashValue
+#        :param hv:  hashValue
+#        :param step: step in pipeline that we should integrate up through. This should be done by searching the log \\
+#                     file and not by reading the pipeline from yaml as, in principle the pipeline from yaml could
+#                     reflect a job that was restarted.
+#        :param computer:
+#        :return: tuple giving global (x,y,z) of hash chunk origin.
+#        """
+#        # open the yaml file and parse it
+#        with open(self.dplInst.getPath2File(hv,kwrd='log',computer=computer),'r') as stream:
+#            yamlLog = yaml.load(stream,Loader=yaml.SafeLoader)
+#        pipeline = self.dplInst.metaData['pipeline']
+#        # create a list of pipeline steps that were both flagged as true and would be included in the log
+#        keyList = [list(elt.keys())[0] for elt in pipeline]
+#        bool = [list(elt.values())[0] for elt in pipeline]
+#        pipelineSteps = [keyList[n] for n in range(len(keyList)) if bool[n]==True and keyList[n]!='rawTiff']
+#        origin = np.array([0,0,0])
+#        dim = np.array([0,0,0])
+#        # I need to integrate up through step listed in arguement as a safegaurd against incomplete jobs.
+#        for key in pipelineSteps:
+#          logEntry = yamlLog[key]
+#          if key != step:
+#            try:
+#              print("key/step: ", key,step)
+#              origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
+#              dim += logEntry['dim']
+#            except KeyError:
+#              print("There is something wrong when comparing pipeline to log. Perhaps incomplete job?")
+#              raise KeyError
+#          else: # break out of the for loop after you hit step kwrd arguement
+#            origin += logEntry['origin'] # note, relies on type conversion of logEntry to numpy.array
+#            dim += logEntry['dim']
+#            break
+#        return (origin,dim)
 
     def hashStitch(self,subCanvas,hashImg):
         """
@@ -151,7 +150,8 @@ class hashStitch:
         :return:
         """
         # get the integrated origin and dim
-        origin,dim = self.integrateTransVect(hashValue,step=step,computer=computer)
+        #origin,dim = self.integrateTransVect(hashValue,step=step,computer=computer)
+        origin,dim = self.dplInst.integrateTransVect(hashValue,step=step,computer=computer)
         print(str(origin),str(dim))
         imageHash = self.openImage(hashValue,step=step,computer=computer)
         # decide on whether you want to placeHash on sed, gel, or both based on the canvas arguement
