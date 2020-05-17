@@ -14,7 +14,7 @@ class arrayThreshold:
           self.imgArray = self.recastImage(flatField.zStack2Mem(imgPath),dtypeOut='uint16')
           self.thresholdArray = np.zeros(self.imgArray.shape)
         except ValueError:
-          print('Assuming input is a list of [stack,dict of log values]')
+          #print('Assuming input {} is a list of [stack,dict of log values]'.format(imgPath))
           self.imgArray = imgPath[0]
           self.thresholdArray = np.zeros(self.imgArray.shape)
           self.log = imgPath[1]
@@ -158,14 +158,14 @@ class arrayThreshold:
         :return:
         """
         if dtypeOut == 'uint16':
-           min,max = np.amin(imgArray),np.amax(imgArray)
+           min,max = 0.99*np.amin(imgArray) ,1.01*np.amax(imgArray)
            m = 2**16/(max-min)
            b = 2**16-m*max
            mArray = np.full(imgArray.shape,m)
            bArray = np.full(imgArray.shape,b)
            return np.array(np.multiply(mArray,imgArray) + bArray).astype('uint16')
         elif dtypeOut == 'uint8':
-            min, max = np.amin(imgArray), np.amax(imgArray)
+            min, max = 0.99*np.amin(imgArray), 1.01*np.amax(imgArray)
             m = 2 ** 8 / (max - min)
             b = 2 ** 8 - m * max
             mArray = np.full(imgArray.shape, m)
@@ -174,14 +174,14 @@ class arrayThreshold:
         else: raise ValueError('recasting is only availabe to uint8 and uint16, not dtypeOut=',dtypeOut)
 
 
-    def applyThreshold(self,recastBool = True):
+    def applyThreshold(self,recastBool = True,scaleFactor=1.0):
         """
         This function does not compute a threshold. It just takes self.imgArray and self.thresholdArray
         and outputs an 16 bit image of the threshold with optional recasting to image to 16 bit depth.
         :return:
         """
         # change type to enable subtraction
-        out = self.imgArray.astype('float32') - self.thresholdArray.astype('float32')
+        out = self.imgArray.astype('float32') - scaleFactor*self.thresholdArray.astype('float32')
         # clip everything below zero
         positive = out # make a deep copy in case we also want to return the thresholded parts.
         negative = out * -1

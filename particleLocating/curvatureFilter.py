@@ -22,6 +22,7 @@ import numpy as np
 import flatField
 from joblib import Parallel,delayed
 from scipy import ndimage
+from skimage import exposure
 import threshold, pyFiji
 
 def update_Bern(img, row, col):
@@ -188,13 +189,23 @@ def gaussBlur_stack(stack,sigma=1,n_jobs=4):
                                      for z in range(stack.shape[0]))
     return np.array(parOut)
 
+def equalize_adaptHist_stack(stack,clip_limit=0.03,n_jobs=4):
+    stack = stack.astype('uint16')
+    parOut = Parallel(n_jobs=n_jobs)(delayed(exposure.equalize_adapthist)(stack[z,:,:],clip_limit=clip_limit)\
+                                     for z in range(stack.shape[0]))
+    return np.array(parOut)
+
 if __name__ == '__main__':
     testImgPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
                   'OddysseyHashScripting/pyFiji/testImages'
     inputImgPath ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/' \
                   'postDecon/tfrGel09052019b_shearRun05062019i_postDecon8Bit_hv00002.tif'
     img = flatField.zStack2Mem(inputImgPath)
-    tvFiltered = threshold.arrayThreshold.recastImage(tvFilter_stack(img,iter=50),'uint16')
-    print(pyFiji.send2Fiji([img,tvFiltered],wdir=testImgPath))
+    #img = img.astype('uint16')
+    #tvFiltered = threshold.arrayThreshold.recastImage(tvFilter_stack(img,iter=50),'uint16')
+    adaptEqualize = threshold.arrayThreshold.recastImage(equalize_adaptHist_stack(img,clip_limit=0.03),dtypeOut='uint8')
+    #equalizeSlice = exposure.equalize_adapthist(img[75],clip_limit=0.03)
+    #equalizeSlice = threshold.arrayThreshold.recastImage(equalizeSlice,'uint16')
+    print(pyFiji.send2Fiji([img,adaptEqualize],wdir=testImgPath))
 
 

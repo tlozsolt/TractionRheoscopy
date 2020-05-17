@@ -102,6 +102,12 @@ class ParticleStitch(dpl.dplHash):
         gelTopImageStack = self.dpl.metaData['imageParam']['gelSedimentLocation']
         shearPostImageStack = self.dpl.metaData['imageParam']['shearPostLocation']
         px2MicronDict = self.dpl.metaData['imageParam']['px2Micron']
+        if self.dpl.metaData['postDecon']['upScaling']['bool'] == True:
+            # we upscaled the image and so the output from particle locations are in
+            # different pixel unit than the raw image
+            upScaleDict = self.dpl.metaData['postDecon']['upScaling']['dim']
+            px2MicronDict['x'] = px2MicronDict['x']/upScaleDict['x']
+            px2MicronDict['y'] = px2MicronDict['y']/upScaleDict['y']
 
         imgDim = {'x': self.dpl.metaData['imageParam']['xDim'],\
                   'y': self.dpl.metaData['imageParam']['yDim'], \
@@ -381,8 +387,8 @@ if __name__ == '__main__':
     tmpDir ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/buf'
     inst = ParticleStitch(yamlTestingPath,computer='MBP')
     inst.getCompleteHashValues()
-    inst.findDoubleHits(41)
-    dfSed = inst.parStitch()
+    #inst.findDoubleHits(41)
+    #dfSed = inst.parStitch()
     inst.dataFrameLocation2xyz(inst.locations,tmpDir+'/tmpAllSed.xyz',\
                                columns=['x (um, imageStack)','y (um, imageStack)','z (um, imageStack)'])
 

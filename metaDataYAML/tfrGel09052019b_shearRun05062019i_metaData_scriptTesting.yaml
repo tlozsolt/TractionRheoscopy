@@ -107,7 +107,8 @@ imageParam:
   zDim: 597 # number of z -slices
   timeSteps: 1 # total number of number of time steps
   shearTime: [1, 226] # shear start and stop timesteps assuming zero indexing
-  px2Micron: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
+  px2Micron: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
+  #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
   stackTime: 176 # time to acquire a stack in seconds
   stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
   gelSedimentLocation: 202 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
@@ -214,13 +215,21 @@ postDecon:
   output:
     dtype: uint8 # what format should the image be returned?
     recastBool: True # should histogram be stretched over dtype range at the end?
+  upScaling:
+    bool: True
+    software: python
+    dim: {x: 2,y: 2} # z upscaling is not supported
+    interp_method: lanczos # open_cv options include linear, cubic, bicubic, lanczos.
+    parallel:
+      bool: True
+      n_jobs: 8
   threshold:
     bool: True
     local: # python only
       bool: True
       blockDim:
-        X: 150
-        Y: 150
+        X: 250
+        Y: 250
         Z: 30
       sample: # number of samples at which to compute local thresholding
         n_xyz : [7,7,3] # this will be a list
@@ -230,7 +239,9 @@ postDecon:
     method:
       gel: MaxEnt
       sed: MaxEnt
-    background: dark # image J only
+    scaleFactor:
+      gel: 1.0
+      sed: 1.0
     range: no-reset # in pricnple both imageJ and python
   postThresholdFilter: # if imageJ, use mosaic parameters
     gel:
@@ -240,8 +251,9 @@ postDecon:
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
-        - { method: totalVariation, iter: 1, n_jobs: 4}
+        #- { method: totalVariation, iter: 1, n_jobs: 4}
         - { method: gaussianBlur, sigma: 1, n_jobs: 4}
+        #- {method: equalize_adapthist, clip_limit: 0.03, n_jobs: 4}
         #- { method: meanCurvature, iter: 3, n_jobs: 4}
         #- { method: guassianBlur, sigma: 1}
 
@@ -249,7 +261,7 @@ postDecon:
       bool: False
       gaussianCurvature:
         bool: True
-        filter_name: Gausian Curvature 3D # Yes, Guassian is misspelled
+        filter_name: Gausian Curvature 3D # Yes, Gaussian is misspelled
         iter: 50
       meanCurvature2D:
         bool: True
@@ -299,13 +311,19 @@ locating:
   crop: False
   iterative:
     bool: True # do iterative locating?
-    maxIter: 20 # how many interative loops to do befroe force quitting?
+    maxIter: 20 # how many iterative loops to do befroe force quitting?
     mask:
-      sed: [9, 7, 7] # keep in mind this can be much larger than a single particle diameter
+      sed: [11, 15, 15] # keep in mind this can be much larger than a single particle diameter
       gel: [9,19,19] # pixel order is [z,y,x]
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [7, 5, 5], minmass: 0, preprocess: False, max_iterations: 20}
-    - { diameter: [5, 5, 5], minmass: 100, preprocess: False, max_iterations: 20}
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.9 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.8 }
+    - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [9,11,11], percentile: 0.8 }
   gel:
     - {diameter: [7,19,19], minmass: 5000, preprocess: False, max_iterations: 20}
     - {diameter: [7,19,19], minmass: 3000, preprocess: False, max_iterations: 20}

@@ -1,7 +1,8 @@
 import yaml, os, math, glob, re, functools
-import flatField, pyFiji, threshold, curvatureFilter
+import flatField, pyFiji, threshold, curvatureFilter, upScaling
 from datetime import datetime
 import numpy as np
+import skimage
 import locating
 """
 This file is used to create a deconvolution particle locating (dpl) Hash table
@@ -1309,15 +1310,22 @@ class dplHash:
     originLog = [0,0,0] # relative changes in origin and dimensions to be updated and recorded in writeLog()
     dimLog = [0,0,0]
 
+    # read in the upScaling parameters
+    upscaleParamDict = metaData['upScaling']
+    upscaleBool = upscaleParamDict['bool']
+
+
     # read in threshold parameters
+    thresholdBool = metaData['threshold']['bool']
     blockDim = metaData['threshold']['local']['blockDim']['X']
     print("Warning, blockDim is only coded for single values at the moment. Using blockDim X")
     parBool = metaData['threshold']['local']['parallel']['bool']
     n_xyz = tuple(metaData['threshold']['local']['sample']['n_xyz']) # convert to tuple as yaml only supports lists, very mionor change
     n_jobs = metaData['threshold']['local']['parallel']['n_jobs']
+    material = self.sedOrGel(hashValue)
+    scaleFactor = metaData['threshold']['scaleFactor'][material]
 
     # read in postThresholdFilter parameters
-    material = self.sedOrGel(hashValue)
     if metaData['software'] == 'python' or metaData['software'] == 'Python':
       filterBool = metaData['postThresholdFilter'][material]['bool']
       methodParamList = metaData['postThresholdFilter'][material]['methodParamList']
@@ -1326,17 +1334,28 @@ class dplHash:
       print('postDeconPython called, but yaml file says software is {} not \'python\' of \'Python\''.format(metaData['software']))
       raise KeyError
 
-
-    # apply the threshold
+    # initalize threshold array
     if input == 'file': inst = threshold.arrayThreshold(inputPath)
     else: inst = threshold.arrayThreshold(input)
-    inst.imgArray = inst.recastImage(inst.imgArray,'uint16')
-    tmp = inst.localThreshold(blockDim,n_xyz=n_xyz, parBool = parBool, n_jobs=n_jobs)
-    # This returns a list of points and threshold values that need to be interpolated
-    inst.thresholdArray = inst.interpolateThreshold(tmp[0],tmp[1])
-    pos16bit,neg16bit = inst.applyThreshold()
 
-    # now decide if we need filter and apply app the filter steps in order
+    # upscale
+    if upscaleBool == True:
+      inst.imgArray = upScaling.resize_stack(inst.imgArray, upscaleParamDict)
+      print('upScaling is complete')
+    else: pass
+
+    # apply the threshold
+    inst.imgArray = inst.recastImage(inst.imgArray, 'uint16')
+    if thresholdBool == True and metaData['threshold']['local']['bool']==True:
+      tmp = inst.localThreshold(blockDim,n_xyz=n_xyz, parBool = parBool, n_jobs=n_jobs)
+      # This returns a list of points and threshold values that need to be interpolated
+      inst.thresholdArray = inst.interpolateThreshold(tmp[0],tmp[1])
+      pos16bit, neg16bit = inst.applyThreshold(scaleFactor=scaleFactor)
+    else:
+        print("No threhsolding after decon!")
+        pos16bit = inst.imgArray
+
+# now decide if we need filter and apply app the filter steps in order
     def filterDict2Func(filterDict):
       """
       local function that takes a filterDictionary stored in yaml and returns a function to apply that filter
@@ -1345,13 +1364,21 @@ class dplHash:
       :return: function, something like threshold.CF(imageArray,filterType = 2, total_iter =iter,)
       """
       method = filterDict['method']
-      if method in {'totalVariation', 'meanCurvature', 'gaussianCurvature','gaussianBlur'}:
+      if method in {'totalVariation', \
+                    'meanCurvature', \
+                    'gaussianCurvature', \
+                    'gaussianBlur', \
+                    'equalize_adapthist'}:
         if method == 'totalVariation':
           # I think this should return a function that will apply the given curvautre filter
           # and the parameters to the stack that is passed later on
           return functools.partial(curvatureFilter.tvFilter_stack,iter=filterDict['iter'],n_jobs = filterDict['n_jobs'])
         elif method == 'gaussianBlur':
           return functools.partial(curvatureFilter.gaussBlur_stack,sigma=filterDict['sigma'],n_jobs = filterDict['n_jobs'])
+        elif method == 'equalize_adapthist':
+          return functools.partial(curvatureFilter.equalize_adaptHist_stack,\
+                                    n_jobs=filterDict['n_jobs'],\
+                                    clip_limit=filterDict['clip_limit'])
         else: pass
       else: print('Filter {} is not currently supported'.format(method))
 
@@ -2007,7 +2034,7 @@ if __name__ == "__main__":
   #dplInst.postDecon_python(1,computer='MBP',output='pyFiji')
   #print(dplInst.postDecon_python(2,computer='MBP',output='pyFiji'))
   print(dplInst.metaData["hashDimensions"])
-  #print(dplInst.makeAllScripts(80,computer='MBP'))
+  print(dplInst.makeAllScripts(44,computer='MBP'))
   #dplInst.postDecon_python(85,computer='MBP',output='log')
   print(dplInst.makeDPL_bashScript(computer = 'MBP'))
   #dplInst.writeLog(80,'flatField',{'flatField':{'a':1,'b':2}}, computer='MBP')
@@ -2025,5 +2052,5 @@ if __name__ == "__main__":
   #      -postDecon
   #      -particle Location
   #  [+] move files around on MBP to allow for a single hashValue to be processed
-  #  [X] FIJI upscaling? Not sure if this is necessary
+  #  [X] FIJI upScaling? Not sure if this is necessary
   #  [-] create visualization fucntions to automatically slice and project samples from the deconvolved data.

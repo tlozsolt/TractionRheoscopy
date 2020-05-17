@@ -106,7 +106,7 @@ class locationOverlay:
     imgArray = np.zeros((dz,dy,dx),dtype='uint8')
     # import the locations from a text file
     l = pxLocations(locationpath,program=locatingprogram)
-    g = particleGlyph([7,7,7],[9,9,7])
+    g = particleGlyph([9,7,7],[11,9,9])
     # from the pixel locations, place a predefined glyph at the center
     # assign a pixel value of 1 to each pixel that corresponds to a coordinate in location
     xcoord = np.rint(l.locations['x (px)']).astype(int)
