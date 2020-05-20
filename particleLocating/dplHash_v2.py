@@ -1989,6 +1989,8 @@ if __name__ == "__main__":
  #%% load yaml file and call some simple hashValue entries
   yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy'\
                     '/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+  yamlTestingPath = '/home/zsolt/TractionRheoscopy/metaDataYAML/'\
+                    'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
   #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
   #                  'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
   print("Loading yaml metaData file: ", yamlTestingPath)
