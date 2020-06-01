@@ -1,0 +1,118 @@
+tfrGel09102018b:
+  shearRun09232018:
+    description: >
+      This is glass/crystal composite that is sheared. There is a pre-shear imaging
+      stack and two shears a-b.
+      Not clear to me what the difference is between the shearRuns a and b, perhaps
+      there was a problem with shearing. This should be apparent from the notes during
+      shear.Or perhaps the number of cycles or imaging parameters are different.
+    shearRun09232018a:
+      path:
+        shear: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09232018x/tfrGel09102018b_shearRun09232018a/
+        preshear: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b_shearRun09272018a_preShearFullStack_20180928_52732 PM/
+      fileName:
+        initial: 405nm20180927_80357 PM_t0000_z0000 #prefix on the files for timesteps
+        final: 405nm20180927_80357 PM_t0135_z0828
+      comment: >
+        Sample was tfrGel09102018b_shearRun09272018a
+        20 pct shear, triangle bump on sample that was centrifuged under formamide/methanol
+      imageParam:
+        xDim: 2048 # full image dimension in x direction, units of pixels
+        yDim: 2048 # ...and in in y
+        zDim:  829 # number of z -slices
+        timeSteps: 136 # total number of number of time steps
+        shearTime: [, ] # shear start and stop timesteps assuming zero indexing
+        px2Micron: {'x': , 'y': , 'z': } # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
+        #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
+        stackTime:  # time to acquire a stack in seconds
+        stackInterval: 174 # time between successive stacks, note: stackInterval > stackTime
+        gelSedimentLocation: 198 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+        shearPostLocation: 829 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+        gelSedimentLocation_fullStack: 984 # location of gel/sediment transition in full stack image, not imaging stack
+        piezoPos: # position of the objective piezo as read off optical encoder at various locations
+          imageStackBottom:
+          imageStackTop:
+          coverslip:
+          gelSediment:
+    shearRun09232018b:
+      path:
+        shear:
+        preshear:
+      fileName:
+        initial:
+        final:
+      comment: >
+      imageParam:
+        xDim: 2048 # full image dimension in x direction, units of pixels
+        yDim: 2048 # ...and in in y
+        zDim:  829 # number of z -slices
+        timeSteps: 136 # total number of number of time steps
+        shearTime: [, ] # shear start and stop timesteps assuming zero indexing
+        px2Micron: {'x': , 'y': , 'z': } # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
+        #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
+        stackTime:  # time to acquire a stack in seconds
+        stackInterval: 174 # time between successive stacks, note: stackInterval > stackTime
+        gelSedimentLocation: 198 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+        shearPostLocation: 829 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+        gelSedimentLocation_fullStack: 984 # location of gel/sediment transition in full stack image, not imaging stack
+        piezoPos: # position of the objective piezo as read off optical encoder at various locations
+          imageStackBottom:
+          imageStackTop:
+          coverslip:
+          gelSediment:
+  #################
+  shearRun09182018:
+    description: >
+      I think this sample is strain ramp of polycystalline with small grain size.   
+    imSize: 2048
+    path: /mnt/serverdata/zsolt/zsolt/
+
+tfrGel10212018A:
+  shearRun10292018:
+    path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/
+    description: >
+      Hard sphere glass throughout.
+      Strain ramp in steps a-j
+    imSize: 2048
+
+tfrGel09052019x:
+  tfrGel09052019A:
+    description: >
+      Polycrystalline, 100um thickness. Looks like a very clean sample. 2048px
+      Shear over two session shear16052019 and shear18052019x 
+      Also include imaging test calibration data for 2048 pixels and 1024 binning
+      on zyla side RFP
+      Shear runs a-h. 
+    shear16052019x:
+      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear16052019x/
+    shear18052019x:
+      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/
+  tfrGel09052019B:
+    description: >
+      Also polycrystalline. Looks clean as well. 1024 pixels. THere are few
+      postShear imaging stacks as well. Shear steps a-i
+      There is also sedimentation time laps and darkFrameTimeSeries on camera 2922
+      There is some dense probably 5um silica that was injected from the top that by
+      shearRun11062019g (possibly a different location than shearRun 05062019), 
+      has started to sink through the grid. The polyrcrystal has large domains spanning
+      nearly 200um field of view near the gel, but very fine polycrystalline grains about
+      halfway up and through the sample.
+    shearRun05062019x:
+      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/
+    shearRun11062019x:
+      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/
+
+tfrGel10212018b:
+  shearRun30042019:
+  description: >
+    I tried to get shear induced order in a quote old TFR gel sample. 
+    I was out of some of the supplies like TEM grid and a few things went
+    wrong in the experiment as documented in the notes.txt file in the
+    directory. 
+  path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018b_shearRun30042019/
+
+
+
+
+      
+
