@@ -2036,9 +2036,9 @@ if __name__ == "__main__":
   #dplInst.postDecon_python(1,computer='MBP',output='pyFiji')
   #print(dplInst.postDecon_python(2,computer='MBP',output='pyFiji'))
   print(dplInst.metaData["hashDimensions"])
-  print(dplInst.makeAllScripts(44,computer='MBP'))
+  #print(dplInst.makeAllScripts(44,computer='MBP'))
   #dplInst.postDecon_python(85,computer='MBP',output='log')
-  print(dplInst.makeDPL_bashScript(computer = 'MBP'))
+  #print(dplInst.makeDPL_bashScript(computer = 'MBP'))
   #dplInst.writeLog(80,'flatField',{'flatField':{'a':1,'b':2}}, computer='MBP')
 
   #particle locate
