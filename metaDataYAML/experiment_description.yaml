@@ -6,6 +6,7 @@ tfrGel09102018b:
       Not clear to me what the difference is between the shearRuns a and b, perhaps
       there was a problem with shearing. This should be apparent from the notes during
       shear.Or perhaps the number of cycles or imaging parameters are different.
+      Update: yes, deformation was different. See notes in shearRun09232019 keys
     shearRun09232018a:
       path:
         shear: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09232018x/tfrGel09102018b_shearRun09232018a/
@@ -36,24 +37,36 @@ tfrGel09102018b:
           gelSediment:
     shearRun09232018b:
       path:
-        shear:
-        preshear:
+        shear: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09232018x/tfrGel09102018_shearRun0923018b/
+        preshear:  /mnt/serverdata/zsolt/zsolt/tfrGel09102018b_shearRun09272018a_preShearFullStack_20180928_52732 PM/ # yes, same as shear run a
       fileName:
-        initial:
-        final:
+        initial: 405nm20180928_91235 PM_t0000_z0000.tif
+        final: 405nm20180928_91235 PM_t0135_z0828.tif
       comment: >
+        Large amplitude oscilatory strain.
+        A=70 and shear stacks was 105 every 174 seconds.
+        Nominally a glassy sample as it was centrifuged however it has since crystallized
+
+        Additional comments Jun 1 2020:
+        This data was also located for the sediment phase using Huygens and Kilfoil locating. There is some
+        pixel biasing on the data. The gel phase has not been located.
+        I am not sure what "shear stacks was 105 every 174 seconds" but likely that the sediment is 105um thick giving
+        a nominal (ie not counting motion of the gel) strain of +/- 35/105 um ~ +/- 35% strain on the sample
+        There is also a lot images that were taken of the gel prior to any shear suggesting that the gel and grid are
+        not particularly flat.
+        Its also possible that the sample was not relaxed after the previous 20pct strain in shearRun09232018a
       imageParam:
         xDim: 2048 # full image dimension in x direction, units of pixels
         yDim: 2048 # ...and in in y
         zDim:  829 # number of z -slices
-        timeSteps: 136 # total number of number of time steps
+        timeSteps: 136  # total number of number of time steps
         shearTime: [, ] # shear start and stop timesteps assuming zero indexing
         px2Micron: {'x': , 'y': , 'z': } # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
         #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
-        stackTime:  # time to acquire a stack in seconds
-        stackInterval: 174 # time between successive stacks, note: stackInterval > stackTime
-        gelSedimentLocation: 198 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
-        shearPostLocation: 829 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+        stackTime:   # time to acquire a stack in seconds
+        stackInterval: 174  # time between successive stacks, note: stackInterval > stackTime
+        gelSedimentLocation: 214  # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+        shearPostLocation: 829  # location in z of shearpost in imaging stack. If tilted, report height as rough average.
         gelSedimentLocation_fullStack: 984 # location of gel/sediment transition in full stack image, not imaging stack
         piezoPos: # position of the objective piezo as read off optical encoder at various locations
           imageStackBottom:
@@ -65,7 +78,155 @@ tfrGel09102018b:
     description: >
       I think this sample is strain ramp of polycystalline with small grain size.   
     imSize: 2048
-    path: /mnt/serverdata/zsolt/zsolt/
+    path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/
+    strainRamp: # keyed by step
+      a:
+        comments: >
+          June 1 2020
+          Colloid density near shear post is not fully dense
+          There is a lot of debris in this sample.
+          Crystalline all the way through. I think a lot of this debris was caused by not filtering the
+          PEM layer during fabrication of the sample
+          Also possible that there is no dense silica that was injected.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018a_20180919_100215 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018a_t0000_z0000
+          final: tfrGel09102018b_shearRun09182018a_t0011_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 12
+        shearTime: [ , ]
+        stackInterval: 180
+        gelSedimentLocation:
+          initial: 165
+          final: 163
+        shearPostLocation: 895
+      b:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018b_20180919_101611 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018b_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018b_t0011_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 12
+        shearTime: [ , ]
+        stackInterval: 180
+        gelSedimentLocation:
+          initial: 161
+          final: 169
+        shearPostLocation: 895
+      c:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018c_20180919_102910 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018c_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018c_t0011_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps:
+        shearTime: [ , ]
+        stackInterval: 180
+        gelSedimentLocation:
+          initial: 167
+          final: 172
+      d:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018d_20180919_113234 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018d_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018d_t0028_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 29
+        shearTime: [ , ]
+        stackInterval: 173
+        gelSedimentLocation:
+          initial: 172
+          final: 180
+      e:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018e_20180920_120144 AM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018e_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018e_t0054_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 55
+        shearTime: [ , ]
+        stackInterval: 176
+        gelSedimentLocation:
+          initial: 180
+          final: 186
+      f:
+        comments: >
+          June 1 2020
+          There is also a single stack file with just an imaging stack. I dont know what the intention of the was.
+          Posibbly to check the imageStack time?
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018f_20180920_61838 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018f_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018f_t0080_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 81
+        shearTime: [ , ]
+        stackInterval: 178
+        gelSedimentLocation:
+          initial: 187
+          final: 190
+      g:
+        comments: >
+          June 1 2020
+          I took a fullStack after shear run G
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018g_20180920_113002 AM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018g_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018g_t0106_z0894.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 895
+        timeSteps: 107
+        shearTime: [ , ]
+        stackInterval: 178
+        gelSedimentLocation:
+          initial: 158
+          final: 175
+      h:
+        comments: >
+          June 1 2020
+          This is a different location in the sample
+          There are reference full zStacks at the new position before and after shear.
+          I also think that the laser power was set high and thats why I ended up with bleaching after a about 200 stacks.
+          Its also possible that image quality was degrading due to wate absorption from the atomosphere and slow
+          changes in the RI. I dont see any effect on the gel, however there is clearly image degrdation with
+          depth that gets worse over time and is not alleviated by swtiching positions. I think this is the
+          point in tfr development wehre I added the tyvek baggie of dessicant. Id ahve to check my lab notebooks and
+          dates to confirm this. I also likely recorded the refractive index after the run, and possibly rewashed to get
+          shearRun09232018x
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09182018x/tfrGel09102018b_shearRun09182018h_20180921_121531 PM/
+        fileName:
+          initial: tfrGel09102018b_shearRun09182018h_t0000_z0000.tif
+          final: tfrGel09102018b_shearRun09182018h_t0172_z0854.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 855
+        timeSteps: 173
+        shearTime: [ , ]
+        stackInterval: 178
+        gelSedimentLocation:
+          initial: 126
+          final: 125
 
 tfrGel10212018A:
   shearRun10292018:
@@ -73,7 +234,206 @@ tfrGel10212018A:
     description: >
       Hard sphere glass throughout.
       Strain ramp in steps a-j
+      There are folders for preEpoxySeal, preSugarDissolve, postSugarDissolve, postCentrifugation, preShear
     imSize: 2048
+    strainRamp:
+      a:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018a20181029_71632 PM_20181029_82105 PM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018a20181029_71632 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018a20181029_71632 PM_t0021_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 573
+        gelSedimentLocation:
+          initial: [185, 221]
+          final: [186, 225]
+      b:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018b20181029_84902 PM_20181029_95335 PM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018b20181029_84902 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018b20181029_84902 PM_t0021_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 573
+        gelSedimentLocation:
+          initial: [184, 221]
+          final: [183, 226]
+      c:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018c20181029_101532 PM_20181029_112004 PM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018c20181029_101532 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018c20181029_101532 PM_t0021_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps:
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 571
+        gelSedimentLocation:
+          initial: [183, 222]
+          final: [183, 219]
+      d:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018d20181029_113914 PM_20181030_13137 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018d20181029_113914 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018d20181029_113914 PM_t0037_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 38
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 571
+        gelSedimentLocation:
+          initial: [183, 222]
+          final: [178, 215]
+      e:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018e20181030_82115 AM_20181030_113149 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018e20181030_82115 AM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018e20181030_82115 AM_t0063_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 64
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 558
+        gelSedimentLocation:
+          initial: [173, 209]
+          final: [165, 204]
+      f:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018f20181030_22333 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018f20181030_22333 PM_t0089_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 90
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: 565
+        gelSedimentLocation:
+          initial: [171, 210]
+          final: [168, 207]
+      g:
+        comments: >
+          June 1 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018g20181031_21800 AM_20181031_80438 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018g20181031_21800 AM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018g20181031_21800 AM_t0115_z0595.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 116
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: [567, 558]
+        gelSedimentLocation:
+          initial: [173, 210]
+          final: [164, 202]
+      h:
+        comments: >
+          June 1 2020
+          Grid is clearly trending down to yield smaller shear gap. This is likely due to insufficient locking
+          of the shearpost
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018h20181031_83025 PM_20181101_45307 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018h20181031_83025 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018h20181031_83025 PM_t0167_z0596.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 596
+        timeSteps: 168
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: [543, 538]
+        gelSedimentLocation:
+          initial: [171, 210]
+          final: [170, 208]
+      i:
+        comments: >
+          June 1 2020
+          Note that the z-stacks got a lot smaller. Presumably because the grid is sinking.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018i_20181101_64334 PM_20181102_74801 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018i_20181101_64334 PM_t0000_z0000.tif
+          final: tfrGel10212018A_shearRun10292018i_20181101_64334 PM_t0261_z0474.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 475
+        timeSteps: 262
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: [469, 456]
+        gelSedimentLocation:
+          initial: [101, 140]
+          final: [95, 131]
+      j:
+        comments: >
+          June 1 2020
+          I think this is a different position. Gel is not tilted. There is crystallization at the top of the sample
+          Grid is not in field of view.
+          This is a likely a re-do of (i) during which the piezo may have crashed(?) Not sure have to check
+          the piezo file.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018j20181104_94613 PM_20181105_105051 AM/
+        fileName:
+          initial: tfrGel10212018A_shearRun10292018j20181104_94613 PM_t0000_z0000
+          final: tfrGel10212018A_shearRun10292018j20181104_94613 PM_t0261_z0547.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 548
+        timeSteps: 262
+        shearTime: [ , ]
+        stackInterval: 180
+        gridLocation: a few microns outside field of view
+        gelSedimentLocation:
+          initial: [109, 123]
+          final: [98, 114]
+    referenceStacks:
+      preShearFullStack:
+        time: '31/10/2018 12:30:41 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack_20181031_122914 PM/
+        gelSedimentLocation_fullStack: [944, 986]
+        comments: >
+          preSheafFullStack and preShearFullStack2 are at subtly different
+          locations as evidenced by the gel tracer pattern. I probably had to add more immersion fluid at some
+          point and carried out a mark and find. The notes during shear should include this along with
+          my notes during the experiment.
+      preShearFullStack2:
+        time: '31/10/2018 8:21:47 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack2_20181031_82119 PM/
+        gelSedimentLocation_fullStack: [931, 968]
+        comments:  preSheafFullStack and preShearFullStack2 are at subtly different locations as evidenced by the gel tracer pattern
+      preShearFullStack3:
+        time: '6/11/2018 10:28:37 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack3_20181106_102649 AM/
+        gelSedimentLocation_fullStack: [884, 898]
+        comments: Clearly the position during shear run j and a completely different location than previous fullStacks
 
 tfrGel09052019x:
   tfrGel09052019A:
@@ -82,11 +442,283 @@ tfrGel09052019x:
       Shear over two session shear16052019 and shear18052019x 
       Also include imaging test calibration data for 2048 pixels and 1024 binning
       on zyla side RFP
-      Shear runs a-h. 
-    shear16052019x:
-      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear16052019x/
-    shear18052019x:
-      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/
+      Note the dating scheme is now DD:MM:YY, I think
+      Shear runs a-h.
+    strainRamp:
+      a:
+        comments: >
+          June 1 2020
+          There is another folder that does not contain a timeseries, also labeled shearRuna.
+          There must have been a mistake and image acqusition was aborted. Perhaps I didnt take a reference stack?
+          Both gel and grid appear to be quite flat. Nice data set so far.
+          THis includes injection of silica particles. There are timelapse images for sedimentaion and
+          sedimenation after injection of silica.
+        time: '18/05/2019	4:46:16 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear16052019x/shearRun18052019a20190518_10546 PM_20190518_23529 PM/
+        fileName:
+          initial: shearRun18052019a20190518_10546 PM_t0000_z0000.tif
+          final: shearRun18052019a20190518_10546 PM_t0021_z0840.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 841
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval: 250
+        gridLocation: 826
+        gelSedimentLocation:
+          initial: [145, 156]
+          final: [143, 154]
+      b:
+        comments: >
+          June 1 2020
+        time: '18/05/2019	6:38:41 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear16052019x/shearRun18052019b20190518_44647 PM_20190518_62041 PM/
+        fileName:
+          initial: shearRun18052019b20190518_44647 PM_t0000_z0000.tif
+          final: shearRun18052019b20190518_44647 PM_t0022_z0840.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 841
+        timeSteps: 23
+        shearTime: [ , ]
+        stackInterval: 250
+        gridLocation: 826
+        gelSedimentLocation:
+          initial: [142, 150]
+          final: [137, 147]
+      a_2:
+        comments: >
+          June 2 2020
+          I must have restarted from shearRun a all over again, possibly due to lack of reference stacks
+        time: '18/05/2019	9:21:42 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/shearRun18052019a20190518_75214 PM_20190518_90427 PM/
+        fileName:
+          initial: shearRun18052019a20190518_75214 PM_t0000_z0000.tif
+          final: shearRun18052019a20190518_75214 PM_t0021_z0840.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 841
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: 826
+        gelSedimentLocation:
+          inital: [135,150]
+          final: [135,150]
+      b_2:
+        comments: >
+          June 2 2020
+          Not sure what the difference between b and b2 is, but I took another reference stack, number of z-slices
+          changed and the number of time points also changed by one. I would expect that the deformation
+          is the same, but the field of view is subtly different. Perhaps I added immersion oil. Lab notes
+          should tell the difference. Also note, the fileName is mislabeled as it says reference stack which
+          is not true.
+        time: '18/05/2019	11:19:39 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019b/
+        fileName:
+          initial: tfrGel09052019a_shearRun18052019_fullReferenceStack120190518_94153 PM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun18052019_fullReferenceStack120190518_94153 PM_t0023_z0843.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 844
+        timeSteps: 24
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation:
+        gelSedimentLocation:
+          initial:
+          final:
+      c:
+        comments: >
+          June 2 2020
+        time: '19/05/2019	1:59:30 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019c20190518_114028 PM_20190519_13244 AM/
+        fileName:
+          initial: tfrGel09052019a_shearRun18052019c20190518_114028 PM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun18052019c20190518_114028 PM_t0033_z0843.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 844
+        timeSteps: 34
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: 831
+        gelSedimentLocation:
+          initial: [136, 150]
+          final: [134, 148]
+      d:
+        comments: >
+          June 2 2020
+        time: '19/05/2019	4:12:11 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019d20190519_114928 AM_20190519_32145 PM/
+        fileName:
+          initial: tfrGel09052019a_shearRun18052019d20190519_114928 AM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun18052019d20190519_114928 AM_t0063_z0843.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 844
+        timeSteps: 64
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: 820
+        gelSedimentLocation:
+          initial: [123, 140 ]
+          final: [128, 145]
+      e:
+        comments: >
+          June 2 2020
+        time: '20/05/2019	12:12:52 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019e20190519_42401 PM_20190519_104301 PM/
+        fileName:
+          initial: tfrGel09052019a_shearRun18052019e20190519_42401 PM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun18052019e20190519_42401 PM_t0113_z0843.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 844
+        timeSteps: 114
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [824, 834] # [initial time, final time] spatially flat throughout
+        gelSedimentLocation:
+          initial: [129, 145]
+          final: [142 , 159]
+      e_2:
+        comments: >
+          June 2 2020
+          This has been labeled shearRun20052019e, presumably indicating a change, possibly in applying immersion oil
+          and repeating the same deformation.
+        time: '21/05/2019	3:45:34 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun20052019e_20190520_75051 PM_20190521_21001 AM/
+        fileName:
+          initial: tfrGel09052019a_shearRun20052019e_20190520_75051 PM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun20052019e_20190520_75051 PM_t0113_z0902.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 903
+        timeSteps: 114
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [883, 890]
+        gelSedimentLocation:
+          initial: [211, 227 ]
+          final: [220, 236 ]
+      f:
+        comments: >
+          June 2 2020
+        time: '21/05/2019	10:05:27 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun20052019f_20190521_103308 AM_20190521_74543 PM/
+        fileName:
+          initial: tfrGel09052019a_shearRun20052019f_20190521_103308 AM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun20052019f_20190521_103308 AM_t0165_z0902.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 903
+        timeSteps: 166
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [875, 894]
+        gelSedimentLocation:
+          initial: [200, 215 ]
+          final: [200, 215 ]
+      g:
+        comments: >
+          June 2 2020
+          Note, the filenames say 'preShearImagingStack' but this is wrong and holdover from the previously
+          acquired z-stack
+        time: '23/05/2019	3:10:33 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun20052019g_20190522_120824 PM_20190523_120746 AM/
+        fileName:
+          initial: tfrGel09052019a_shearRun20052019g_preShearImagingStack120190522_120824 PM_t0000_z0000.tif
+          final: tfrGel09052019a_shearRun20052019g_preShearImagingStack120190522_120824 PM_t0215_z0903.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 904
+        timeSteps: 216
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: 880
+        gelSedimentLocation:
+          initial: [200, 212 ]
+          final: [190, 204 ]
+      h:
+        comments: >
+          June 2 2020
+        time: '24/05/2019	7:12:27 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel090502019a_shearRun20052019h_20190524_121659 AM_20190524_55558 PM/
+        fileName:
+          initial: tfrGel090502019a_shearRun20052019h_20190524_121659 AM_t0000_z0000.tif
+          final: tfrGel090502019a_shearRun20052019h_20190524_121659 AM_t0317_z0903.tif
+        xDim: 2048
+        yDim: 2048
+        zDim: 904
+        timeSteps: 318
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: 884
+        gelSedimentLocation:
+          initial: [199, 214]
+          final: [199, 209 ]
+      a_shearRun25052019a:
+        commments: >
+          June 3 2020
+          Very long time series of 645 frames taken after shearRun. See timestamp
+          There is no text file that should be with the output to tiff stacks which is a bit worrisome
+          It was last modified May 28 2019 and the fileprefix for shearRun is shearRun25052019a
+          Since there is no text file for microscope metaData, there is no way to check the stackInterval time
+          but I would guess is 200 like the previous stacks that had identical zDim
+          I modified the path so that it is placed in tfrGel09052019a with the other shearRuns
+          There is also a tar archive of this data set that is 1.2Tb (woah!)
+        time: '28/05/2019'
+        fileName:
+          initial: tfrGel090502019a_shearRun25052019a_t0000.tif
+          final: tfrGel090502019a_shearRun25052019a_t0644.tif
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/tfrGel090502019a_shearRun25052019a_20190528_71413 PM/
+        xDim: 1024
+        yDim: 1024
+        zDim: 904
+        timeSteps: 645
+        stackInterval: see comments
+        gridLocation: [882 , 885]
+        gelSedimentLocation:
+          initial: [200, 210]
+          final: [204, 215 ]
+    referenceStacks:
+      preShearFullReferenceStack:
+        time: '18/05/2019	12:27:22 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear16052019x/preShear_fullReferenceStack20190518_122205 PM_20190518_122613 PM/
+        gelSedimentLocation_fullStack: [944, 963]
+        zDim_px: 1642
+        zDim_um: 246.15
+        comments: June 2 2020, taken before a
+      tfrGel09052019a_shearRun18052019_fullReferenceStack:
+        time: '18/05/2019	9:30:20 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019_fullReferenceStack20190518_92503 PM_20190518_92913 PM/
+        gelSedimentLocation_fullStack: [914, 937]
+        zDim_px: 1649
+        zDim_um: 247.2
+        comments: between a_2 and b_2 in the key system in this file
+      tfrGel09052019a_shearRun18052019e_postShearStack:
+        time: '20/05/2019	11:35:02 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09050219a_shearRun18052019e_postShearStack20190520_112940 AM_20190520_113353 AM/
+        gelSedimentLocation_fullStack: [915, 933]
+        zDim_px: 1618
+        zDim_um: 242.55
+        comments: based on the time stamp, this was taken between d and e, however the name is e_postShearStack
+      tfrGel09052019a_shearRun18052019x2_fullReferenceStack:
+        time: '20/05/2019	5:39:35 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019x2_fullReferenceStack_20190520_53535 PM_20190520_53843 PM/
+        gelSedimentLocation_fullStack: [710,720]
+        zDim_px: 1226
+        zDim_um: 245 # as reported in log text file
+        comments: note that the z spacing is 200nm, not the usual 150nm. This was changed back to the usual on the next ref stack
+      tfrGel09052019a_shearRun18052019x2_fullReferenceStack_2:
+        time: '20/05/2019	5:49:59 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun18052019x2_fullReferenceStack_120190520_54436 PM_20190520_54845 PM/
+        zDim_px: 1636
+        zDim_um: 245.25
+        gelSedimentLocation_fullStack: [940,951]
+        comments: taken after e_2 given the time stamp.
+#########################
   tfrGel09052019B:
     description: >
       Also polycrystalline. Looks clean as well. 1024 pixels. THere are few
@@ -97,18 +729,313 @@ tfrGel09052019x:
       has started to sink through the grid. The polyrcrystal has large domains spanning
       nearly 200um field of view near the gel, but very fine polycrystalline grains about
       halfway up and through the sample.
-    shearRun05062019x:
-      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/
-    shearRun11062019x:
-      path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/
-
+    strainRamp:
+      a:
+        comments: >
+          June 2 2020
+          Note that since the files are now whole stacks, the filenames are indexed by z and the folders are much quicker to load
+          The gel looks very flat in my opinion
+        time: '14/06/2019	4:37:11 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019a__20190614_42852 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019a__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019a__t0021.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [781, 784]
+        gelSedimentLocation:
+          initial: [204, 213 ]
+          final: [ 205, 215 ]
+      b:
+        comments: >
+          June 2 2020
+        time: '14/06/2019	4:46:11 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019b__20190614_43711 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019b__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019b__t0021.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 22
+        shearTime: [ , ]
+        stackInterval:
+        gridLocation: [790, 792]
+        gelSedimentLocation:
+          initial: [210, 221]
+          final: [214 ,224]
+      c:
+        comments: >
+          June 2 2020
+        time: '14/06/2019	4:58:31 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019c__20190614_44611 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019c__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019c__t0029.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 30
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [793, 799]
+        gelSedimentLocation:
+          initial: [213 , 225]
+          final: [219, 232]
+      d:
+        comments: >
+          June 2 2020
+        time: '14/06/2019	5:21:37 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019d__20190614_45831 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019d__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019d__t0055.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 56
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [794, 796]
+        gelSedimentLocation:
+          initial: [218, 231]
+          final: [220, 235]
+      e:
+        comments: >
+          June 2 2020
+        time: '14/06/2019	5:46:58 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019e__20190614_52137 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019e__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019e__t0099.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 100
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [799, 799]
+        gelSedimentLocation:
+          initial: [222, 234]
+          final: [221 ,234]
+      f:
+        comments: >
+          June 2 2020
+          Several stacking fault tetrahedra on the bottom of the sample
+        time: '14/06/2019	6:40:13 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019f__20190614_54658 PM/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019f__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019f__t0143.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 835
+        timeSteps: 144
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [774,794]
+        gelSedimentLocation:
+          initial: [196, 206]
+          final: [215 , 228]
+      g:
+        comments: >
+          June 2 2020
+        time: '07/06/2019	1:30:07 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/shearRun05062019g/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019g__t0000.tif
+          final: tfrGel0905029019b_shearRun05062019g__t0185.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 769
+        timeSteps: 186
+        shearTime: [ , ]
+        stackInterval:
+        gridLocation: [716, 697]
+        gelSedimentLocation:
+          initial: [137, 146]
+          final: [130, 140]
+      h:
+        comments: >
+          June 2 2020
+        time: '08/06/2019	2:16:58 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/shearRun05062019h/
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019h__t0000.tif
+          final: tfrGel09052019b_shearRun05062019h__t0273.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 837
+        timeSteps: 274
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [791, 787]
+        gelSedimentLocation:
+          initial: [213, 223]
+          final: [215, 227 ]
+      i:
+        comments: >
+          June 2 2020
+        time: '10/06/2019	12:18:33 AM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/shearRun05062019i/
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019i__t0000.tif
+          final: tfrGel09052019b_shearRun05062019i__t0499.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 838
+        timeSteps: 500
+        shearTime: [ , ]
+        stackInterval: 200
+        gridLocation: [782, 782]
+        gelSedimentLocation:
+          initial: [209, 220]
+          final: [198, 209]
+      g_2:
+        comments: >
+          Added, June 2 2020. This is labeled shear deformation g and g part 2.
+          It is dated **after** the completion of shear steps a-i.
+          It is also very clearly a different position than steps a-i
+          There is also significant amount of dense 5um silica near the top that is segregated between
+          grains. THis is likely the reason I went back and took this stack. The material response should be
+          different given 'impurities'. Also note the silica is slightly floculated in the suspension of formamide
+          The whole sample seems to drift over the experiment.
+        time: '14/06/2019	2:12:54 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/tfrGel09052019b_shearRun11062019g/
+        fileName:
+          initial: tfrGel09052017b_shearRun11062019g__t0000.tif
+          final: tfrGel09052017b_shearRun11062019g__t0314.tif
+        xDim: 1024
+        yDim: 1024
+        zDim: 870
+        timeSteps: 315
+        shearTime: [ , ]
+        stackInterval: 150
+        gridLocation: [836, 810 ]
+        gelSedimentLocation:
+          initial: [173, 194]
+          final: [147, 171]
+      g_2_part2:
+        comments: >
+          I dont know what the point of this is. Perhaps the grid stoppped, or I wanted to get some relaxation data after
+          shear deformation g. I dont know. I have to check the notes from piezo
+        time: '14/06/2019	12:19:54 PM'
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/tfrGel09052017b_shearRun11062019g_part2__20190614_115854 AM/
+        xDim: 1024
+        yDim: 1024
+        zDim: 870
+        timeSteps: 96
+        shearTime: [ , ]
+        stackInterval: 150
+        gridLocation: [811, 817]
+        gelSedimentLocation:
+          initial: [149,173]
+          final: [154, 178]
+    referenceStacks:
+      tfrGel09052017b_shearRun11062019g_preShearFullStack:
+        comments: >
+          The label for tfrGel09052017b is clearly incrroct year. The year should be 2019
+          THe images are in two folders, and perhaps I took two full stacks.
+          This is refernce stack is for g_2 and g_2_part2
+          I think these folders are empty. Whomp whomp whomp...
+        path:
+          - /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/tfrGel09052019b_shearRun11062019g_preShearFullStack/tfrGel09052017b_shearRun11062019g_preShearFullStack__20190614_34607 PM/
+          - /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun11062019x/tfrGel09052019b_shearRun11062019g_preShearFullStack/tfrGel09052019b_shearRun11062019g_preShearFullStack_20190614_35544 PM/
+      tfrGel09052019b_shearRun05062019g_postShearFullStack:
+        comments: >
+          Data was saved to two tiff stacks, not a series of tiff slices
+          Note there is 2 slice overlap in the tiff stacks.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel09052019b_shearRun05062019g_postShearFullStack/
+        time:
+          z0000_z0950: '14/06/2019	4:17:40 PM'
+          z0949_z1568: '14/06/2019	4:17:02 PM'
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019g_postShearFullStack_z0000_z0950.tif
+          final: tfrGel09052019b_shearRun05062019g_postShearFullStack_z0949_z1568.tif
+        zDim_px: 1569
+        zDim_um: 235.2
+        gelSedimentLocation_fullStack: [937,948]
+      tfrGel09052019b_shearRun05062019h_postShearFullStack:
+        comments: >
+          June 3 2020
+          The gel/sediment location spans the two stack. The slices noted are accounting for the shifts and overlap...
+          ie slice 958 is slice 9 in z0949_z1570
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel09052019b_shearRun05062019h_postShearFullStack/
+        time:
+          z0000_z0950: '14/06/2019	4:09:50 PM'
+          z0949_z1570: '14/06/2019	4:09:24 PM'
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019h_postShearFullStack_z0000_z0950.tif
+          final: tfrGel09052019b_shearRun05062019h_postShearFullStack_z0949_z1570.tif
+        zDim_px: 1571
+        zDim_um: 235.5
+        gelSedimentLocation_fullStack: [946, 958]
+      tfrGel09052019b_shearRun05062019h_preShearFullStack:
+        comments: >
+          June 3 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel09052019b_shearRun05062019h_preShearFullStack/
+        time:
+          z0000_z0950: '14/06/2019	4:13:31 PM'
+          z0949_z1568: '14/06/2019	4:12:57 PM'
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019h_preShearFullStack_z0000_z0950.tif
+          final: tfrGel09052019b_shearRun05062019h_preShearFullStack_z0949_z1568.tif
+        zDim_px: 1569
+        zDim_um: 235.2
+        gelSedimentLocation_fullStack: [942,951]
+      tfrGel09052019b_shearRun05062019i_preShearFullStack:
+        comments: >
+          June 3 2020
+          Gel/sediment location spans both stacks.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel09052019b_shearRun05062019i_preShearFullStack/
+        time:
+          z0000_z0950: '14/06/2019	4:07:02 PM'
+          z0949_z1570: '14/06/2019	4:06:39 PM'
+        fileName:
+          initial: tfrGel09052019b_shearRun05062019i_preShearFullStack_z0000_z0950.tif
+          final: tfrGel09052019b_shearRun05062019i_preShearFullStack_z0949_z1570.tif
+        zDim_px: 1571
+        zDim_um: 235.5
+        gelSedimentLocation_fullStack: [944, 952]
+      tfrGel0905029019b_shearRun05062019f_postShearFullStack:
+        comments: >
+          June 3 2020
+          Again, stack splits sed/gel interface.
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019f_postShearFullStack/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019f_postShearFullStack_z0000_z0950.tif
+          finale: tfrGel0905029019b_shearRun05062019f_postShearFullStack_z0949_z1568.tif
+        time:
+          z0000_z0950: '14/06/2019	4:24:15 PM'
+          z0949_1568: '14/06/2019	4:24:33 PM'
+        zDim_px: 1569
+        zDim_um: 235.2
+        gelSedimentLocation_fullStack: [947, 959]
+      tfrGel0905029019b_shearRun05062019f_postShearStack2:
+        comments: >
+          June 3 2020
+        path: /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019B/shearRun05062019x/tfrGel0905029019b_shearRun05062019f_postShearStack2/
+        fileName:
+          initial: tfrGel0905029019b_shearRun05062019f_postShearStack2_z0000_z0950.tif
+          final: tfrGel0905029019b_shearRun05062019f_postShearStack2_z0949_z1568.tif
+        time:
+          z0000_z0950: '14/06/2019	4:21:20 PM'
+          z0949_z1568: '14/06/2019	4:20:39 PM'
+        zDim_px: 1569
+        zDim_um: 235.2
+        gelSedimentLocation_fullStack: [937,947]
+###########################
 tfrGel10212018b:
   shearRun30042019:
   description: >
     I tried to get shear induced order in a quote old TFR gel sample. 
     I was out of some of the supplies like TEM grid and a few things went
     wrong in the experiment as documented in the notes.txt file in the
-    directory. 
+    directory. See notes.txt in path directory.
   path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018b_shearRun30042019/
 
 
