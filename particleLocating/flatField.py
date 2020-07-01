@@ -3,6 +3,7 @@ import pims
 from scipy import ndimage
 import skimage as ski
 import time
+from threshold import arrayThreshold as at
 import multiprocessing
 
 """
@@ -50,10 +51,25 @@ def zStack2Mem_pimsIter(stackIter):
         stackMem = np.concatenate((stackMem, np.array([slice])), axis=0)
     return stackMem[1:]
 
-def zStack2Mem(path):
-    with ski.external.tifffile.TiffFile(path) as tif:
+def zStack2Mem(path,stackBool=True):
+    """
+    Load a tiff stack of tiff series of slices into memory as numpy arry
+    :param path: path to stack, or search path with * for z-slice information
+    :param stackBool: True is data is saved as a single stack, false if saved as a series.
+    :return:
+    """
+    if stackBool == True:
+      with ski.external.tifffile.TiffFile(path) as tif:
         data = tif.asarray()
-    return data
+      return data
+    elif stackBool == False:
+        from skimage import io
+        # load an image collection
+        ic = io.ImageCollection(path)
+        return ic.concatenate()
+    else:
+        raise ValueError('stackBool must be either True or False, depending on if the image data is saved as stack or series')
+
 
 def getTiffStackDim(stack):
     """ Returns a triple (x,y,z) of the stack dimensions in pixels """
@@ -159,14 +175,18 @@ def correctImageStack(rawStack, masterDark, flatStack):
     # declare a numpy array with the right dimensions (same as rawStack)
     # Compute the avgSlice for the whole raw stack
     # carry out the flat fielding operation as an array (not matrix)
-    m = np.mean(flatStack-masterDark,axis=(1,2))
+    rawStackFloat = rawStack.astype('float32')
+    masterDarkFloat = masterDark.astype('float32')
+    flatStackFloat = flatStack.astype('float32')
+    m = np.mean(flatStackFloat-masterDarkFloat,axis=(1,2))
     #print("computed avg for all slices")
-    out = (rawStack - masterDark)/(flatStack - masterDark)
+    out = (rawStackFloat - masterDarkFloat)/(flatStackFloat - masterDarkFloat)
     #print("computed out before multiplication by m")
     for slice in range(out.shape[0]):
         out[slice] = out[slice]*m[slice]
         #print("Corrected z slice:", slice)
-    return out.astype('uint16')
+    #return out.astype('uint16')
+    return at.recastImage(out,'uint16')
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt

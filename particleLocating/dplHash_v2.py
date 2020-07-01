@@ -538,9 +538,16 @@ class dplHash:
       fName += 'hv'+str(hashValue).zfill(5)+fileExt
     elif kwrd == 'rawTiff':
       # choose the right time slice to open the rawTiff file given the hashValue.
+      # and pas the correct path to open using reg exp to open tiff series of slices if stackBool == False
       timeStep = self.getTimeStep(hashValue)
+      stackBool = self.metaData['imageParam']['stackBool']
       # assemble the right fileName for the given timeStep
-      fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
+      if stackBool == True:
+        fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
+      elif stackBool == False:
+        fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + '_z*'+ fileExt
+      else:
+        raise ValueError('stackBool value {} is not True or False when calling getPath2File on rawTiff keyword'.format(stackBool))
     elif kwrd =='darkTiff':
       fName = self.metaData['fileNamePrefix'][str(kwrd)]+fileExt
     elif kwrd == 'metaDataYAML':
@@ -835,8 +842,10 @@ class dplHash:
     darkPath = self.getPath2File(hashValue,kwrd='darkTiff',computer=computer)
     outPath = self.getPath2File(hashValue,kwrd='flatField',computer=computer)
 
-    # load stacks
-    rawStack = flatField.zStack2Mem(rawPath)
+    # load stacks or slices depending on how the data was saved.
+    # pass the corect stackBool flag to zStack2Mem
+    stackBool = self.metaData['imageParam']['stackBool']
+    rawStack = flatField.zStack2Mem(rawPath,stackBool=stackBool)
     darkStack = flatField.zStack2Mem(darkPath)
     masterDark = flatField.zProject(darkStack)
 
@@ -1397,8 +1406,6 @@ class dplHash:
       raise KeyError
     elif metaData['crop'] == False and output == 'log':
       flatField.array2tif(pos8bit, output_fName)
-      return {'origin': originLog, 'dim': dimLog}
-    elif metaData['crop'] == False and output == 'tifPath':
       flatField.array2tif(pos8bit, output_fName)
       print('Thresholded image was saved to file: \n')
       print(output_fName)

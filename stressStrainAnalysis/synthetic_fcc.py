@@ -10,7 +10,7 @@ This code generates a synthetic fcc lattice with three coaxial stacking faults b
 partial dislocation loops with the stacking sequence (left fcc, stacking faults, right fcc):
 
    f f f f f f f f f f f f f 
- A B C A B C A B C A B C A B C 
+ A B C A B C A B C A B C A B C
  A B C A B A B C B C A C A B C 
    f f f h h f h h f h h f f
    
