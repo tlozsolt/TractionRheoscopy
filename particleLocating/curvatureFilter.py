@@ -174,6 +174,40 @@ def tvFilter_stack(stack,iter=10,n_jobs=16):
                                      for z in range(stack.shape[0]))
     return np.array(parOut)
 
+def mcFilter_stack(stack, iter=10, n_jobs=16):
+    """
+    mean curvature filter in 2D applied slice by slice to stack
+    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
+    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
+    total variation will yield piece wise constant.
+
+    :param stack:
+    :param iter:
+    :param n_jobs:
+    :return:
+    """
+    stack = stack.astype('float32',copy=True)
+    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
+                                     for z in range(stack.shape[0]))
+    return np.array(parOut)
+
+def gcFilter_stack(stack, iter=10, n_jobs=16):
+    """
+    mean curvature filter in 2D applied slice by slice to stack
+    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
+    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
+    total variation will yield piece wise constant.
+
+    :param stack:
+    :param iter:
+    :param n_jobs:
+    :return:
+    """
+    stack = stack.astype('float32',copy=True)
+    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
+                                     for z in range(stack.shape[0]))
+    return np.array(parOut)
+
 def gaussBlur_stack(stack,sigma=1,n_jobs=4):
     """
     simple wrapper on gauss blur from numpy

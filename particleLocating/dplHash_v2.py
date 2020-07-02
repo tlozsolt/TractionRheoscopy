@@ -1384,6 +1384,10 @@ class dplHash:
           return functools.partial(curvatureFilter.tvFilter_stack,iter=filterDict['iter'],n_jobs = filterDict['n_jobs'])
         elif method == 'gaussianBlur':
           return functools.partial(curvatureFilter.gaussBlur_stack,sigma=filterDict['sigma'],n_jobs = filterDict['n_jobs'])
+        elif method == 'gaussianCurvature':
+          return functools.partial(curvatureFilter.gcFilter_stack, iter=filterDict['iter'],n_jobs=filterDict['n_jobs'])
+        elif method == 'meanCurvature':
+          return functools.partial(curvatureFilter.mcFilter_stack, iter=filterDict['iter'], n_jobs=filterDict['n_jobs'])
         elif method == 'equalize_adapthist':
           return functools.partial(curvatureFilter.equalize_adaptHist_stack,\
                                     n_jobs=filterDict['n_jobs'],\

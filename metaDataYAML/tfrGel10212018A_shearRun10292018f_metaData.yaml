@@ -249,7 +249,8 @@ postDecon:
     gel:
       bool: True
       methodParamList: # ordered list of dictionaries containing parameters
-        - {method: totalVariation, iter: 50, n_jobs: 4}
+        - { method: meanCurvature, iter: 10, n_jobs: 4}
+        - {method: totalVariation, iter: 2, n_jobs: 4}
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
@@ -316,7 +317,7 @@ locating:
     maxIter: 20 # how many iterative loops to do befroe force quitting?
     mask:
       sed: [11, 15, 15] # keep in mind this can be much larger than a single particle diameter
-      gel: [9,19,19] # pixel order is [z,y,x]
+      gel: [19,21,21] # pixel order is [z,y,x]
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
     - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
     - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.9 }
@@ -327,8 +328,7 @@ locating:
     - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.8 }
     - { diameter: [11, 13, 13], minmass: 1000, preprocess: False, max_iterations: 30, separation: [9,11,11], percentile: 0.8 }
   gel:
-    - {diameter: [7,19,19], minmass: 5000, preprocess: False, max_iterations: 20}
-    - {diameter: [7,19,19], minmass: 3000, preprocess: False, max_iterations: 20}
+    - {diameter: [19,25,25], minmass: 30000, separation: [23,28,28], preprocess: False, max_iterations: 20}
 ODSY_Resources:
   queue: serial_requeue 
   time: 360 # requested time in units of minutes
