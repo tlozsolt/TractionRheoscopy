@@ -1,12 +1,13 @@
 import flatField
 import pyperclip
 import numpy as np
+import datetime
 import skimage as ski
 from scipy import ndimage
 
 def send2Fiji(arrayList,\
               wdir ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
-                    'OddysseyHashScripting/pyFiji/testImages/'):
+                    'OddysseyHashScripting/pyFiji/testImages/',metaData=None):
   """ This function takes a nparray or a list of np.array
   [+] writes each array to tif in wdir using a tmp.tif
   [+] creates an text object that contains a fiji macro
@@ -16,7 +17,8 @@ def send2Fiji(arrayList,\
   I also created a macro to close all windows in fiji and mapped that to F2.
   """
   def send2FijiSingleArray(nparray,index):
-    path = flatField.array2tif(nparray,wdir+'/tmp'+str(index)+'.tif')
+    dataStr = str(datetime.date.today())
+    path = flatField.array2tif(nparray,wdir+'/tmp_'+ dataStr + str(index)+'.tif',metaData=metaData)
     return 'open("'+ path +'");\n'
   macroText = ''
   if type(arrayList) == np.ndarray:

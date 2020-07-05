@@ -957,6 +957,9 @@ class dplHash:
     postDeconScript += 'inst.postDecon(computer=\'{computer}\')\n'.format(computer=computer)
     postDeconScript += 'inst.locations(computer=\'{}\')\n'.format(computer)
     postDeconScript += 'inst.saveLocationDF(computer=\'{computer}\')\n'.format(computer = computer)
+    if self.metaData['locating']['visualize'] == True and computer =='MBP':
+      postDeconScript += 'inst.visualize()\n'.format(computer=computer)
+
     output_fName = self.getPath2File(hashValue,kwrd='dplPath',extension='_postDeconCombined.py',computer=computer)
     with open(output_fName,'w') as f: f.write(postDeconScript)
     return "postDeconCombined python script for hashValue {} created at {}".format(hashValue, output_fName)
@@ -1322,6 +1325,7 @@ class dplHash:
     # read in the upScaling parameters
     upscaleParamDict = metaData['upScaling']
     upscaleBool = upscaleParamDict['bool']
+    postThresholdUpscale = upscaleParamDict['postThreshold']
 
 
     # read in threshold parameters
@@ -1347,10 +1351,10 @@ class dplHash:
     if input == 'file': inst = threshold.arrayThreshold(inputPath)
     else: inst = threshold.arrayThreshold(input)
 
-    # upscale
-    if upscaleBool == True:
+    # upscale before threshold?
+    if upscaleBool == True and postThresholdUpscale == False:
       inst.imgArray = upScaling.resize_stack(inst.imgArray, upscaleParamDict)
-      print('upScaling is complete')
+      print('upScaling before thresold complete')
     else: pass
 
     # apply the threshold
@@ -1363,6 +1367,13 @@ class dplHash:
     else:
         print("No threhsolding after decon!")
         pos16bit = inst.imgArray
+
+    # upscale after threshold?
+    if upscaleBool == True and postThresholdUpscale == True:
+      #inst.imgArray = upScaling.resize_stack(inst.imgArray, upscaleParamDict)
+      pos16bit = upScaling.resize_stack(pos16bit,upscaleParamDict)
+      print('upScaling after threshold complete')
+    else: pass
 
 # now decide if we need filter and apply app the filter steps in order
     def filterDict2Func(filterDict):

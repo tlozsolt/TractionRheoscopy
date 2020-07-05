@@ -93,7 +93,7 @@ def cropStack(stack,cropIndex):
 def getSliceDim(slice):
     return slice.shape
 
-def array2tif(array,path):
+def array2tif(array,path,metaData=None):
     """ This function creates a tif file from the input array
         It inherits everything (size and dtype) from the underlying array
         INPUT:
@@ -102,7 +102,7 @@ def array2tif(array,path):
         OUTPUT:
           -write the file and returns the path complete with filename
     """
-    ski.external.tifffile.imsave(path,array)
+    ski.external.tifffile.imsave(path,array,description=metaData)
     return path
 
 def avgSlice(slice):
