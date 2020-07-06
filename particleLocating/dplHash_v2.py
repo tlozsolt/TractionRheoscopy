@@ -961,8 +961,8 @@ class dplHash:
     postDeconScript += 'inst.postDecon(computer=\'{computer}\')\n'.format(computer=computer)
     postDeconScript += 'inst.locations(computer=\'{}\')\n'.format(computer)
     postDeconScript += 'inst.saveLocationDF(computer=\'{computer}\')\n'.format(computer = computer)
-    if self.metaData['locating']['visualize'] == True and computer =='MBP':
-      postDeconScript += 'inst.visualize()\n'.format(computer=computer)
+    if self.metaData['locating']['visualize'] == True:
+      postDeconScript += 'inst.visualize(computer=\'{computer}\')\n'.format(computer=computer)
 
     output_fName = self.getPath2File(hashValue,kwrd='dplPath',extension='_postDeconCombined.py',computer=computer)
     with open(output_fName,'w') as f: f.write(postDeconScript)
