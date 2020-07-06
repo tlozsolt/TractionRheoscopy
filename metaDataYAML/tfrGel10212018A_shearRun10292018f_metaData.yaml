@@ -333,6 +333,6 @@ locating:
     - {diameter: [19,51,51], minmass: 90000, separation: [23,46,46], preprocess: False, max_iterations: 20}
 ODSY_Resources:
   queue: serial_requeue 
-  time: 360 # requested time in units of minutes
+  time: 60 # requested time in units of minutes
   cores: 4 # number of requested cores
   mem: 16000 # memory pool for all cores in units of Mb
