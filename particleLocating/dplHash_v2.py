@@ -534,8 +534,12 @@ class dplHash:
     # now build the fileName keeping in mind that I will need exceptions for some keywords
     if kwrd in self.metaData['fileNamePrefix'] and kwrd != 'rawTiff' and kwrd != 'darkTiff' and kwrd != 'metaDataYAML':
       fName = self.metaData['fileNamePrefix']['global']
-      fName += self.metaData['fileNamePrefix'][str(kwrd)]
-      fName += 'hv'+str(hashValue).zfill(5)+fileExt
+      if kwrd != 'visualize':
+        fName += self.metaData['fileNamePrefix'][str(kwrd)]
+        fName += 'hv'+str(hashValue).zfill(5)+fileExt
+      else:
+        fName += 'hv{}_{}'.format(str(hashValue).zfill(5),fileExt)
+
     elif kwrd == 'rawTiff':
       # choose the right time slice to open the rawTiff file given the hashValue.
       # and pas the correct path to open using reg exp to open tiff series of slices if stackBool == False

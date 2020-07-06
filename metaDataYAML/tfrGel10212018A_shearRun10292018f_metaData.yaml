@@ -33,6 +33,7 @@ filePaths:
     - rawTiff
     - smartCrop
     - pyFiji
+    - visualize
 
   calibrationSubDirList: # files that should be permanent, but too large for $HOME. Dont need a new folder for each run.
     - psfPath
@@ -84,6 +85,12 @@ fileNamePrefix:
   rawTiff: tfrGel10212018A_shearRun10292018f20181030_22333 PM_ # may not be necessary as I only read from the raw directory and never write to it.
   dplPath: dplScript_
   darkTiff: darkImage_NoBinning_CameraZylaSideRFP  # does not have global fileNamePrefix
+  visualize:
+    raw: raw_
+    decon: decon_
+    flatField: flatField_
+    glyph: glyph_
+    locating_input : locating_input_
 ############
 fileExtensions:
    preprocessing: .tif
