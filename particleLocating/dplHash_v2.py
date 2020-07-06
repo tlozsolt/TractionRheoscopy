@@ -757,8 +757,11 @@ class dplHash:
     # parse the psf filenames to extract material type and absolute z-position abvove coverslip. Filename tags should be typeSED or typeGEL, and z*
     #psfPath = self.metaData['filePaths']['psfPath_'+computer]
     psfPath = self.getPath2File(hashValue,kwrd='psfPath',computer=computer,pathOnlyBool=True)
-    print(psfPath)
-    psfList = glob.glob(psfPath+'/'+'*type'+materialStr.upper()+'*.tif') # returns a list of strings of full paths of all *.tif files in psf directory that contain typeSED or typeGEL in file name
+    # We can use material dependent psf, but I dont think that matters
+    # psfList = glob.glob(psfPath+'/'+'*type'+materialStr.upper()+'*.tif') # returns a list of strings of full paths of all *.tif files in psf directory that contain typeSED or typeGEL in file name
+    # Binned or no binned psf will be read from yaml metaData for regExp.
+    psfFile_regExp = self.metaData['fileNamePrefix']['psfTiffRegExp']
+    psfList = glob.glob(psfPath+'/{}'.format(psfFile_regExp))
     zHeightList=[] # list of ints containing heights
     for fPath_str in psfList:
       # get a list of ints containing zHeights

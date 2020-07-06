@@ -86,6 +86,7 @@ fileNamePrefix:
   rawTiff: tfrGel10212018A_shearRun10292018f20181030_22333 PM_ # may not be necessary as I only read from the raw directory and never write to it.
   dplPath: dplScript_
   darkTiff: darkImage_NoBinning_CameraZylaSideRFP  # does not have global fileNamePrefix
+  psfTiffRegExp: 'psf_dim400_400_150_absZ*.tif' # Will depdend on bining
   visualize:
     raw: raw_
     decon: decon_
