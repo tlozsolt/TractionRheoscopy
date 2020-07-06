@@ -153,12 +153,12 @@ hash:
   crop: True
   dimensions:
     gel:
-      xyz: [400,400,150] # XYZ dimensions of the hash
+      xyz: [450,450,200] # XYZ dimensions of the hash
       minOverlap: [50,50,50] # minimum overlap in XYZ
       pxOverlap_w_sed: 50 # how much overlap in pixels should gel chunks have with sediment? \
                           # This defines the upper bound for hashing gel chunks
     sed:
-      xyz: [400,400,150]
+      xyz: [450,450,200]
       minOverlap: [50,50,50]
       pxOverlap_w_gel: 70 # how much overlpa should sed chunks have with gel?
                           # This is height below gelSedimentLocation
@@ -245,7 +245,7 @@ postDecon:
         n_xyz : [7,7,3] # this will be a list
       parallel:
         bool: True
-        n_jobs: 8
+        n_jobs: 16
     method:
       gel: MaxEnt
       sed: MaxEnt
@@ -257,13 +257,13 @@ postDecon:
     gel:
       bool: True
       methodParamList: # ordered list of dictionaries containing parameters
-        - { method: meanCurvature, iter: 10, n_jobs: 4}
-        - {method: totalVariation, iter: 2, n_jobs: 4}
+        - { method: meanCurvature, iter: 10, n_jobs: 16}
+        - {method: totalVariation, iter: 2, n_jobs: 16}
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
-        - { method: totalVariation, iter: 25, n_jobs: 4}
-        - { method: gaussianBlur, sigma: 1.5, n_jobs: 4}
+        - { method: totalVariation, iter: 25, n_jobs: 16}
+        - { method: gaussianBlur, sigma: 1.5, n_jobs: 16}
         #- {method: equalize_adapthist, clip_limit: 0.03, n_jobs: 4}
         #- { method: meanCurvature, iter: 3, n_jobs: 4}
         #- { method: guassianBlur, sigma: 1}
