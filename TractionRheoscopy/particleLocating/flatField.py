@@ -254,3 +254,4 @@ if __name__ == "__main__":
     # corStack = correctImageStack(rawStack,zProjDark, flatStack)
     # array2tif(corStack,path + 'correctedStack.tif')
     #print(correctImage(raw[0],zProjDark,flat(0)))
+    # This is a test of git moving:
