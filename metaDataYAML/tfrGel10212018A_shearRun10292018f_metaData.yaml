@@ -11,6 +11,7 @@ filePaths:
   projectDirectory_ODSY: /n/home04/jzterdik/DATA/tfrGel10212018A/tfrGel10212018A_shearRun10292018f
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
+  TRANSFER_ODSY: /n/holylfs02/TRANSFER/jzterdik # large scale, and permanent due to special agreement with Harvard RC
 
   # referenceDirectory hold files that should be permanent but are too large for HOME and so must be put in SCRATCH
   # Its is possible that when $PROJECT is up and running on ODSY that these should be moved there to prevent needless
