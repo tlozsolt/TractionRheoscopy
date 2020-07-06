@@ -2,6 +2,7 @@ import dplHash_v2 as dpl
 import locating
 import paintByLocations
 import flatField
+import yaml
 import pyFiji
 import numpy as np
 
