@@ -1,0 +1,338 @@
+# traction rheoscopy metaData template
+filePaths:
+  scratchDirectory_MBP: /Volumes/TFR/tfrGel10212018A_shearRun10292018f
+  scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM
+  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/tfrGel10212018A/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM # intermediate storage, no long term backup. Folder for each run
+  scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
+  testImgPath : '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/pyFiji/testImages'
+
+  # projectDirectory is permanent and specific to this metaDataFile
+  projectDirectory_MBP: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f
+  projectDirectory_ODSY: /n/home04/jzterdik/DATA/tfrGel10212018A/tfrGel10212018A_shearRun10292018f
+  tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
+  tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
+
+  # referenceDirectory hold files that should be permanent but are too large for HOME and so must be put in SCRATCH
+  # Its is possible that when $PROJECT is up and running on ODSY that these should be moved there to prevent needless
+  # copying.
+  calibrationDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
+  calibrationDirectory_ODSY: /n/holyscratch01/spaepen_lab/calibration
+  calibrationDirectory_SS: /path/to/calibration/files/on/storage/server
+
+  gitDirList: # files that permanent and updated/synced with git. Hard 100 Mb total git repo size limit. NO IMAGES
+    - metaDataYAML
+    - particleLocating
+    - kilfoil_matlab
+    - stressStrainAnalysis
+
+  scratchSubDirList: # Files that are temporary and wil not generally be saved permanently
+    - preprocessing
+    - decon
+    - postDecon
+    - flatField
+    - rawTiff
+    - smartCrop
+    - pyFiji
+    - visualize
+
+  calibrationSubDirList: # files that should be permanent, but too large for $HOME. Dont need a new folder for each run.
+    - psfPath
+    - darkTiff
+
+  projectSubDirList: # Files that are permanent and should be archived or a reused
+    - log
+    - fullStackPath
+    - calibration # includes rheology, notes, piezo position
+    - locations
+    - dplPath # note that files written to dplPath are **all** the script files,
+              # which also have hard coded extensions such as "extension='_preprocessing.ijm'
+              # not the default extensions read from the yaml file as is the case for all other directories
+  # 
+  # calibration data
+  gelRheology: /path/to/gel/rheology/on/stoargeServer/
+  experimentTable: /path/to/table/of/shearParameters/
+  piezoPath: /path/to/piezo/motion/output/and/control/files/
+  fullStackPath: /path/to/full/zStacks/to/determine/absolute/gel/and/sediment/and/grid/locations/
+  notesPath: /path/to/notes/during/image/acquisition/
+  #
+  # software paths
+  #dplPath_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionForceRheology/particleLocating
+  fijiPath_MBP: /Applications/Fiji.app/Contents/MacOS/ImageJ-macosx # note this is an executable
+  fijiPath_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/ImageJ-linux64 # Check that the fast FFT and Mosaic libraries are also installed
+
+  matlabPath_ODSY: /path/to/MATLAB/if/not/standard/modulue/
+  matlabPath_MBP: /Applications/MATLAB_R2018b.app/bin/matlab
+
+  DL2Path_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/plugins
+  DL2Path_MBP: /Applications/Fiji.app/plugins
+
+  javaPath_MBP: java
+  javaPath_ODSY: module load Java/1.8
+
+  loadPython_ODSY: module load Anaconda3/5.0.1-fasrc02
+  loadMatlab_ODSY: module load matlab/R2018b-fasrc01
+################
+fileNamePrefix:
+  global: tfrGel10212018A_shearRun10292018f_
+  preprocessing: preProcess_
+  decon: decon_
+  postDecon: postDecon8Bit_
+  locations: locations_
+  flatField: flatField_
+  smartCrop: smartCrop_
+  metaDataYAML: metaData
+  log: log_
+  rawTiff: tfrGel10212018A_shearRun10292018f20181030_22333 PM_ # may not be necessary as I only read from the raw directory and never write to it.
+  dplPath: dplScript_
+  darkTiff: darkImage_NoBinning_CameraZylaSideRFP  # does not have global fileNamePrefix
+  visualize:
+    raw: raw_
+    decon: decon_
+    flatField: flatField_
+    glyph: glyph_
+    locating_input : locating_input_
+############
+fileExtensions:
+   preprocessing: .tif
+   hash: .yaml
+   log: .yaml
+   decon: .tif
+   postDecon: .tif
+   flatField: .tif
+   rawTiff: .tif
+   metaDataYAML: .yaml
+   psfPath: .tif
+   darkTiff: .tif
+   fullStackPath: .tif
+   calibration: .text # includes rheology, notes, piezo position, its not clear that all the files will have this extension.
+   dplPath: .x
+   smartCrop: .tif
+   pyFiji: .tif
+#######
+imageParam:
+  stackBool: False
+  xDim: 2048 # full image dimension in x direction, units of pixels
+  yDim: 2048 # ...and in in y
+  zDim: 596 # number of z -slices
+  timeSteps: 1 # total number of number of time steps
+  shearTime: [NAN, NAN] # shear start and stop timesteps assuming zero indexing
+  px2Micron: {'x': 0.115, 'y': 0.115, 'z': 0.15} # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
+  #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
+  stackTime: 176 # time to acquire a stack in seconds
+  stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
+  gelSedimentLocation: 210 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+  shearPostLocation: 565 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+  gelSedimentLocation_fullStack: 0 # location of gel/sediment transition in full stack image, not imaging stack
+  piezoPos: # position of the objective piezo as read off optical encoder at various locations
+    imageStackBottom: 150
+    imageStackTop: NAN
+    coverslip: 0
+    gelSediment: NAN
+#######
+#######
+shearParam:
+  exptIntention: strain sweep to locate yield point # shear processing to crystallize, oscillatory rheology at freq, etc
+  waveform: triangle # triangle, triangle wave, sine, ...
+  velocity: 0.00000 # velocity of plate in microns per second
+  a: 0.000000 # step size, typical target is two steps per second given serial bandwidth 
+  oscillations: 1 # number of repeated oscillations 
+#######
+#######
+pipeline: # note that this is an **ordered** list of step (ie dict keywords) and boolean values except that start
+  - hash: True # maybe we dont need a rawTiff "step" Not clear. We do need to know where the rawTiff files are stored
+  - rawTiff: True # Everything starts with the microscope image, but this could be False if analysis has been restarted
+  - preprocessing: False
+  - flatField: True
+  - decon: True
+  - smartCrop: True
+  - postDecon: True
+  - locating: True
+  - tracking: False
+hash:
+  software: python
+  crop: True
+  dimensions:
+    gel:
+      xyz: [400,400,150] # XYZ dimensions of the hash
+      minOverlap: [50,50,50] # minimum overlap in XYZ
+      pxOverlap_w_sed: 50 # how much overlap in pixels should gel chunks have with sediment? \
+                          # This defines the upper bound for hashing gel chunks
+    sed:
+      xyz: [400,400,150]
+      minOverlap: [50,50,50]
+      pxOverlap_w_gel: 70 # how much overlpa should sed chunks have with gel?
+                          # This is height below gelSedimentLocation
+                          # and defines the lower bound for hashing sed chunks
+preprocessing:
+  software: ImageJ
+  crop: False # does this step do any cropping on top of the initial hash?
+  bkSubtractBool: True # is the background subtracted prior to deconvolution?
+  bkSubtractMethod: gaussian # method names, rbFilter, gaussian
+  params:
+    width: 40 # width of gaussian in pixels
+    32BitFloat: True
+    16BitConv: True
+
+flatField:
+  software: python
+  crop: False # This is a bit misleading because the images are first actually cropped according to hash parameters in Flatfield, but there is no cropping in addition to the hash.
+  crop2Hash: True
+  returnType: uint16 # after flatfielding what the is the data type of a single pixel? unit16 in "unisgned 16 bit integer"
+  flatStack_method: gaussianBlur # description of how the the flatStack is formed. Either a guassian blur or an actual microscope image of an optical phantom
+  sigma: 15 # standard deviation of gaussian used
+  dim: 3D # slice by slice in 2D or full 3D?
+  darkFrame_method: darkStackAvg
+
+decon:
+  software: DeconvolutionLab2 # string saying what software was used to carry out decon
+  crop: False # does this step do any cropping on top of the initial hash?
+  method: RLTV # string specifying deconvolution method, probably Richardson-Lucy with Total Variation Regularization
+  iterations: 30 # number of iterations for deconvolution
+  lambda:
+    sed: 0.000000001 # regularization parameter
+    gel: 0.00001
+  psf_info: theorectical generated by Huygens
+  path2PSF: see filePaths
+  garbageSlices: 2 # number of z-slices to discard after deconvolution
+  apodization:
+    bool: True
+    lateral: 'NO'
+    axial: 'NO'
+  padding:
+    bool: True
+    lateral: E2
+    axial: E2
+
+smartCrop:
+  software: python
+  crop: True
+  fftCrop: # Crop just to get rid of garbage due to periodic boundary conditions on FFT
+    bool: True
+    X: 10
+    Y: 10
+    Z: 17
+  sedGelCrop: # additional axial trimming to get rid of sediment slices from gel stack or gel slices from sediment for maxEnt histogram thresholding.
+    bool: True
+    method: zGradAvgXY
+    offset: 4 # number of z-slices above(+) or below(-) relative to the index position of max value
+    minValue: 2000 # smallest value of gradient to ensure that you have found a true peak
+    maxDev: 45 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
+
+postDecon:
+  software: python
+  crop: False # How many pixels to trim off the image borders?
+  output:
+    dtype: uint8 # what format should the image be returned?
+    recastBool: True # should histogram be stretched over dtype range at the end?
+  upScaling:
+    bool: True
+    postThreshold: True
+    software: python
+    dim: {x: 2,y: 2} # z upscaling is not supported
+    interp_method: lanczos # open_cv options include linear, cubic, bicubic, lanczos.
+    parallel:
+      bool: True
+      n_jobs: 32
+  threshold:
+    bool: True
+    local: # python only
+      bool: True
+      blockDim:
+        X: 250
+        Y: 250
+        Z: 30
+      sample: # number of samples at which to compute local thresholding
+        n_xyz : [7,7,3] # this will be a list
+      parallel:
+        bool: True
+        n_jobs: 8
+    method:
+      gel: MaxEnt
+      sed: MaxEnt
+    scaleFactor:
+      gel: 1.0
+      sed: 1.0
+    range: no-reset # in pricnple both imageJ and python
+  postThresholdFilter: # if imageJ, use mosaic parameters
+    gel:
+      bool: True
+      methodParamList: # ordered list of dictionaries containing parameters
+        - { method: meanCurvature, iter: 10, n_jobs: 4}
+        - {method: totalVariation, iter: 2, n_jobs: 4}
+    sed:
+      bool: True
+      methodParamList: # ordered list of dictionaries containing filter method and parameters
+        - { method: totalVariation, iter: 25, n_jobs: 4}
+        - { method: gaussianBlur, sigma: 1.5, n_jobs: 4}
+        #- {method: equalize_adapthist, clip_limit: 0.03, n_jobs: 4}
+        #- { method: meanCurvature, iter: 3, n_jobs: 4}
+        #- { method: guassianBlur, sigma: 1}
+
+    mosaic: # Image-J only, although similar filters have been written in python as well.
+      bool: False
+      gaussianCurvature:
+        bool: True
+        filter_name: Gausian Curvature 3D # Yes, Gaussian is misspelled
+        iter: 50
+      meanCurvature2D:
+        bool: True
+        filter_name: "[MC (Mean Curvature)]"
+        method: "[No split]"
+        iter: 3
+#######
+#######
+locating_matlab:
+  crop: False
+  locatingScriptPath: /path/to/matlab/locating/and/submission/scripts/used/
+  matlabVariable: [] # list of key:value pairs for all the variables matlab needs to run
+  bandPassBool: False # does the locating code cary out a band pass filter for any reason? 
+  deconvolvedBool: True # is the image deconvolved prior to locating?
+  iterBool: True # use iterative locating?
+  sedimentParam: # list of particle locations for locating the sediment
+    # Note that object size will depend **strongly** on the type of thresholding done in postDecon.
+    # MaxEnt will give small particles (typically 2-3 pixels in xy and a few more in z, while Default will give
+    # closer to actual size of [4,4,11] px
+    outputSuffix: _sed 
+    lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
+    lobject: [27, 27, 27] # Only used if image is bandpass filtered
+    diameters: [5, 5, 13] # somewhat larger than feature size
+    mask_size: [3, 3, 7] # somewhat smaller than feature size
+    min_separation: [3, 3, 5] # merge two local maxima if within this distance. Set equal to smaller than core size
+    masscut_initial: 0 # initial mass cut
+    masscut_residuals: 1000 # mass cut during interative locativing
+    false_particle_size: [7, 7, 13] # for core shell this should be somewhat smaller than
+                                      # 2*(nearest neighbor distance)- (core diameter)
+    bridgeThreshold: 0.5 # i dont think this is used either
+    zeroPxThreshold: 200 # max overlap with zero pixels
+  gelParam: #list of particle location values used for locating the gel particles
+    outputSuffix: _gel 
+    lnoise: [0.9, 0.9, 0.7] # I dont actually think this is used since the images wont be bandpass filtered
+    lobject: [27, 27, 27]
+    diameters: [31, 31, 15]
+    mask_size: [23, 23, 9]
+    min_separation: [7, 7, 7] # These should comparitively large relative to the diameters since the gel is sparse.
+    masscut_initial: 20000 # initial mass cut
+    masscut_residuals: 30000 # mass cut during interative locativing
+    false_particle_size: [27, 27, 13]
+    bridgeThreshold: 0.5 # i dont think this is used either
+    zeroPxThreshold: 500 # mobject: [27, 27, 29]
+
+locating:
+  software: python
+  crop: False
+  visualize: True
+  iterative:
+    bool: True # do iterative locating?
+    maxIter: 20 # how many iterative loops to do befroe force quitting?
+    mask:
+      sed: [15, 23, 23] # keep in mind this can be much larger than a single particle diameter
+      gel: [19,42,42] # pixel order is [z,y,x]
+  sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
+    - { diameter: [15, 25, 25], minmass: 3000, preprocess: False, max_iterations: 30, separation: [9,17,17], percentile: 0.98 }
+  gel:
+    - {diameter: [19,51,51], minmass: 90000, separation: [23,46,46], preprocess: False, max_iterations: 20}
+ODSY_Resources:
+  queue: serial_requeue 
+  time: 60 # requested time in units of minutes
+  cores: 4 # number of requested cores
+  mem: 16000 # memory pool for all cores in units of Mb
