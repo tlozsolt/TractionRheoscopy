@@ -134,6 +134,7 @@ class arrayThreshold:
 
         #self.thresholdArray[:] = np.argmax(b_entropy + f_entropy)
 
+        print("Complete max ent threshold on one block!")
         return np.argmax(b_entropy + f_entropy)
 
     def linearShade(self, x, left, right, min, max):

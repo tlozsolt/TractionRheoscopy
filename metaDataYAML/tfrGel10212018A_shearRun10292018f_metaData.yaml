@@ -242,12 +242,12 @@ postDecon:
       blockDim:
         X: 250
         Y: 250
-        Z: 30
+        Z: 50
       sample: # number of samples at which to compute local thresholding
-        n_xyz : [7,7,3] # this will be a list
+        n_xyz : [3,3,4] # this will be a list
       parallel:
         bool: True
-        n_jobs: 16
+        n_jobs: 8
     method:
       gel: MaxEnt
       sed: MaxEnt
