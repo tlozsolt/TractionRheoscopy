@@ -516,8 +516,8 @@ class dplHash:
     elif kwrd in gitSubDirList:
       #print('tractionRheoscopyGit_'+str(computer))
       path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
-      if kwrd == 'kilfoil_matlab': path += '/particleLocating'
-      path += '/' + kwrd # immediately form the directory
+      #if kwrd == 'kilfoil_matlab': path += '/particleLocating'
+      #path += '/' + kwrd # immediately form the directory
     elif kwrd in calibrationSubDirList:
       path = self.metaData['filePaths']['calibrationDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
@@ -880,8 +880,8 @@ class dplHash:
     gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
     flatFieldScript = 'import sys\n'
     flatFieldScript += 'sys.path.insert(0,\"' + gitDir + '\")\n'
-    flatFieldScript +='import flatField\n\n'
-    flatFieldScript += 'import dplHash_v2 as dplHash\n'
+    flatFieldScript +='from particleLocating import flatField\n\n'
+    flatFieldScript += 'from particleLocating import dplHash_v2 as dplHash\n'
 
     flatFieldScript += 'hashObject = dplHash.dplHash(\'' \
                        + self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) \
@@ -956,7 +956,7 @@ class dplHash:
 
     postDeconScript  = 'import sys\n'
     postDeconScript += 'sys.path.insert(0,\"' + gitDir + '\")\n'
-    postDeconScript += 'import postDeconCombined\n'
+    postDeconScript += 'from particleLocating import postDeconCombined\n'
     postDeconScript += 'inst = postDeconCombined.PostDecon(\'{yamlPath}\',{hashValue})\n'.format(yamlPath=yamlPath, \
                                                                                            hashValue=hashValue)
     postDeconScript += 'inst.smartCrop(computer=\'{computer}\')\n'.format(computer=computer)
@@ -1290,8 +1290,8 @@ class dplHash:
     gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
     #outScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
     outScript += 'sys.path.insert(0,\"' + gitDir +'\")\n'
-    outScript +='import flatField\n'
-    outScript += 'import dplHash_v2 as dplHash\n'
+    outScript +='from particleLocating import flatField\n'
+    outScript += 'from particleLocating import dplHash_v2 as dplHash\n'
     outScript += 'dplInst = dplHash.dplHash(\'' + \
                  self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
     if output == 'log':
@@ -1451,9 +1451,8 @@ class dplHash:
     gitDir = self.getPath2File(0,kwrd='particleLocating',computer = computer,pathOnlyBool = True,extension='')
     #outScript += 'sys.path.insert(0,\"' + str(self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer]) +'\")\n'
     outScript += 'sys.path.insert(0,\"' + gitDir +'\")\n'
-    outScript +='import flatField\n'
-    outScript +='import threshold\n'
-    outScript += 'import dplHash_v2 as dplHash\n'
+    outScript +='from particleLocating import flatField, threshold\n'
+    outScript += 'from particleLocating import dplHash_v2 as dplHash\n'
     outScript += 'dplInst = dplHash.dplHash(\'' + \
                  self.getPath2File(hashValue,kwrd='metaDataYAML',computer=computer) +'\')\n'
     outScript += 'dplInst.postDecon_python({hashValue},computer=\'{computer}\',output=\'{output}\')'.format(
@@ -1576,7 +1575,7 @@ class dplHash:
       #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
       gitDir = self.getPath2File(0, kwrd='particleLocating', computer=computer, pathOnlyBool=True, extension='')
       output += 'sys.path.append(\'' + gitDir + '\');\n'
-      output += 'import dplHash_v2 as dplHash;\n'
+      output += 'from particleLocating import dplHash_v2 as dplHash;\n'
       output += 'hashObject = dplHash.dplHash(\'${yamlPath}\');\n'
       output += 'hashObject.writeLog($hashValue,\''+ str(pipeLine) + '\',computer=\'${computer}\')\n'
       output += '\")\n'
