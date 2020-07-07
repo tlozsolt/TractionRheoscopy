@@ -517,7 +517,8 @@ class dplHash:
       #print('tractionRheoscopyGit_'+str(computer))
       path = self.metaData['filePaths']['tractionRheoscopyGit_'+str(computer)]
       #if kwrd == 'kilfoil_matlab': path += '/particleLocating'
-      #path += '/' + kwrd # immediately form the directory
+      if kwrd!= 'particleLocating':
+        path += '/' + kwrd # immediately form the directory
     elif kwrd in calibrationSubDirList:
       path = self.metaData['filePaths']['calibrationDirectory_'+str(computer)]
       path += '/' + kwrd # immediately form the directory
