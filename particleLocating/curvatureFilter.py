@@ -19,11 +19,10 @@ Cite:
 
 """
 import numpy as np
-import flatField
 from joblib import Parallel,delayed
 from scipy import ndimage
 from skimage import exposure
-import threshold, pyFiji
+from particleLocating import flatField, threshold, pyFiji
 
 def update_Bern(img, row, col):
     img_ij = img[row:-1:2, col:-1:2]

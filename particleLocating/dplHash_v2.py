@@ -1,9 +1,8 @@
 import yaml, os, math, glob, re, functools
-import flatField, pyFiji, threshold, curvatureFilter, upScaling
+from particleLocating import flatField, pyFiji, threshold, curvatureFilter, upScaling, locating
 from datetime import datetime
 import numpy as np
 import skimage
-import locating
 """
 This file is used to create a deconvolution particle locating (dpl) Hash table
 for a given set of colloid microscopy xyzt stacks and complete metaData yaml file.

@@ -1,10 +1,10 @@
-import dplHash_v2 as dpl
+from particleLocating import dplHash_v2 as dpl
 import pandas as pd
 from joblib import Parallel, delayed
 import glob
 import trackpy
 import numpy as np
-import locating, hashStitch
+from particleLocating import locating, hashStitch
 
 
 class ParticleStitch(dpl.dplHash):

@@ -1,6 +1,5 @@
 from scipy.interpolate import griddata
-import pyFiji
-import flatField
+from particleLocating import pyFiji, flatField
 import numpy as np
 
 def sampleImage(array,points):

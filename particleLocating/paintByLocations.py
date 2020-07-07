@@ -1,9 +1,7 @@
 import numpy as np
 import pandas
 from scipy import signal
-import pyFiji
-import threshold
-import flatField
+from particleLocating import pyFiji, threshold, flatField
 import seaborn as sns
 from matplotlib import pyplot as plt
 

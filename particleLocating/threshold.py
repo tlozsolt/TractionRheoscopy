@@ -1,6 +1,5 @@
 import numpy as np
-import flatField
-import pyFiji
+from particleLocating import flatField, pyFiji
 from scipy.interpolate import griddata
 from joblib import Parallel,delayed
 

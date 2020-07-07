@@ -1,9 +1,6 @@
-import dplHash_v2 as dpl
-import locating
-import paintByLocations
-import flatField
+from particleLocating import dplHash_v2 as dpl
+from particleLocating import locating, paintByLocations, flatField, pyFiji
 import yaml
-import pyFiji
 import numpy as np
 
 """

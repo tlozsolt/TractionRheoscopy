@@ -1,4 +1,4 @@
-import flatField
+from particleLocating import flatField
 import pyperclip
 import numpy as np
 import datetime

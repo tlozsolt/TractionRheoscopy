@@ -1,7 +1,6 @@
 import trackpy as tp
 import functools,yaml
-from paintByLocations import particleGlyph as pg
-#import flatField
+from particleLocating.paintByLocations import particleGlyph as pg
 import numpy as np
 import pandas as pd
 import scipy

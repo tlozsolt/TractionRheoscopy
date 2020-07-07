@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import flatField
+from particleLocating import flatField
 import yaml
 from joblib import Parallel, delayed
 

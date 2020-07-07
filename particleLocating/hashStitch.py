@@ -1,6 +1,6 @@
 import numpy as np
-import flatField
-import dplHash_v2 as dpl
+from particleLocating import flatField
+from particleLocating import dplHash_v2 as dpl
 import yaml
 
 """
