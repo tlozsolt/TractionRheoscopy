@@ -3,7 +3,7 @@ import pims
 from scipy import ndimage
 import skimage as ski
 import time
-from particleLocating.threshold import arrayThreshold as at
+from particleLocating import threshold
 
 """
     This file is contains helper functions to access tiff stacks
@@ -185,7 +185,7 @@ def correctImageStack(rawStack, masterDark, flatStack):
         out[slice] = out[slice]*m[slice]
         #print("Corrected z slice:", slice)
     #return out.astype('uint16')
-    return at.recastImage(out,'uint16')
+    return threshold.arrayThreshold.recastImage(out,'uint16')
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
