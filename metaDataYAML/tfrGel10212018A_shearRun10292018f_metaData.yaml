@@ -234,7 +234,7 @@ postDecon:
     interp_method: lanczos # open_cv options include linear, cubic, bicubic, lanczos.
     parallel:
       bool: True
-      n_jobs: 32
+      n_jobs: 16
   threshold:
     bool: True
     local: # python only
