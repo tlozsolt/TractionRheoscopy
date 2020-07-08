@@ -1,6 +1,7 @@
 # traction rheoscopy metaData template
 filePaths:
   scratchDirectory_MBP: /Volumes/TFR/tfrGel10212018A_shearRun10292018f
+  scratchDirectory_IMAC: /Volumes/TFR/tfrGel10212018A_shearRun10292018f
   scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM
   scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/tfrGel10212018A/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM # intermediate storage, no long term backup. Folder for each run
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
@@ -8,15 +9,18 @@ filePaths:
 
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f
+  projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f
   projectDirectory_ODSY: /n/home04/jzterdik/DATA/tfrGel10212018A/tfrGel10212018A_shearRun10292018f
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
+  tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
   TRANSFER_ODSY: /n/holylfs02/TRANSFER/jzterdik # large scale, and permanent due to special agreement with Harvard RC
 
   # referenceDirectory hold files that should be permanent but are too large for HOME and so must be put in SCRATCH
   # Its is possible that when $PROJECT is up and running on ODSY that these should be moved there to prevent needless
   # copying.
   calibrationDirectory_MBP: /Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting
+  calibrationDirectory_IMAC: /Users/zsolt/Colloid/DATA/calibration
   calibrationDirectory_ODSY: /n/holyscratch01/spaepen_lab/calibration
   calibrationDirectory_SS: /path/to/calibration/files/on/storage/server
 
@@ -59,15 +63,19 @@ filePaths:
   # software paths
   #dplPath_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionForceRheology/particleLocating
   fijiPath_MBP: /Applications/Fiji.app/Contents/MacOS/ImageJ-macosx # note this is an executable
+  fijiPath_IMAC: /Applications/Fiji.app/Contents/MacOS/ImageJ-macosx # note this is an executable
   fijiPath_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/ImageJ-linux64 # Check that the fast FFT and Mosaic libraries are also installed
 
   matlabPath_ODSY: /path/to/MATLAB/if/not/standard/modulue/
   matlabPath_MBP: /Applications/MATLAB_R2018b.app/bin/matlab
+  matlabPath_IMAC: /Applications/MATLAB_R2018b.app/bin/matlab
 
   DL2Path_ODSY: /n/home04/jzterdik/SOFTWARE/Fiji.app/plugins
   DL2Path_MBP: /Applications/Fiji.app/plugins
+  DL2Path_IMAC: /Applications/Fiji.app/plugins
 
   javaPath_MBP: java
+  javaPath_IMAC: java
   javaPath_ODSY: module load Java/1.8
 
   loadPython_ODSY: module load Anaconda3/5.0.1-fasrc02

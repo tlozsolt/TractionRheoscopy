@@ -1553,13 +1553,13 @@ class dplHash:
       if computer == 'ODSY':
         output = self.metaData['filePaths']['loadPython_ODSY'] + '\n'
         output += "source activate tractionRheoscopy\n"
-      elif computer == 'MBP' : output = ""
+      elif computer == 'MBP' or computer == 'IMAC': output = ""
       output += '$(python -c \"'
       output += 'import sys;\n'
       gitDir = self.getPath2File(0, kwrd='particleLocating', computer=computer, pathOnlyBool=True, extension='')
       output += 'sys.path.append(\'' + gitDir + '\');\n'
       #output += 'sys.path.append(\'' + self.metaData['filePaths']['particleLocatingSCRIPTS_'+computer] + '\');\n'
-      output += 'import dplHash_v2 as dplHash;\n'
+      output += 'from particleLocating import dplHash_v2 as dplHash;\n'
       output += 'hashObject = dplHash.dplHash(\'${yamlPath}\');\n'
       output += 'hashObject.makeAllScripts($hashValue,computer=\'${computer}\');\n'
       output += 'hashObject.writeLog($hashValue,\'hash\',computer=\'${computer}\')\n'
