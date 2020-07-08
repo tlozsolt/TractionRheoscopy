@@ -116,7 +116,7 @@ imageParam:
   xDim: 2048 # full image dimension in x direction, units of pixels
   yDim: 2048 # ...and in in y
   zDim: 596 # number of z -slices
-  timeSteps: 1 # total number of number of time steps
+  timeSteps: 90 # total number of number of time steps
   shearTime: [NAN, NAN] # shear start and stop timesteps assuming zero indexing
   px2Micron: {'x': 0.115, 'y': 0.115, 'z': 0.15} # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
   #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
