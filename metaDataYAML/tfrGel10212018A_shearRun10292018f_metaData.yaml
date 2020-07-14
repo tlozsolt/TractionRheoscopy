@@ -131,6 +131,7 @@ imageParam:
   stackTime: 176 # time to acquire a stack in seconds
   stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
   gelSedimentLocation: 210 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+  interfaceRange: [171,210]
   shearPostLocation: 565 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
   gelSedimentLocation_fullStack: 0 # location of gel/sediment transition in full stack image, not imaging stack
   piezoPos: # position of the objective piezo as read off optical encoder at various locations
@@ -216,6 +217,7 @@ decon:
 smartCrop:
   software: python
   crop: True
+  daskBool: False
   fftCrop: # Crop just to get rid of garbage due to periodic boundary conditions on FFT
     bool: True
     X: 10
@@ -228,6 +230,7 @@ smartCrop:
     minValue: 2000 # smallest value of gradient to ensure that you have found a true peak
     maxDev: 45 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
 
+postDeconCombinedBool: True
 postDecon:
   software: python
   crop: False # How many pixels to trim off the image borders?
@@ -242,7 +245,7 @@ postDecon:
     interp_method: lanczos # open_cv options include linear, cubic, bicubic, lanczos.
     parallel:
       bool: True
-      n_jobs: 16
+      n_jobs: 4
   threshold:
     bool: True
     local: # python only
@@ -267,13 +270,13 @@ postDecon:
     gel:
       bool: True
       methodParamList: # ordered list of dictionaries containing parameters
-        - { method: meanCurvature, iter: 10, n_jobs: 16}
-        - {method: totalVariation, iter: 2, n_jobs: 16}
+        - { method: meanCurvature, iter: 10, n_jobs: 4}
+        - {method: totalVariation, iter: 2, n_jobs: 4}
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
-        - { method: totalVariation, iter: 25, n_jobs: 16}
-        - { method: gaussianBlur, sigma: 1.5, n_jobs: 16}
+        - { method: totalVariation, iter: 25, n_jobs: 4}
+        - { method: gaussianBlur, sigma: 1.5, n_jobs: 4}
         #- {method: equalize_adapthist, clip_limit: 0.03, n_jobs: 4}
         #- { method: meanCurvature, iter: 3, n_jobs: 4}
         #- { method: guassianBlur, sigma: 1}

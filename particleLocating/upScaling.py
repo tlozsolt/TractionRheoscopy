@@ -12,13 +12,14 @@ def resize(slice,paramDict):
     :return: rescaled image, possibly a dictionary of
     """
 
-    out_size = (slice.shape[0]*paramDict['dim']['y'], \
-                slice.shape[1]*paramDict['dim']['x'])
+    slice_copy = slice.copy()
+    out_size = (slice_copy.shape[0]*paramDict['dim']['y'], \
+                slice_copy.shape[1]*paramDict['dim']['x'])
 
     if paramDict['interp_method'] == 'lanczos':
-        return cv2.resize(slice, out_size, interpolation = cv2.INTER_LANCZOS4)
+        return cv2.resize(slice_copy, out_size, interpolation = cv2.INTER_LANCZOS4)
     elif paramDict['interp_method'] == 'cubic':
-        return cv2.resize(slice, out_size, interpolation = cv2.INTER_CUBIC)
+        return cv2.resize(slice_copy, out_size, interpolation = cv2.INTER_CUBIC)
     else:
         print("interpolation method {} is not recognized. Choose \'lanczos\' or \'cubic\' ".format(paramDict['interp_method']))
         raise ValueError
@@ -26,7 +27,9 @@ def resize(slice,paramDict):
 def resize_stack(stack,paramDict):
     if paramDict['parallel']['bool'] == True: n_jobs = paramDict['parallel']['n_jobs']
     else: n_jobs=1
-    return np.array(Parallel(n_jobs=n_jobs)(delayed(resize)(stack[z,:,:],paramDict) for z in range(stack.shape[0])))
+    print("n_jobs for upscaling: {}".format(n_jobs))
+    out = Parallel(n_jobs=n_jobs,prefer='threads')(delayed(resize)(stack[z,:,:],paramDict) for z in range(stack.shape[0]))
+    return np.array(out)
 
 if __name__ == "__main__":
     imgPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2'\

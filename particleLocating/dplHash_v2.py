@@ -1,4 +1,4 @@
-import yaml, os, math, glob, re, functools
+import yaml, os, math, glob, re, functools, gc
 from particleLocating import flatField, pyFiji, threshold, curvatureFilter, upScaling, locating
 from datetime import datetime
 import numpy as np
@@ -318,13 +318,16 @@ class dplHash:
     """
     # get the z-range of the specified hashValue
     zRange = self.getCropIndex(hashValue)[2]
-    interface = self.metaData['imageParam']['gelSedimentLocation']
+    #interface = self.metaData['imageParam']['gelSedimentLocation']
+    # modified to account for tilted interfaces. to revert to previous, set max = min = interface
+    interface_min, interface_max = self.metaData['imageParam']['interfaceRange']
     # is self.metaData['imageParam']['gelSedimentLocation'] in the range?
     mat = self.sedOrGel(hashValue)
-    if mat == 'sed': cushion = interface - zRange[0]
-    elif mat == 'gel': cushion = zRange[1] - interface
-    if interface < zRange[1] and interface > zRange[0]:
-      return (self.sedOrGel(hashValue),True, cushion)
+    if mat == 'sed': cushion = interface_max - zRange[0]
+    elif mat == 'gel': cushion = zRange[1] - interface_min
+    #if zRange[1] > interface > zRange[0]:
+    if zRange[1] > interface_min > zRange[0] or zRange[1] > interface_max > zRange[0]:
+        return (self.sedOrGel(hashValue),True, cushion)
     else:
       return (self.sedOrGel(hashValue),False, cushion)
 
@@ -1165,13 +1168,22 @@ class dplHash:
       origin: [vector combining relative shifts of fftCrop and sedGel]
       dim: [new dimensions of the image]
       time: when the file was written
+
+    hashValue:int the hashValue on which to run smartCrop
+    computer:str either ODSY, SS, MBP or IMAC
+    output:str either log, np.array or dask_array. Output type np.array can be used with dask input
     """
 
     # read in the correct upstream input data
     metaData = self.metaData['smartCrop']
     inputKwrd = self.getPipelineStep('smartCrop')
     inputPath = self.getPath2File(hashValue,kwrd=inputKwrd,computer = computer)
-    fullStack = flatField.zStack2Mem(inputPath) # this is just reading in the "full stack" before cropping but after hashing etc
+    daskBool = metaData['daskBool']
+    if daskBool == False: fullStack = flatField.zStack2Mem(inputPath) # this is just reading in the "full stack" before cropping but after hashing etc
+    else:
+      import dask_image.imread
+      fullStack = dask_image.imread.imread(inputPath).compute()
+      print('Using dask image: {}'.format(fullStack))
     refPos = self.getCropIndex(hashValue)
     originLog = [0,0,0] # relative changes in origin and dimensions to be updated and recorded in writeLog()
     dimLog = [0,0,0]
@@ -1237,9 +1249,12 @@ class dplHash:
     ## return a total cropping done with final reference pixel locations given.
     if output == 'log':
       output_fName = self.getPath2File(hashValue, kwrd='smartCrop', extension='.tif', computer=computer)
-      flatField.array2tif(fullStack, output_fName)
+      flatField.array2tif(fullStack, output_fName,metaData=yaml.dump(metaData))
       return {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}
     elif output =='np.array':
+      if daskBool == False: return [fullStack, {'smartCrop': {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}}]
+      else: return [fullStack.compute(), {'smartCrop': {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}}]
+    elif output == 'dask_array':
       return [fullStack, {'smartCrop': {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}}]
     else: return refPos
 
@@ -1368,9 +1383,18 @@ class dplHash:
     inst.imgArray = inst.recastImage(inst.imgArray, 'uint16')
     if thresholdBool == True and metaData['threshold']['local']['bool']==True:
       tmp = inst.localThreshold(blockDim,n_xyz=n_xyz, parBool = parBool, n_jobs=n_jobs)
+      print("Computed local thresholds!")
       # This returns a list of points and threshold values that need to be interpolated
       inst.thresholdArray = inst.interpolateThreshold(tmp[0],tmp[1])
+      print("Interpolated the threshold")
       pos16bit, neg16bit = inst.applyThreshold(scaleFactor=scaleFactor)
+      print("Applied the threshold")
+      del inst, tmp, neg16bit
+      gc.collect()
+      pos16bit_new = pos16bit.copy()
+      del pos16bit
+      gc.collect()
+      print("Collected garbage(I think)")
     else:
         print("No threhsolding after decon!")
         pos16bit = inst.imgArray
@@ -1378,7 +1402,7 @@ class dplHash:
     # upscale after threshold?
     if upscaleBool == True and postThresholdUpscale == True:
       #inst.imgArray = upScaling.resize_stack(inst.imgArray, upscaleParamDict)
-      pos16bit = upScaling.resize_stack(pos16bit,upscaleParamDict)
+      pos16bit = upScaling.resize_stack(pos16bit_new,upscaleParamDict)
       print('upScaling after threshold complete')
     else: pass
 
@@ -1507,7 +1531,8 @@ class dplHash:
     if 'smartCrop' in keyList \
             and 'postDecon' in keyList \
             and 'locating' in keyList \
-            and self.metaData['locating']['software'] == 'python':
+            and self.metaData['locating']['software'] == 'python'\
+            and self.metaData['postDeconCombinedBool'] == True:
       # write combined PostDecon file
       self.makePostDeconCombined(hashValue, computer)
     else:
@@ -1702,6 +1727,7 @@ class dplHash:
       extension = '.m'
       if computer == 'ODSY': output = self.metaData['filePaths']['loadMatlab_ODSY'] +'\n' +'matlab '
       elif computer == 'MBP': output = self.metaData['filePaths']['matlabPath_'+ computer]
+      elif computer== 'IMAC': output = self.metaData['filePaths']['matlabPath_{}'.format('IMAC')]
       output += " -nodisplay -nosplash -r "\
               "\"run(\'" + particleLocatingScript +"\'); exit\""
       if errorLog == 'singleFile':
@@ -1720,7 +1746,8 @@ class dplHash:
       if 'smartCrop' in keyList \
               and 'postDecon' in keyList \
               and 'locating' in keyList \
-              and self.metaData['locating']['software'] == 'python':
+              and self.metaData['locating']['software'] == 'python'\
+              and self.metaData['postDeconCombinedBool'] == True:
         return True
       else: return False
 

@@ -34,7 +34,8 @@ def update_Bern(img, row, col):
     d1 = (img_prev + img_next) / 2.0 - img_ij;
     d2 = (img_left + img_rigt) / 2.0 - img_ij
     d_m = d1 * (np.abs(d1) <= np.abs(d2)) + d2 * (np.abs(d2) < np.abs(d1))
-    img_ij[...] += d_m
+    #img_ij[...] += d_m
+    img_ij[...] = img_ij[...] + d_m
 
 
 def update_MC(img, row, col):
@@ -58,9 +59,11 @@ def update_MC(img, row, col):
     d = d * (np.abs(d) <= np.abs(d3)) + d3 * (np.abs(d3) < np.abs(d))
     d = d * (np.abs(d) <= np.abs(d4)) + d4 * (np.abs(d4) < np.abs(d))
 
-    d /= 8
+    #d /= 8
+    d = d/8
 
-    img_ij[...] += d
+    #img_ij[...] += d
+    img_ij[...] = d + img_ij[...]
 
 
 def update_GC(img, row, col):
@@ -91,7 +94,8 @@ def update_GC(img, row, col):
     d = d * (np.abs(d) <= np.abs(d7)) + d7 * (np.abs(d7) < np.abs(d))
     d = d * (np.abs(d) <= np.abs(d8)) + d8 * (np.abs(d8) < np.abs(d))
 
-    img_ij[...] += d
+    #img_ij[...] += d
+    img_ij[...] = d + img_ij[...]
 
 
 def update_TV(img, row, col):
@@ -123,9 +127,15 @@ def update_TV(img, row, col):
     d = d * (np.abs(d) <= np.abs(d7)) + d7 * (np.abs(d7) < np.abs(d))
     d = d * (np.abs(d) <= np.abs(d8)) + d8 * (np.abs(d8) < np.abs(d))
 
-    d /= 5
+    #d /= 5
+    # in place assignment does not play well with np and dask
+    # but without inplace assingment this function does not do anything
+    d = d / 5
 
-    img_ij[...] += d
+    #img_ij[...] += d
+    #img_ij[...] = d + img_ij[...] # ellipsis is NotImplementedError
+    img[row:-1:2, col:-1:2] = d + img[row:-1:2, col:-1:2]
+    return img
 
 
 def CF(inputimg, filterType=2, total_iter=10):
@@ -153,7 +163,12 @@ def CF(inputimg, filterType=2, total_iter=10):
         update(outputimg, 2, 1)
         update(outputimg, 1, 2)
         update(outputimg, 2, 2)
+        #update(inputimg, 1, 1)
+        #update(inputimg, 2, 1)
+        #update(inputimg, 1, 2)
+        #update(inputimg, 2, 2)
     return outputimg
+    #return inputimg
 
 def tvFilter_stack(stack,iter=10,n_jobs=16):
     """
