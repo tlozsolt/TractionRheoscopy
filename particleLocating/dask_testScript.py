@@ -160,9 +160,6 @@ if __name__ == "__main__":
         c_entropy_i = c_entropy[-1] - c_entropy
         f_entropy = -c_entropy_i / c_hist_i + np.log(c_hist_i)
 
-        #self.thresholdArray[:] = np.argmax(b_entropy + f_entropy)
-
-        #print("Complete max ent threshold on one block!")
         return np.argmax(b_entropy + f_entropy)
 
     def maxEnt(chunk):

@@ -259,6 +259,10 @@ postDecon:
       parallel:
         bool: True
         n_jobs: 8
+      dask:
+        rechunk_nzyx: [4,5,5]
+        depth_delta: -2 # how much smaller to make depth than the chunk size?
+        boundary: reflect
     method:
       gel: MaxEnt
       sed: MaxEnt
@@ -270,8 +274,8 @@ postDecon:
     gel:
       bool: True
       methodParamList: # ordered list of dictionaries containing parameters
-        - { method: meanCurvature, iter: 10, n_jobs: 4}
-        - {method: totalVariation, iter: 2, n_jobs: 4}
+        #- { method: meanCurvature, iter: 10, n_jobs: 4}
+        - {method: totalVariation, iter: 10, n_jobs: 4}
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
@@ -340,6 +344,14 @@ locating:
     mask:
       sed: [15, 23, 23] # keep in mind this can be much larger than a single particle diameter
       gel: [19,42,42] # pixel order is [z,y,x]
+  refine_lsq:
+    bool: True
+    sed:
+      fit_func: 'gauss'
+    gel:
+      fit_func: 'disc' # flat top
+
+
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
     - { diameter: [15, 25, 25], minmass: 3000, preprocess: False, max_iterations: 30, separation: [9,17,17], percentile: 0.98 }
   gel:

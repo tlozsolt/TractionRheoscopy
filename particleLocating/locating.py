@@ -39,7 +39,9 @@ def iterate(imgArray, paramDict,material):
     iterCount = 0
     maxIter = iterativeParam['maxIter']
     while particleBool == True and iterCount < maxIter:
+        # try moving down the list, until you cant...
         try: locateFunc = functools.partial(tp.locate, **locatingParam[iterCount])
+        # when you cant move down the list, just use the last entry for the tail
         except IndexError:
             locateFunc = functools.partial(tp.locate, **locatingParam[-1])
         print("Iteration: {}".format(iterCount))

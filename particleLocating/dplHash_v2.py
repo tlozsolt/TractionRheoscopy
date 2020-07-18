@@ -268,8 +268,7 @@ class dplHash:
       except KeyError:
         print(index)
         pass
-    # return a list of hashValues.
-    return hashNNB
+    # return a list of hashValues. return hashNNB
 
   def getOverlap(self, hv1,hv2):
       """

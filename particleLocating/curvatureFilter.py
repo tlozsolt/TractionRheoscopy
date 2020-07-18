@@ -135,7 +135,6 @@ def update_TV(img, row, col):
     #img_ij[...] += d
     #img_ij[...] = d + img_ij[...] # ellipsis is NotImplementedError
     img[row:-1:2, col:-1:2] = d + img[row:-1:2, col:-1:2]
-    return img
 
 
 def CF(inputimg, filterType=2, total_iter=10):

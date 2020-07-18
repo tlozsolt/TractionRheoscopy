@@ -1,5 +1,14 @@
 from particleLocating import dplHash_v2 as dpl
 from particleLocating import locating, paintByLocations, flatField, pyFiji
+from particleLocating import threshold
+from particleLocating import curvatureFilter
+import dask_image
+import dask_image.imread
+import dask.array as da
+import gc
+from functools import partial
+from scipy.interpolate import griddata
+import cv2
 import yaml
 import numpy as np
 
@@ -99,6 +108,318 @@ class PostDecon(dpl.dplHash):
         flatField.array2tif(self.overlay.glyphImage,
                             fName_glyph,
                             metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
+
+class PostDecon_dask(dpl.dplHash):
+    """
+    Steps and methods:
+    [+] Initial class as inheritance from dpl
+    [+] read in dask array
+    [+] carry out smart crop
+    [+] carry out postDecon
+        [+] threshold
+        [+] resize
+        [ ] curvature filter
+    [ ] locate
+    [ ] visualize
+
+    """
+    def __init__(self,metaDataPath,hashValue, computer='IMAC'):
+        self.dpl = dpl.dplHash(metaDataPath)
+        self.hashValue = hashValue
+        self.computer = computer
+        self.mat = self.dpl.sedOrGel(self.hashValue)
+        self.init_da = self.tif2Dask(None)
+
+
+    def tif2Dask(self,fPath):
+        """
+        Given the hashValue and yaml file for this instance, open the tif file to dask array and chunk in z
+        """
+        if fPath == None:
+            step_kwrd = self.dpl.getPipelineStep('smartCrop')
+            fPath = self.dpl.getPath2File(self.hashValue,kwrd=step_kwrd,computer=self.computer)
+        print("load step {} from path {}".format(step_kwrd,fPath))
+        return dask_image.imread.imread(fPath)
+
+    def smartCrop_da(self, fullStack):
+        """
+        This function carries out smartCrop using dask arrays and delaying computation as long as possible
+        It is nearly identical to dpl.smartCrop but without the file reading stuff
+
+        It returns a dask array, not numpy but it will be cropped correctly.
+
+        This function crops the output of decon to remove spurious deconvolution artifacts in XY and Z.
+        Additional cropping in Z is done for hashvalues that contain chunks overlapping with gel/sediment interface
+        to ensure the maxEntropy thresholding in postDecon_imageJ does what it should using the stack histogram of the
+        cropped stack.
+        The function is "smart" in the sense that some of the crop paraemters are determined by analyzing the intensity
+        for the specific hashvalue called as opposed to reading a global uniform parameter from the yaml metaData.
+
+        This should interface with the writeLog function by outputting the required YAML data
+        smartCrop:
+          cropBool: True
+          origin: [vector combining relative shifts of fftCrop and sedGel]
+          dim: [new dimensions of the image]
+          time: when the file was written
+
+        hashValue:int the hashValue on which to run smartCrop
+        computer:str either ODSY, SS, MBP or IMAC
+        output:str either log, np.array or dask_array. Output type np.array can be used with dask input
+        """
+
+        # read in the correct upstream input data
+        metaData = self.dpl.metaData['smartCrop']
+
+        # initialize the log parameters
+        refPos = self.dpl.getCropIndex(self.hashValue)
+        originLog = [0,0,0] # relative changes in origin and dimensions to be updated and recorded in writeLog()
+        dimLog = [0,0,0]
+
+        # if appropriate, crop out the uniform decon FFT artifacts in XY and Z
+        if metaData['fftCrop']['bool'] == True:
+            dim = fullStack.shape
+            crop = (metaData['fftCrop']['X'], metaData['fftCrop']['Y'],metaData['fftCrop']['Z'])
+            fullStack = fullStack[crop[2]:dim[0]-crop[2], \
+                        crop[1]:dim[1]-crop[1], \
+                        crop[0]:dim[2]-crop[0]] # crop is xyz while dim is zyx
+            for i in range(len(refPos)):
+                refPos[i] = (refPos[i][0] + crop[i], refPos[i][1] - crop[i])
+            originLog = [originLog[n] + crop[n] for n in range(len(crop))]
+            dimLog = [dimLog[n] + -2*crop[n] for n in range(len(crop))]
+
+        # is this hashvalue contain a sed/gel interface? Is it mostly sed or gel?
+        sedGel = self.dpl.sedGelInterface(self.hashValue)
+        if sedGel[1] == True and metaData['sedGelCrop']['bool'] == True:
+            # Same cropping algo as dpl.smartCrop
+            # need to compute zGradAvgXY in order to find out crop parameters.
+            pixelZGrad = flatField.zGradAvgXY(
+                fullStack.rechunk(chunks = fullStack.shape).compute()
+                )
+            maxValue = max(pixelZGrad)
+            maxIndex = list(pixelZGrad).index(maxValue) # this is the z index of the max grad (?) I think
+            # Now do some quality control on this max value:
+            # is the max Value large enough?
+            if maxValue < metaData['sedGelCrop']['minValue']:
+                print("maximum gradient for sedGelCrop is below the minValue listed in metaData")
+                print(maxIndex,maxValue,metaData['sedGelCrop']['minValue'])
+                raise KeyError
+            # Is the index close to where the purported sed/gel interface is?
+            sedGelDeviation = abs((maxIndex + refPos[2][0] - metaData['sedGelCrop']['offset']) \
+                                  - self.dpl.metaData['imageParam']['gelSedimentLocation'])
+            if sedGelDeviation > metaData['sedGelCrop']['maxDev']:
+                print("The purported gel/sediment location is {}".format(sedGelDeviation)," is further than expected "
+                      "given the approx value listed in metaData")
+                raise KeyError
+            # crop the stack using the maxindex and uniform offset
+            offset = metaData['sedGelCrop']['offset']
+            zSlices = fullStack.shape[0]
+            if sedGel[0] == 'sed': # crop from the bottom
+                fullStack = fullStack[maxIndex - offset : zSlices ,:,:] # We need to use the offset to relax the cropping
+                refPos[2] = (refPos[2][0] + maxIndex - offset,refPos[2][1])
+                originLog[2] = originLog[2] + maxIndex - offset
+                dimLog[2] = dimLog[2] - (maxIndex - offset)
+                print("Warning, on smartCrop, check to make sure you have enough slices to crop given offset")
+            elif sedGel[0] == 'gel':
+                fullStack = fullStack[0:maxIndex - offset,:,:]
+                refPos[2] = (refPos[2][0], maxIndex - offset)
+                dimLog[2] = dimLog[2] - (len(pixelZGrad) - maxIndex + offset)
+                print("Warning, on smartCrop, check to make sure you have enough slices to crop given offset")
+
+        return [fullStack, {'smartCrop': {'origin' : originLog, 'dim' : dimLog, 'refPos' : refPos}}]
+
+    def threshold_da(self,input_da, **thresholdMeta):
+        """
+        Carries out thresholding on input_da and returns a dask array of the thresholded values
+        """
+
+        def maxEntropyThreshold(stack):
+            """
+            Computes the maximum entropy threshdold from image histogram as implemented in Fiji > Threshold > MaxEnt
+
+            This follows:
+
+            Reference:
+            Kapur, J. N., P. K. Sahoo, and A. K. C.Wong. ‘‘A New Method for Gray-Level
+            Picture Thresholding Using the Entropy of the Histogram,’’ Computer Vision,
+            Graphics, and Image Processing 29, no. 3 (1985): 273–285.
+
+            and kapur_threshold() function in pythreshold package.
+
+            :param stack:
+            :return:
+            """
+            hist, _ = np.histogram(stack, bins=range(2 ** 16), density=True)
+            c_hist = hist.cumsum()
+            c_hist_i = 1.0 - c_hist
+
+            # To avoid invalid operations regarding 0 and negative values.
+            c_hist[c_hist <= 0] = 1
+            # I think this is a logical index on the boolean expression: if c_hist<=0, set that value to 1
+            c_hist_i[c_hist_i <= 0] = 1
+
+            c_entropy = (hist * np.log(
+                hist + (hist <= 0))).cumsum()  # add logical array hist<=0 to make sure you dont take log(0)
+            b_entropy = -c_entropy / c_hist + np.log(c_hist)
+
+            c_entropy_i = c_entropy[-1] - c_entropy
+            f_entropy = -c_entropy_i / c_hist_i + np.log(c_hist_i)
+
+            return np.argmax(b_entropy + f_entropy)
+
+        def maxEnt(chunk):
+            """
+            Computes maxEntropy threshold on chunk and returns and array of the same size
+            that has NAN at all values other the center of the array which has the threshold value
+            When this function is applied to dask array with map_overlap, it will produce the output
+            for thresholding
+            """
+            out = np.empty(chunk.shape, dtype='float32')
+            out[:] = np.nan
+            cz, cy, cx = np.array((np.array(out.shape) - 1) / 2).astype(int)
+            chunk1D = np.ndarray.flatten(chunk)
+            out[cz, cy, cx] = np.array([maxEntropyThreshold(chunk1D)])[..., None, None]
+            return out
+
+        def applyThreshold(imgArray, thresholdArray, recastBool=True, scaleFactor=1.0):
+            """
+            This function does not compute a threshold. It just takes imgArray and thresholdArray
+            and outputs an 16 bit image of the threshold with optional recasting to image to 16 bit depth.
+            :return:
+            """
+            # change type to enable subtraction
+            out = imgArray.astype('float32') - scaleFactor * thresholdArray.astype('float32')
+            # clip everything below zero
+            positive = out  # make a deep copy in case we also want to return the thresholded parts.
+            negative = out * -1
+            positive[positive < 0] = 0  # now use logical indexing to reassign all negative values to zero
+            negative[negative < 0] = 0
+            if recastBool == True:
+                positive = threshold.arrayThreshold.recastImage(positive,
+                                                                'uint16')  # rescale the dynamic range after thresholding to span 16bits
+                negative = threshold.arrayThreshold.recastImage(negative,
+                                                                'uint16')  # rescale the dynamic range after thresholding to span 16bits
+            return positive, negative
+
+        # ToDo:
+        #  -uodate to take in kwarg from metaData
+        #  - also rechunk the data
+        rechunk_nzyx = thresholdMeta['local']['dask']['rechunk_nzyx']
+        depth_delta = thresholdMeta['local']['dask']['depth_delta']
+        boundary = thresholdMeta['local']['dask']['boundary']
+
+
+        chunks_dim = np.floor(
+            np.array(input_da.shape)/np.array(rechunk_nzyx)
+                              ).astype(int)
+        input_da = input_da.rechunk(chunks=tuple(chunks_dim.astype(int))
+        # now what the smallest chunk size? Modular division
+        depth_dim = chunks_dim % np.array(input_da.shape) \
+                + np.array(depth_delta)
+        thresh_compute = input_da.map_overlap(maxEnt,
+                                              depth=tuple(depth_dim.astype(int)),
+                                              dtype='float32',
+                                              boundary=bounary).compute()
+
+        # split thresh_compute into values and corresponding indices, and format for scipy.griddata
+        values = thresh_compute[~np.isnan(thresh_compute)]
+        indices = np.argwhere(~np.isnan(thresh_compute))
+        points = (indices[:, 0], indices[:, 1], indices[:, 2])
+        # note that I have to use nearest interpolation as the dask chunks chunk centers are not on the edges...
+        # ... but then again if this was mirrored the edges would give the same values as an interior interpolation
+        # other option is to fill with avg of values as opposed to nan
+        zz,yy,xx = np.mgrid[0:input_da.shape[0]:1, 0:input_da.shape[1]:1, 0:input_da.shape[2]:1]
+        threshold_array = griddata(points, values, (zz, yy, xx), method='nearest', fill_value=np.mean(values)).astype(
+            'uint16')
+        aboveThresh, belowThresh = applyThreshold(input_da.compute(), threshold_array)
+        # now clean up garbage
+        del thresh_compute, values, indices, points, threshold_array, belowThresh
+        gc.collect()
+        return da.from_array(aboveThresh, chunks=(1,aboveThresh.shape[1],aboveThresh.shape[2]))
+
+    def resize_da(self,input_da,**kwargs):
+        """
+        Resizes xy slices with scale factor in yamlMetaData
+        ToDo:
+          [+] Review double splat notation and useage for reading parameters from input dictionary...like how to convert
+              input dictionary kwrds to local variables that can be referenced.
+          [+] Can **kwargs be instead **yamlDict or **metaData to be more descriptive variable name?
+          [+] Also double check the dimensioning works here and note that I will need to specify the output chunk size
+              in order to run map blocks on this data.
+        """
+        postDecon_meta = kwargs
+        dim = (postDecon_meta['upScaling']['dim']['x']*input_da.shape[2],
+               postDecon_meta['upScaling']['dim']['y']*input_da.shape[1])
+        interp_method = postDecon_meta['upScaling']['interp_method']
+
+        slice = input_da.squeeze() # get a true 2D slice.
+        dict_interp = {'lanczos': cv2.INTER_LANCZOS4,
+                       'cubic': cv2.INTER_CUBIC,
+                       'linear': cv2.INTER_LINEAR,
+                       'nearest': cv2.INTER_NEAREST,
+                       'bilinear': cv2.INTER_AREA}
+        upscale = cv2.resize(slice,dim,interpolation=dict_interp[interp_method])
+        return upscale[None,...]
+
+    def postThresholdFilter_da(self,input_da,**postDeconMeta):
+        """
+        Carries out postDecon filter steps using dask map_blocks
+        Return a dask array that can be computed at the **end** of the filtering steps
+        ToDo:
+          [+] fill in the functions from dask_testScript.py
+          [+] cyclce through the list of filters to be applied in yaml metaData.
+          - check that chaining and delayed compute on multiple filters works
+        """
+
+        # define the filter functions to be applied to each slice of the input dask array
+        def tvFilter(input_da, iter):
+            f =  partial(curvatureFilter.CF,filterType=0,total_iter=iter)
+            filteredSlice = f(input_da.squeeze())
+            return filteredSlice[None,...]
+
+        def mcFilter(input_da, iter):
+            f= partial(curvatureFilter.CF,filterType=1,total_iter=iter)
+            filteredSlice = f(input_da.squeeze())
+            return filteredSlice[None,...]
+
+        def gaussianBlur(input_da, sigma):
+            f = partial(ndimage.gaussian_filter,sigma=sigma)
+            filteredSilce = f(input_da.squeeze())
+            return filteredSilce[None,...]
+
+        # Convert input to float32 just in case
+        input_da = input_da.astype('float32')
+
+        for filterDict in postDeconMeta['postThresholdFilter'][self.mat]['methodParamList']:
+            # cycle through the list of filters and reassign outputs to input_da
+            print("Carrying out filter {}".format(filterDict['method']))
+
+            # is it totalVariation?
+            if filterDict['method'] == 'totalVariation':
+                n_iter = filterDict['iter']
+                f = partial(tvFilter,iter=n_iter)
+                input_da = input_da.map_blocks(f,dtype='float32')
+
+            # is it gaussian blur?
+            elif filterDict['method'] == 'gaussianBlur':
+                sigma = filterDict['sigma']
+                f = partial(gaussianBlur,sigma=sigma)
+                input_da = input_da.map_blocks(f, dtype='float32')
+
+            # is it mean curvature?
+            elif filterDict['method'] == 'meanCurvature':
+                n_iter = filterDict['iter']
+                f = partial(mcFilter,iter=n_iter)
+                input_da = input_da.map_blocks(f,dtype='float32')
+
+            # Whatever it is, I havnt implemented it yet
+            else: raise KeyError("method {} not recognized or implemented".format(filterDict['method']))
+
+        # note the return type is not yet computed.
+        return input_da
+
+    def interativeLocate_da(self, input_da,**locatingMeta):
+        pass
+
 
 if __name__ == '__main__':
     yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy' \
