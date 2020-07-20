@@ -90,18 +90,8 @@ class PostDecon(dpl.dplHash):
 
     def visualize(self,computer='ODSY'):
         self.overlay = paintByLocations.locationOverlay(self.locations[0],self.postDecon[0], locatingprogram = 'trackpy')
-        #testImgPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
-        #              'OddysseyHashScripting/pyFiji/testImages/'
-        #visualizePath = self.dpl.getPath2File(self.hashValue,kwrd='visualize',computer=computer,pathOnlyBool=True)
-        #testImgPath = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/visualize'
-        #if computer != 'ODSY' or computer != 'AWS':
-        #    print(pyFiji.send2Fiji([self.overlay.glyphImage, self.overlay.inputPadded],
-        #                           wdir=visualizePath,
-        #                           metaData=yaml.dump(self.dpl.metaData, sort_keys = False)))
-        #fName_glyph = self.dpl.metaData['fileNamePrefix']['global'] + 'vGlyph_' + 'hv{}'.format(str(self.hashValue).zfill(4)) + '.tif'
         fName_glyph = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visGlyph.tif')
         fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visLocInput.tif')
-        #fName_locInput = self.dpl.metaData['fileNamePrefix']['global'] + 'vLocInput' + 'hv{}'.format(str(self.hashValue).zfill(4)) + '.tif'
         flatField.array2tif(self.overlay.inputPadded,
                             fName_locInput,
                             metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
@@ -118,7 +108,7 @@ class PostDecon_dask(dpl.dplHash):
     [+] carry out postDecon
         [+] threshold
         [+] resize
-        [ ] curvature filter
+        [+] curvature filter
     [ ] locate
     [ ] visualize
 
@@ -127,6 +117,7 @@ class PostDecon_dask(dpl.dplHash):
         self.dpl = dpl.dplHash(metaDataPath)
         self.hashValue = hashValue
         self.computer = computer
+        self.metaDataPath = metaDataPath
         self.mat = self.dpl.sedOrGel(self.hashValue)
         self.init_da = self.tif2Dask(None)
 
@@ -301,24 +292,24 @@ class PostDecon_dask(dpl.dplHash):
             return positive, negative
 
         # ToDo:
-        #  -uodate to take in kwarg from metaData
+        #  - uodate to take in kwarg from metaData
         #  - also rechunk the data
         rechunk_nzyx = thresholdMeta['local']['dask']['rechunk_nzyx']
         depth_delta = thresholdMeta['local']['dask']['depth_delta']
         boundary = thresholdMeta['local']['dask']['boundary']
 
 
-        chunks_dim = np.floor(
+        chunks_dim = np.ceil(
             np.array(input_da.shape)/np.array(rechunk_nzyx)
                               ).astype(int)
-        input_da = input_da.rechunk(chunks=tuple(chunks_dim.astype(int))
+        input_da = input_da.rechunk(chunks=tuple(chunks_dim.astype(int)))
         # now what the smallest chunk size? Modular division
         depth_dim = chunks_dim % np.array(input_da.shape) \
                 + np.array(depth_delta)
         thresh_compute = input_da.map_overlap(maxEnt,
                                               depth=tuple(depth_dim.astype(int)),
                                               dtype='float32',
-                                              boundary=bounary).compute()
+                                              boundary=boundary).compute()
 
         # split thresh_compute into values and corresponding indices, and format for scipy.griddata
         values = thresh_compute[~np.isnan(thresh_compute)]
@@ -417,8 +408,49 @@ class PostDecon_dask(dpl.dplHash):
         # note the return type is not yet computed.
         return input_da
 
-    def interativeLocate_da(self, input_da,**locatingMeta):
+    def iterativeLocate_da(self, input_da,**locatingMeta):
         pass
+
+    def postDecon_dask(self, hv, computer='ODSY'):
+        """
+        In principle this function carries out all steps after deconvolution:
+            [+] smartCrop
+            [+] threshold
+            [+] postThreshdoldFilter
+            [-] upscale
+            [+] locate
+            [+] refine
+            [-] visualize
+        However the steps marked [-] have not been implemented yet
+        This will also automatically log the results, however the job control could be improved.
+        """
+        print("Warning, calling postDecon_dask from postDeconCombined.PostDecon_dask\n"
+              "Job control over steps has not been implemented in any way apart from\n"
+              "directly editing the function.\n"
+              "Zsolt - Jul 20 2020\n")
+        # initialize at decon
+        da_decon = self.init_da
+        # carry out smart crop
+        da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
+        # log the changes
+        self.dpl.writeLog(hv, 'smartCrop', log_smartCrop, computer=computer)
+
+        # Carry out the threshold
+        da_threshold = self.threshold_da(da_smartCrop, **self.dpl.metaData['postDecon']['threshold'])
+
+        # post threshold filter
+        metaData = self.dpl.metaData['postDecon']
+        da_postThresholdFilter = self.postThresholdFilter_da(da_threshold, **metaData)
+        np_postThresholdFilter = da_postThresholdFilter.compute()
+
+        # carry out locating and refinement, iteratively
+        df_loc, log_locating = locating.iterate(np_postThresholdFilter, self.dpl.metaData['locating'], self.mat)
+
+        # save locations to csv
+        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
+        locationPath = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=computer)
+        df_loc.to_csv(locationPath, index=False)
+        self.dpl.writeLog(hv, 'locating', log_locating, computer=computer)
 
 
 if __name__ == '__main__':

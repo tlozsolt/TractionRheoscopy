@@ -230,7 +230,17 @@ smartCrop:
     minValue: 2000 # smallest value of gradient to ensure that you have found a true peak
     maxDev: 45 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
 
-postDeconCombinedBool: True
+postDeconCombined:
+  bool: True
+  dask: True
+  steps: # ordered list of steps
+    - smartCrop
+    - threshold
+    - postThresholdFilter
+    - upscale
+    - locate
+    - refine
+    - visualize
 postDecon:
   software: python
   crop: False # How many pixels to trim off the image borders?
@@ -238,7 +248,7 @@ postDecon:
     dtype: uint8 # what format should the image be returned?
     recastBool: True # should histogram be stretched over dtype range at the end?
   upScaling:
-    bool: True
+    bool: False
     postThreshold: True
     software: python
     dim: {x: 2,y: 2} # z upscaling is not supported
@@ -342,20 +352,13 @@ locating:
     bool: True # do iterative locating?
     maxIter: 20 # how many iterative loops to do befroe force quitting?
     mask:
-      sed: [15, 23, 23] # keep in mind this can be much larger than a single particle diameter
-      gel: [19,42,42] # pixel order is [z,y,x]
-  refine_lsq:
-    bool: True
-    sed:
-      fit_func: 'gauss'
-    gel:
-      fit_func: 'disc' # flat top
-
-
+      sed: [15, 15, 15] # keep in mind this can be much larger than a single particle diameter
+      gel: [19,27,27] # pixel order is [z,y,x]
+  refine_lsq_bool: True
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [15, 25, 25], minmass: 3000, preprocess: False, max_iterations: 30, separation: [9,17,17], percentile: 0.98 }
+    - { diameter: [15, 15, 15], minmass: 3000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.98, refine_lsq: { gauss: {fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}, disc: {fit_function: 'disc' , diameter: [13, 13, 13], param_val:{disc_size: 0.5}, compute_error: True}}}
   gel:
-    - {diameter: [19,51,51], minmass: 90000, separation: [23,46,46], preprocess: False, max_iterations: 20}
+    - {diameter: [19,27,27], minmass: 20000, separation: [17,25,25], preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val:{disc_size: 0.6}, compute_error: True}, gauss: {fit_function: 'gauss', diameter: [17,23, 23], compute_error: True}}}
 ODSY_Resources:
   queue: serial_requeue 
   time: 60 # requested time in units of minutes

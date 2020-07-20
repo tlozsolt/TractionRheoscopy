@@ -22,6 +22,52 @@ import scipy
 #        [ ] basically the best version of paint by locations to visualize what happened during dpl pipeline
 #        [ ] methods for descriptive statistics like histrograms of extra parameters
 
+def lsq_refine(df_loc, np_image, **refine_lsq_Meta):
+    """
+    """
+    meta = refine_lsq_Meta
+    fit_fun = locatingMetaData['refine_lsq']['fit_func']
+    if fit_fun == 'disc':
+        disc_size = locatingMetaData['refine_lsq']['disc_size']
+        return tp.refine_leastsq(df_loc, np_image,
+                                 diameter=diam,
+                                 fit_function=fit_func,
+                                 param_val={'disc_size':disc_size},
+                                 compute_error=True)
+    elif fit_fun == 'gauss':
+        return tp.refine_leastsq(df_loc, np_image,
+                                 diameter=diam,
+                                 fit_function=fit_func,
+                                 compute_error=True)
+
+def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
+    """
+    Refine the particle positions in df_loc using np_image as input
+    and dictionary of keywords from yaml file
+
+    The position refinement is least squares minimzation of both guassian and hat (or ``disk``) functions
+    with parameters defined in **each** step of iterative particle locating.
+
+    There are many layers of the dictionaries. refine_lsq_meta should have two keys:
+    gauss and disc.
+
+    This returns a combined dataframe with particle locations and all other computed features
+    in addition to refined positions and uncertainties for both guassian adn disc functions. The
+    only columns that are deleted are exact replicas such as frame or mass.
+    """
+    # compute the refined positions
+    df_gauss = tp.refine_leastsq(df_loc, np_image, **refine_lsq_meta['gauss'])
+    df_disc = tp.refine_leastsq(df_loc, np_image, **refine_lsq_meta['disc'])
+
+    # which columns are duplicated in the output
+    col_duplicate = [key for key in df_loc if df_loc[key].equals(df_gauss[key])]
+    df_refinelsq = df_disc.drop(columns=col_duplicate).join(
+        df_gauss.drop(columns=col_duplicate),
+        lsuffix = '_lsqHat',rsuffix='_lsqGauss' )
+    df_loc = df_loc.join(df_refinelsq)
+    return df_loc
+
+
 def iterate(imgArray, paramDict,material):
     """
     This function applies the locatingFunc to the imageArray iteratively following Kate's work.
@@ -39,23 +85,38 @@ def iterate(imgArray, paramDict,material):
     iterCount = 0
     maxIter = iterativeParam['maxIter']
     while particleBool == True and iterCount < maxIter:
+        iterCount += 1
+
         # try moving down the list, until you cant...
-        try: locateFunc = functools.partial(tp.locate, **locatingParam[iterCount])
+        try:
+            param_all = locatingParam[iterCount]
+            locParam = {k:v for k,v in locatingParam[iterCount].items() if k != 'refine_lsq'}
         # when you cant move down the list, just use the last entry for the tail
         except IndexError:
-            locateFunc = functools.partial(tp.locate, **locatingParam[-1])
+            locParam = {k:v for k,v in locatingParam[-1].items() if k != 'refine_lsq'}
+            param_all = locatingParam[-1]
+
+        # create the locating function with partial application
+        locateFunc = functools.partial(tp.locate,**locParam )
         print("Iteration: {}".format(iterCount))
-        iterCount += 1
         loc = locateFunc(imgArray).dropna(subset=['z']) # remove all the rows that have NAN particle positions
-        print("{} particles located!".format(loc.shape))
-        if loc.shape[0] == 0:
-            particleBool=False
-            break
-        locList.append(loc) # add the dataframe to locList and deal with merging later
         loc['n_iteration'] = iterCount # add a new column to track what iteration the particle was located on.
+        print("{} particles located!".format(loc.shape))
+        if loc.shape[0] == 0: break
+
+        # now refine the positions
+        if paramDict['refine_lsq_bool']:
+            print("Carrying out least squares particle refinement!")
+            refineParam = param_all['refine_lsq']
+            loc = lsq_refine_combined(loc, imgArray, **refineParam)
+
+        # add to output
+        locList.append(loc) # add the dataframe to locList and deal with merging later
         mask = createMask(loc,imgArray,iterativeParam['mask'][material])
         imgArray = imgArray*np.logical_not(mask)
-    particleDF = pd.concat(locList).rename(columns={"x": "x (px)", "y": "y (px)", "z": "z (px)"})
+    particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
+                                                    "y": "y_centroid (px)",
+                                                    "z": "z_centroid (px)"})
     logDict = {'locating' : {'particles': particleDF.shape[0], 'iterations': iterCount}}
     return [particleDF, logDict]
 
