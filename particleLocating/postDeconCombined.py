@@ -9,6 +9,7 @@ import gc
 from functools import partial
 from scipy.interpolate import griddata
 import cv2
+from scipy import ndimage
 import yaml
 import numpy as np
 
@@ -304,8 +305,10 @@ class PostDecon_dask(dpl.dplHash):
                               ).astype(int)
         input_da = input_da.rechunk(chunks=tuple(chunks_dim.astype(int)))
         # now what the smallest chunk size? Modular division
-        depth_dim = chunks_dim % np.array(input_da.shape) \
-                + np.array(depth_delta)
+        #depth_dim = chunks_dim % np.array(input_da.shape) \
+        #        + np.array(depth_delta)
+        depth_dim = ((np.array(input_da.shape) % chunks_dim) + chunks_dim + np.array(depth_delta)) % chunks_dim
+        #           ((             largest remainder       ) + unwrap and shift down             ) mod to get greatest lower bound
         thresh_compute = input_da.map_overlap(maxEnt,
                                               depth=tuple(depth_dim.astype(int)),
                                               dtype='float32',

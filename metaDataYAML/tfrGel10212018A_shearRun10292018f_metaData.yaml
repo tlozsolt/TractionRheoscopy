@@ -289,7 +289,7 @@ postDecon:
     sed:
       bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
-        - { method: totalVariation, iter: 25, n_jobs: 4}
+        #- { method: totalVariation, iter: 25, n_jobs: 4}
         - { method: gaussianBlur, sigma: 1.5, n_jobs: 4}
         #- {method: equalize_adapthist, clip_limit: 0.03, n_jobs: 4}
         #- { method: meanCurvature, iter: 3, n_jobs: 4}
@@ -356,7 +356,7 @@ locating:
       gel: [19,27,27] # pixel order is [z,y,x]
   refine_lsq_bool: True
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [15, 15, 15], minmass: 3000, preprocess: False, max_iterations: 30, separation: [11,13,13], percentile: 0.98, refine_lsq: { gauss: {fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}, disc: {fit_function: 'disc' , diameter: [13, 13, 13], param_val:{disc_size: 0.5}, compute_error: True}}}
+    - { diameter: [15, 15, 15], minmass: 3000, preprocess: False, max_iterations: 30, separation: [9,11,11], percentile: 0.9, refine_lsq: { gauss: {fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}, disc: {fit_function: 'disc' , diameter: [13, 13, 13], param_val:{disc_size: 0.5}, compute_error: True}}}
   gel:
     - {diameter: [19,27,27], minmass: 20000, separation: [17,25,25], preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val:{disc_size: 0.6}, compute_error: True}, gauss: {fit_function: 'gauss', diameter: [17,23, 23], compute_error: True}}}
 ODSY_Resources:
