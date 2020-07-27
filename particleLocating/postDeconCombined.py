@@ -431,7 +431,20 @@ class PostDecon_dask(dpl.dplHash):
               "Job control over steps has not been implemented in any way apart from\n"
               "directly editing the function.\n"
               "Zsolt - Jul 20 2020\n")
-        # initialize at decon
+        if computer =='IMAC':
+            from dask.distributed import Client
+            client = Client('10.0.0.33:8786')
+            client.restart()
+        else:
+            print("Dask client needs to be initialized on something other than IMAC")
+            # This should work... on odsy.. works on test node...do I need to set memory
+            # constraints?
+            # its also likely this same syntax would work on imac...just pass tcp ip address as
+            # positional argument
+            # from dask.distributed import Client, LocalCluster
+            # from dask import dataframe as ddf
+            # node = LocalCluster(n_workers=4,threads_per_worker=24)
+            # client = Client(node)
         da_decon = self.init_da
         # carry out smart crop
         da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
@@ -447,12 +460,23 @@ class PostDecon_dask(dpl.dplHash):
         np_postThresholdFilter = da_postThresholdFilter.compute()
 
         # carry out locating and refinement, iteratively
-        df_loc, log_locating = locating.iterate(np_postThresholdFilter, self.dpl.metaData['locating'], self.mat)
+        metaDataFolder = self.dpl.getPath2File(0,kwrd='metaDataYAML',computer=computer,pathOnlyBool=True)
+        df_loc, df_refine, log_locating = locating.iterate(np_postThresholdFilter,
+                                                           self.dpl.metaData['locating'],
+                                                           self.mat,
+                                                           metaDataYAMLPath=metaDataFolder)
+        fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
+        flatField.array2tif(np_postThresholdFilter,
+                            fName_locInput,
+                            metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
 
         # save locations to csv
         pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
+        refineLocExt = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
         locationPath = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=computer)
-        df_loc.to_csv(locationPath, index=False)
+        refinePath = self.dpl.getPath2File(hv, kwrd='locations', extension=refineLocExt, computer=computer)
+        df_loc.to_csv(locationPath, index=False, sep=' ')
+        df_refine.to_csv(refinePath, index=False, sep=' ')
         self.dpl.writeLog(hv, 'locating', log_locating, computer=computer)
 
 

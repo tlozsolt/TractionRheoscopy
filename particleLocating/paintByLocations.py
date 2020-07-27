@@ -68,20 +68,21 @@ class pxLocations:
   All heavy lifting is done by pandas as reccommended by the python soft-matter
   community
   """
-  def __init__(self,file,units='px',program='trackpy'):
+  def __init__(self,file,units='px',program='trackpy',locColumns=['z','y','x'], sep=', '):
     try:
-        locArray = np.loadtxt(file)
         if program == 'katekilfoil':
-            locdataframe = pandas.DataFrame(locarray[:, :3], columns= \
+            locArray = np.loadtxt(file)
+            locdataframe = pandas.DataFrame(locArray[:, :3], columns= \
                 ['x (' + units + ')', 'y (' + units + ')', 'z (' + units + ')'])
-            kilfoilextra = pandas.DataFrame(locarray[:, 3:7], columns= \
+            kilfoilextra = pandas.DataFrame(locArray[:, 3:7], columns= \
                 ['integrated intensity (au)', 'eccentricity ?', 'zeropx overlap'])
             self.kilfoilext = kilfoilextra
             self.locations = locdataframe
         elif program == 'trackpy':
-            locdataframe = pandas.DataFrame(locarray[:, :3], columns= \
-                ['z (' + units + ')', 'y (' + units + ')', 'x (' + units + ')'])
-            self.locations = locdataframe
+            #locdataframe = pandas.DataFrame(locArray[:, :3], columns= \
+            #    ['z (' + units + ')', 'y (' + units + ')', 'x (' + units + ')'])
+            locdataframe = pandas.read_csv(file,sep=sep)
+            self.locations = locdataframe[locColumns]
     except ValueError:
         if isinstance(file,pandas.core.frame.DataFrame): self.locations = file
         else:
@@ -92,7 +93,7 @@ class locationOverlay:
   """
   a class for creating a storing synthetic images from an array of location outputs
   """
-  def __init__(self,locationpath,locatinginputpath,locatingprogram = 'katekilfoil'):
+  def __init__(self,locationpath,locatinginputpath,locatingprogram = 'katekilfoil',locColumns=['z','y','x'],sep=', '):
     # initalize a numpy array with the correct pixel dimensions, maybe padded
     try: inputImg = flatField.zStack2Mem(locatinginputpath)
     except ValueError:
@@ -101,22 +102,29 @@ class locationOverlay:
             print("inpute type {} is not recognized. either filepath to img or np array is expected".format(type(locationpath)))
             raise TypeError
     (dz,dy,dx) = inputImg.shape
-    imgArray = np.zeros((dz,dy,dx),dtype='uint8')
+    imgArray = np.pad(np.zeros((dz,dy,dx),dtype='uint8'),1)
     # import the locations from a text file
-    l = pxLocations(locationpath,program=locatingprogram)
+    l = pxLocations(locationpath,program=locatingprogram,locColumns=locColumns,sep=sep)
     g = particleGlyph([9,7,7],[11,9,9])
     # from the pixel locations, place a predefined glyph at the center
     # assign a pixel value of 1 to each pixel that corresponds to a coordinate in location
-    xcoord = np.rint(l.locations['x (px)']).astype(int)
-    ycoord = np.rint(l.locations['y (px)']).astype(int)
-    zcoord = np.rint(l.locations['z (px)']).astype(int)
+    z_key, y_key, x_key = locColumns
+    inbound_loc = l.locations[(l.locations[z_key] < dz) &
+                              (l.locations[y_key] < dy) &
+                              (l.locations[x_key] < dx)]
+    #zcoord = np.rint(l.locations[z_key]).astype(int)
+    #ycoord = np.rint(l.locations[y_key]).astype(int)
+    #xcoord = np.rint(l.locations[x_key]).astype(int)
+    zcoord = np.rint(inbound_loc[z_key]).astype(int)
+    ycoord = np.rint(inbound_loc[y_key]).astype(int)
+    xcoord = np.rint(inbound_loc[x_key]).astype(int)
     if locatingprogram == 'katekilfoil': imgArray[zcoord,xcoord,ycoord] = 1
     elif locatingprogram == 'trackpy': imgArray[zcoord,ycoord,xcoord] = 1
     else: raise KeyError
     # i assume that would look something like imgArray[xCoord,yCoord,zCoord] = 1, where xCoord is 1d array of all the x coordinates mapped to integers
     # now convolve with the glyph using split and fft methods in scipy
     self.glyphImage = signal.oaconvolve(imgArray,g.glyph).astype('uint8')
-    self.inputPadded = threshold.arrayThreshold.recastImage(signal.oaconvolve(inputImg,g.deltaKernel),'uint8')
+    self.inputPadded = threshold.arrayThreshold.recastImage(signal.oaconvolve(np.pad(inputImg,1),g.deltaKernel),'uint8')
     self.deltaImage = imgArray.astype('uint8')
 
     # save the image and the array of singles

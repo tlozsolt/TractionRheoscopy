@@ -1,3 +1,9 @@
+#%%
+from dask.distributed import Client
+client = Client('10.0.0.33:8786')
+client.restart()
+
+#%%
 from particleLocating.postDeconCombined import PostDecon_dask as postDecon
 from particleLocating import pyFiji
 import trackpy as tp
@@ -30,7 +36,9 @@ inst.dpl.metaData['postDecon']['threshold']
 # post threshold filter
 metaData =inst.dpl.metaData['postDecon']
 da_postThresholdFilter = inst.postThresholdFilter_da(da_threshold,**metaData)
-np_postThresholdFilter = da_postThresholdFilter.compute()
+np_postThresholdFilter = da_postThresholdFilter.compute(scheduler='threads')
+del da_threshold, da_smartCrop, da_decon, da_postThresholdFilter, inst.init_da
+client.restart()
 
 #%%
 # locate
@@ -92,17 +100,17 @@ df_loc = locating.iterate(np_postThresholdFilter,inst.dpl.metaData['locating'],i
 # pickle the current variables
 import pickle
 with open(tmpPath+'/postDeconCombined.pkl','wb') as f:
-    pickle.dump([np_postThresholdFilter,df_locations, df_refineHat],f)
+    pickle.dump([np_postThresholdFilter,df_locations, refine_dtypes],f)
 
 #%%
 # unpickle to restart
 import pickle
 with open(tmpPath+'/postDeconCombined.pkl','rb') as f:
-    np_postThresholdFilter, df_locations, df_refineHat = pickle.load(f)
+    np_postThresholdFilter, df_locations, refine_dtypes = pickle.load(f)
 
 #%% refine with dask dataframe
 # set up a node with 4 cores and 16Gb of ram with dask client or whatever
-# DOES NOT WORK
+# DOES NOT WORK on IMAC...but works on ODSY
 #from dask.distributed import Client, LocalCluster
 #from dask import dataframe as ddf
 #node = LocalCluster(n_workers=4,threads_per_worker=24)
@@ -121,7 +129,9 @@ Now you can open, in a web browswer to track the processes by going to:
    http://localhost:8787/status
 
 Add workers at the command line:
-   > dask-worker tcp://10.0.0.33:8786 --nprocs 16 --nthreads 24
+   > dask-worker tcp://10.0.0.33:8786 --nprocs 8 --nthreads 24 --memory-limit 4294967296
+
+Assigns 8 processes, 24 thread, and memory limit of 4Gb on each processor. 
 
 When this is set up the workers should show up on the web browswer along with this type of output at the terminal
    >> distributed.core - INFO - Starting established connection
@@ -138,7 +148,12 @@ But...there is still somethings missing
 
 ToDo:
   [ ] Find out how to upload particleLocating module to all workers.
-  [ ] Set memory limits on each worker, or alternately a global mem limit of 16Gb 
+      I am getting an error that particleLocating module cannot be found.
+      Maybe this has been fixed by updating PYTHONPATH
+  [+] Set memory limits on each worker, or alternately a global mem limit of 16Gb 
+    -> See update in main body. Short answer is text flags when assigning workers.
+       > dask-worker tcp://10.0.0.33:8786 --nprocs 8 --nthreads 24 --memory-limit 4294967296
+       
 """
 
 #%%
@@ -146,7 +161,13 @@ ToDo:
 # the size of the partition must be controlled, not the number of partitions but this should be easy to do
 #   -> Yes, you can either specific npartitions (int) or chunksize (number of rows)
 from dask import dataframe as ddf
-ddf_loc = ddf.from_pandas(df_locations,npartitions=16)
+
+df_large = df_locations.append(df_locations,ignore_index = True)
+for n in range(0):
+    df_large = df_large.append(df_large,ignore_index = True)
+
+ddf_loc = ddf.from_pandas(df_large, npartitions=8)
+#ddf_loc = ddf.from_pandas(df_locations, npartitions=8)
 
 # wrap tp.refine_leastsq() to:
 #    -> read parameters as I currently do including a full copy of image array
@@ -155,8 +176,9 @@ ddf_loc = ddf.from_pandas(df_locations,npartitions=16)
 
 def ddf_refine(ddf_chunk, np_imageArray, **tpRefineKwargs):
     df_chunk = tp.refine_leastsq(ddf_chunk,np_imageArray,**tpRefineKwargs)
-    print('Completed a chunk!')
-    print(df_chunk.head(10))
+    #print('Completed a chunk!')
+    #del np_imageArray
+    #print(df_chunk.head(10))
     with open(tmpPath+'/tmp.csv','a') as f:
         df_chunk.to_csv(f, header=f.tell()==0, sep=' ')
     return df_chunk
@@ -164,17 +186,26 @@ def ddf_refine(ddf_chunk, np_imageArray, **tpRefineKwargs):
 #%%
 from functools import partial
 import numpy as np
+import pickle
 dict_refine = {'diameter':(17,23,23),
                'fit_function':'disc',
                'param_val':{'disc_size':0.6},
                'compute_error':True}
 
-refine_dtypes = df_refineHat.dtypes.to_dict()
 
-refineDisc_ddf2 = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray =np.copy(np_postThresholdFilter),**dict_refine)
-                       ,meta=refine_dtypes).compute()
 
-#
+#refine_dtypes = df_refineHat.dtypes.to_dict()
+
+#with open(tmpPath+'/refine_dtypes.pkl', 'wb') as f:
+#    pickle.dump(refine_dtypes,f)
+
+with open(tmpPath+'/refine_dtypes.pkl','rb') as f:
+    refine_dtypes = pickle.load(f)
+
+refineDisc_ddf_double_client = ddf_loc.map_partitions(partial(ddf_refine,
+                                                 np_imageArray =np_postThresholdFilter,**dict_refine),
+                                         meta=refine_dtypes).compute()
+
 # run gaussian refinement across the partitions using map_partitions and sending and deep copy of the image array
 
 # to each node
