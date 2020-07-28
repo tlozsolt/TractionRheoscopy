@@ -448,12 +448,14 @@ class PostDecon_dask(dpl.dplHash):
             # This should work... on odsy.. works on test node...do I need to set memory
             # constraints?
             from dask.distributed import Client, LocalCluster
-            nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
-            nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
 
-            node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
-            client = Client(node)
-            client.restart()
+            if __name__ == "__main__":
+                nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
+                nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
+
+                node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
+                client = Client(node)
+                client.restart()
 
         da_decon = self.init_da
         # carry out smart crop
