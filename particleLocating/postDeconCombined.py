@@ -447,9 +447,14 @@ class PostDecon_dask(dpl.dplHash):
         else:
             # This should work... on odsy.. works on test node...do I need to set memory
             # constraints?
+
+            # not clear why I need the if __name__ =="__main__" clause, but
+            # it solved the problem. Im suprised it worked.
+            # See https://github.com/dask/distributed/issues/2520
             from dask.distributed import Client, LocalCluster
 
             if __name__ == "__main__":
+                print("Starting LocalCluster inside __name__ =='__main__:' condition")
                 nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
                 nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
 

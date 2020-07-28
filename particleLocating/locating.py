@@ -84,7 +84,8 @@ def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
         return df_chunk
 
     # start the dask client
-    client = Client(daskParam['ip'])
+    if daskParam['ip'] != 'auto': client = Client(daskParam['ip'])
+    else: client = Client()
     client.restart()
     df_refine = pd.DataFrame({})
     for n in range(0,N,dN):
