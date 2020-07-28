@@ -353,7 +353,7 @@ locating:
     maxIter: 5 # how many iterative loops to do befroe force quitting?
     mask:
       sed: [17, 17, 17] # keep in mind this can be much larger than a single particle diameter
-      gel: [19,27,27] # pixel order is [z,y,x]
+      gel: [21,27,27] # pixel order is [z,y,x]
   refine_lsq:
     bool: True
     compute_error: True
@@ -363,7 +363,9 @@ locating:
     - { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
     - { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [ 9, 9, 9], percentile: 0.9, refine_lsq: { gauss: {fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
   gel:
-    - {diameter: [19,27,27], minmass: 6000, preprocess: False, separation: [17,25,25], max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val: {disc_size: 0.6}, compute_error: True}}}
+    - {diameter: [19,27,27], minmass: 200000, preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val: {disc_size: 0.6}, compute_error: True}}}
+    - {diameter: [19,27,27], minmass: 200000, preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val: {disc_size: 0.6}, compute_error: True}}}
+    - {diameter: [19,27,27], minmass: 100000, preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val: {disc_size: 0.6}, compute_error: True}}}
 dask_resources:
   IMAC:
     ip: '10.1.178.106:8786'

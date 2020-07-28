@@ -497,7 +497,7 @@ class PostDecon_dask(dpl.dplHash):
         df_refine.to_csv(refinePath, index=False, sep=' ')
         self.dpl.writeLog(hv, 'locating', log_locating, computer=computer)
 
-        return df_loc, df_refine, log_locating
+        return df_loc, df_refine, np_postThresholdFilter, log_locating
 
 
 if __name__ == '__main__':
