@@ -1040,7 +1040,7 @@ class dplHash:
             # I dont understand this, but see the following comments on gitHub that exactly pertain
             # to the errors I was getting on ODSY:
             # https://github.com/dask/distributed/issues/2520
-            postDeconScript =  'if __name__ == \"__main__\':\n'
+            postDeconScript  = "if __name__ == \"__main__\":\n"
             postDeconScript += "    import sys\n"
             postDeconScript += "    sys.path.insert(0,\"{path}\")\n".format(path=gitDir)
             postDeconScript += "    from particleLocating.postDeconCombined import PostDecon_dask as pd\n"
