@@ -19,10 +19,10 @@ Cite:
 
 """
 import numpy as np
-from joblib import Parallel,delayed
+#from joblib import Parallel,delayed
 from scipy import ndimage
 from skimage import exposure
-from particleLocating import flatField, threshold, pyFiji
+#from particleLocating import flatField, threshold, pyFiji
 
 def update_Bern(img, row, col):
     img_ij = img[row:-1:2, col:-1:2]
@@ -169,90 +169,90 @@ def CF(inputimg, filterType=2, total_iter=10):
     return outputimg
     #return inputimg
 
-def tvFilter_stack(stack,iter=10,n_jobs=16):
-    """
-    total variation curvature filter in 2D
-    Simple wrapper function to convert data type to 32 bit float
-    and apply iteration of total variation without having to
-    remember that totalVariation is filter type 0.
-    Also, this is parallel for each slice.
-    :param stack: numpy array
-    :param iter: number of iterations
-    :param n_jobs: number of threads in joblib
-    :return: filtered stack, possbily recast as 16bit
-    """
-    #convert to float
-    stack = stack.astype('float32',copy=True)
-    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=0,total_iter=iter)\
-                                     for z in range(stack.shape[0]))
-    return np.array(parOut)
-
-def mcFilter_stack(stack, iter=10, n_jobs=16):
-    """
-    mean curvature filter in 2D applied slice by slice to stack
-    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
-    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
-    total variation will yield piece wise constant.
-
-    :param stack:
-    :param iter:
-    :param n_jobs:
-    :return:
-    """
-    stack = stack.astype('float32',copy=True)
-    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
-                                     for z in range(stack.shape[0]))
-    return np.array(parOut)
-
-def gcFilter_stack(stack, iter=10, n_jobs=16):
-    """
-    mean curvature filter in 2D applied slice by slice to stack
-    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
-    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
-    total variation will yield piece wise constant.
-
-    :param stack:
-    :param iter:
-    :param n_jobs:
-    :return:
-    """
-    stack = stack.astype('float32',copy=True)
-    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
-                                     for z in range(stack.shape[0]))
-    return np.array(parOut)
-
-def gaussBlur_stack(stack,sigma=1,n_jobs=4):
-    """
-    simple wrapper on gauss blur from numpy
-    :param stack:
-    :param sigma:
-    :param n_jobs:
-    :return:
-    """
-    # convert to float
-    stack = stack.astype('float32')
-    #ndimage.gaussian_filter(slice, sigma)
-    parOut = Parallel(n_jobs=n_jobs)(delayed(ndimage.gaussian_filter)(stack[z,:,:],sigma=sigma)\
-                                     for z in range(stack.shape[0]))
-    return np.array(parOut)
-
-def equalize_adaptHist_stack(stack,clip_limit=0.03,n_jobs=4):
-    stack = stack.astype('uint16')
-    parOut = Parallel(n_jobs=n_jobs)(delayed(exposure.equalize_adapthist)(stack[z,:,:],clip_limit=clip_limit)\
-                                     for z in range(stack.shape[0]))
-    return np.array(parOut)
+#def tvFilter_stack(stack,iter=10,n_jobs=16):
+#    """
+#    total variation curvature filter in 2D
+#    Simple wrapper function to convert data type to 32 bit float
+#    and apply iteration of total variation without having to
+#    remember that totalVariation is filter type 0.
+#    Also, this is parallel for each slice.
+#    :param stack: numpy array
+#    :param iter: number of iterations
+#    :param n_jobs: number of threads in joblib
+#    :return: filtered stack, possbily recast as 16bit
+#    """
+#    #convert to float
+#    stack = stack.astype('float32',copy=True)
+#    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=0,total_iter=iter)\
+#                                     for z in range(stack.shape[0]))
+#    return np.array(parOut)
+#
+#def mcFilter_stack(stack, iter=10, n_jobs=16):
+#    """
+#    mean curvature filter in 2D applied slice by slice to stack
+#    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
+#    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
+#    total variation will yield piece wise constant.
+#
+#    :param stack:
+#    :param iter:
+#    :param n_jobs:
+#    :return:
+#    """
+#    stack = stack.astype('float32',copy=True)
+#    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
+#                                     for z in range(stack.shape[0]))
+#    return np.array(parOut)
+#
+#def gcFilter_stack(stack, iter=10, n_jobs=16):
+#    """
+#    mean curvature filter in 2D applied slice by slice to stack
+#    This should be used to rgualrize for surface that are minimal (like a sphere, not like a cylinder)
+#    Gaussian Curvature will regualrize fro surface that are developable (can be unwrapped to plane w/o distortion)
+#    total variation will yield piece wise constant.
+#
+#    :param stack:
+#    :param iter:
+#    :param n_jobs:
+#    :return:
+#    """
+#    stack = stack.astype('float32',copy=True)
+#    parOut = Parallel(n_jobs=n_jobs)(delayed(CF)(stack[z,:,:],filterType=1,total_iter=iter) \
+#                                     for z in range(stack.shape[0]))
+#    return np.array(parOut)
+#
+#def gaussBlur_stack(stack,sigma=1,n_jobs=4):
+#    """
+#    simple wrapper on gauss blur from numpy
+#    :param stack:
+#    :param sigma:
+#    :param n_jobs:
+#    :return:
+#    """
+#    # convert to float
+#    stack = stack.astype('float32')
+#    #ndimage.gaussian_filter(slice, sigma)
+#    parOut = Parallel(n_jobs=n_jobs)(delayed(ndimage.gaussian_filter)(stack[z,:,:],sigma=sigma)\
+#                                     for z in range(stack.shape[0]))
+#    return np.array(parOut)
+#
+#def equalize_adaptHist_stack(stack,clip_limit=0.03,n_jobs=4):
+#    stack = stack.astype('uint16')
+#    parOut = Parallel(n_jobs=n_jobs)(delayed(exposure.equalize_adapthist)(stack[z,:,:],clip_limit=clip_limit)\
+#                                     for z in range(stack.shape[0]))
+#    return np.array(parOut)
 
 if __name__ == '__main__':
     testImgPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
                   'OddysseyHashScripting/pyFiji/testImages'
     inputImgPath ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/' \
                   'postDecon/tfrGel09052019b_shearRun05062019i_postDecon8Bit_hv00002.tif'
-    img = flatField.zStack2Mem(inputImgPath)
+    #img = flatField.zStack2Mem(inputImgPath)
     #img = img.astype('uint16')
     #tvFiltered = threshold.arrayThreshold.recastImage(tvFilter_stack(img,iter=50),'uint16')
-    adaptEqualize = threshold.arrayThreshold.recastImage(equalize_adaptHist_stack(img,clip_limit=0.03),dtypeOut='uint8')
+    #adaptEqualize = threshold.arrayThreshold.recastImage(equalize_adaptHist_stack(img,clip_limit=0.03),dtypeOut='uint8')
     #equalizeSlice = exposure.equalize_adapthist(img[75],clip_limit=0.03)
     #equalizeSlice = threshold.arrayThreshold.recastImage(equalizeSlice,'uint16')
-    print(pyFiji.send2Fiji([img,adaptEqualize],wdir=testImgPath))
+    #print(pyFiji.send2Fiji([img,adaptEqualize],wdir=testImgPath))
 
 

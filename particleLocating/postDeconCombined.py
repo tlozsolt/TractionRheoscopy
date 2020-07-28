@@ -324,7 +324,7 @@ class PostDecon_dask(dpl.dplHash):
         zz,yy,xx = np.mgrid[0:input_da.shape[0]:1, 0:input_da.shape[1]:1, 0:input_da.shape[2]:1]
         threshold_array = griddata(points, values, (zz, yy, xx), method='nearest', fill_value=np.mean(values)).astype(
             'uint16')
-        aboveThresh, belowThresh = applyThreshold(input_da.compute(), threshold_array)
+        aboveThresh, belowThresh = applyThreshold(input_da.compute(scheduler='threads'), threshold_array)
         # now clean up garbage
         del thresh_compute, values, indices, points, threshold_array, belowThresh
         gc.collect()
@@ -382,6 +382,8 @@ class PostDecon_dask(dpl.dplHash):
 
         # Convert input to float32 just in case
         input_da = input_da.astype('float32')
+        # rechunk along z
+        #input_da = input_da.rechunk(chunks=(1,input_da.shape[1], input_da.shape[2]))
 
         for filterDict in postDeconMeta['postThresholdFilter'][self.mat]['methodParamList']:
             # cycle through the list of filters and reassign outputs to input_da
@@ -431,46 +433,62 @@ class PostDecon_dask(dpl.dplHash):
               "Job control over steps has not been implemented in any way apart from\n"
               "directly editing the function.\n"
               "Zsolt - Jul 20 2020\n")
+        print("Initialiizing dask cluster")
         if computer =='IMAC':
             from dask.distributed import Client
-            client = Client('10.0.0.33:8786')
+            #node = LocalCluster(n_workers=8, threads_per_worker=24,
+            #                    ip='tcp://localhost:8786',
+            #                    memory_limit='4Gb')
+
+            #client = Client(node)
+            IMAC_ip = self.dpl.metaData['dask_resources'][computer]['ip']
+            client = Client(IMAC_ip)
             client.restart()
         else:
-            print("Dask client needs to be initialized on something other than IMAC")
             # This should work... on odsy.. works on test node...do I need to set memory
             # constraints?
-            # its also likely this same syntax would work on imac...just pass tcp ip address as
-            # positional argument
-            # from dask.distributed import Client, LocalCluster
-            # from dask import dataframe as ddf
-            # node = LocalCluster(n_workers=4,threads_per_worker=24)
-            # client = Client(node)
+            from dask.distributed import Client, LocalCluster
+            nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
+            nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
+
+            node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
+            client = Client(node)
+            client.restart()
+
         da_decon = self.init_da
         # carry out smart crop
+        print("Starting smart crop")
         da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
         # log the changes
         self.dpl.writeLog(hv, 'smartCrop', log_smartCrop, computer=computer)
 
         # Carry out the threshold
+        print("Starting thresholding")
         da_threshold = self.threshold_da(da_smartCrop, **self.dpl.metaData['postDecon']['threshold'])
 
         # post threshold filter
+        print("Starting post threshold filtering")
         metaData = self.dpl.metaData['postDecon']
         da_postThresholdFilter = self.postThresholdFilter_da(da_threshold, **metaData)
-        np_postThresholdFilter = da_postThresholdFilter.compute()
+        np_postThresholdFilter = da_postThresholdFilter.compute(scheduler='threads')
 
         # carry out locating and refinement, iteratively
+        print("Starting locating and refinement, iteratively")
         metaDataFolder = self.dpl.getPath2File(0,kwrd='metaDataYAML',computer=computer,pathOnlyBool=True)
         df_loc, df_refine, log_locating = locating.iterate(np_postThresholdFilter,
-                                                           self.dpl.metaData['locating'],
+                                                           {'yamlMetaData': self.dpl.metaData,
+                                                            'computer': computer},
                                                            self.mat,
                                                            metaDataYAMLPath=metaDataFolder)
+        # save input image  to visualize directory
+        print("Saving input images to scratch visualize ")
         fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
         flatField.array2tif(np_postThresholdFilter,
                             fName_locInput,
                             metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
 
         # save locations to csv
+        print("Saving locations, both refined and centroid")
         pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
         refineLocExt = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
         locationPath = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=computer)
@@ -478,6 +496,8 @@ class PostDecon_dask(dpl.dplHash):
         df_loc.to_csv(locationPath, index=False, sep=' ')
         df_refine.to_csv(refinePath, index=False, sep=' ')
         self.dpl.writeLog(hv, 'locating', log_locating, computer=computer)
+
+        return df_loc, df_refine, log_locating
 
 
 if __name__ == '__main__':

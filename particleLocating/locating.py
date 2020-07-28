@@ -67,24 +67,40 @@ def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
     metaGlobal = refine_lsq_meta['global']
     metaIteration = refine_lsq_meta['iteration']
     refine_dtypes = refine_lsq_meta['refine_dtypes']
+    computer = refine_lsq_meta['computer']
+    daskParam = refine_lsq_meta['dask_resources'][computer]
+    mat = refine_lsq_meta['material']
+
+    #compute some simple optimal paramters for dask workers and npartitions
+    if daskParam['memory-limit'] == '4Gb': npart = int(2*daskParam['nprocs'])
+    elif daskParam['memory-limit'] =='2Gb': npart = int(daskParam['nprocs'])
+    else:
+        print("Mem limit {} is not either `4Gb` or `2Gb`\n".format(daskParam['memory_limit']))
+        print("Setting number of partitions equal to nprocs in dask_resources")
+        npart = int(daskParam['nprocs'])
 
     def ddf_refine(ddf_chunk,np_imageArray, **tpRefineKwargs):
         df_chunk = tp.refine_leastsq(ddf_chunk, np_imageArray, **tpRefineKwargs)
         return df_chunk
 
     # start the dask client
-    client = Client('10.0.0.33:8786')
+    client = Client(daskParam['ip'])
     client.restart()
     df_refine = pd.DataFrame({})
     for n in range(0,N,dN):
         client.restart()
         print(n + dN,N, '{:.2%}'.format((n +dN)/N))
         ddf_loc = ddf.from_pandas(df_loc.loc[n:int(n + dN-1)],
-                                  npartitions=metaGlobal['n_partitions'])
-        df_gauss = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-                                                  **metaIteration['gauss']),
-                                          meta=refine_dtypes['gauss']).compute()
-        df_refine = pd.concat([df_gauss, df_refine])
+                                  npartitions=npart)
+        if mat == 'sed': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                                   **metaIteration['gauss']),
+                                                           meta=refine_dtypes).compute()
+        elif mat == 'gel': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                                     **metaIteration['disc']),
+                                                             meta=refine_dtypes).compute()
+        else: raise ValueError("Material {} is not 'sed' or 'gel'."
+                               "Dont know if to refine with gauss or disc".format(mat))
+        df_refine = pd.concat([df_refine,df_chunk])
         #df_disc = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
         #                                          **metaIteration['disc']),
         #                                  meta=refine_dtypes['disc']).compute()
@@ -100,7 +116,7 @@ def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
     return df_loc, df_refine
 
 
-def iterate(imgArray, paramDict, material, metaDataYAMLPath=None):
+def iterate(imgArray, metaData, material, metaDataYAMLPath=None):
     """
     This function applies the locatingFunc to the imageArray iteratively following Kate's work.
     The basic idea is to locate some particles, create a mask to zero out the positions of the located particles
@@ -112,8 +128,10 @@ def iterate(imgArray, paramDict, material, metaDataYAMLPath=None):
     :return: pandas data frame with particle locations and extra output from trackpy (ie mass, eccentricity, etc)
     """
     global imgArray_refine, combined_dict
+    paramDict = metaData['yamlMetaData']['locating']
     locatingParam = paramDict[material]
     iterativeParam = paramDict['iterative']
+    daskParam = metaData['yamlMetaData']['dask_resources']
     particleBool = True # did we find additional particle on this iteration?
     # maybe this should be done in the while loop to account for changing parameters during iteration
     locList = []
@@ -130,20 +148,34 @@ def iterate(imgArray, paramDict, material, metaDataYAMLPath=None):
         # create the complicated nest of input dictionaries included a computation of return dtypes
         # with keys global, iteration, refine_dtypes
         compute_error = paramDict['refine_lsq']['compute_error']
-        dict_refine = {'gauss': {'diameter': (5,5,5), 'fit_function': 'gauss', 'compute_error': compute_error},
-                        'disc': {'diameter': (5,5,5), 'fit_function': 'disc' , 'compute_error': compute_error ,
-                                 'param_val': {'disc_size': 0.5}}
-                       }
-        with open(metaDataYAMLPath+'/df_locMicro.pkl', 'rb') as f:
-            df_locMicro = pickle.load(f)
-        df_refine_micro_gauss = tp.refine_leastsq(df_locMicro,imgArray,**dict_refine['gauss'])
-        df_refine_micro_disc = tp.refine_leastsq(df_locMicro,imgArray,**dict_refine['disc'])
-        refine_dtypes = {'gauss': df_refine_micro_gauss.dtypes.apply(lambda x: x.name).to_dict(),
-                         'disc' :  df_refine_micro_disc.dtypes.apply(lambda x: x.name).to_dict()}
-        combined_dict = {'global' : paramDict['refine_lsq'],
-                         'refine_dtypes' : refine_dtypes
-                        }
 
+        # This is risky...refine makes decisions based on whether feature is anisotropic or not. In particular
+        # it assume (reasonably) that if the locating was anisotropic, the refinement should be anisotropic as well
+        # .., it will fail if you try it with iso locating and aniso refinement
+        #dict_refine = {'gauss': {'diameter': (5,5,5), 'fit_function': 'gauss', 'compute_error': compute_error},
+        #                'disc': {'diameter': (17,23,23), 'fit_function': 'disc' , 'compute_error': compute_error ,
+        #                         'param_val': {'disc_size': 0.6}}
+        #               }
+        try:
+            if material == 'sed': dict_refine = locatingParam[-1]['refine_lsq']['gauss']
+            elif material == 'gel': dict_refine = locatingParam[-1]['refine_lsq']['disc']
+        except KeyError:
+            print("You are trying mix sed and gel refinement functions...thats not yet implemented")
+            raise
+
+        #with open(metaDataYAMLPath+'/df_locMicro.pkl', 'rb') as f:
+        #    df_locMicro = pickle.load(f)
+        #df_refine_micro_gauss = tp.refine_leastsq(df_locMicro,imgArray,**dict_refine['gauss'])
+        #df_refine_micro_disc = tp.refine_leastsq(df_locMicro,imgArray,**dict_refine['disc'])
+        #refine_dtypes = {'gauss': df_refine_micro_gauss.dtypes.apply(lambda x: x.name).to_dict(),
+        #                 'disc' :  df_refine_micro_disc.dtypes.apply(lambda x: x.name).to_dict()}
+        combined_dict = {'global' : paramDict['refine_lsq'],
+                         #'refine_dtypes' : refine_dtypes,
+                         'dask_resources': daskParam,
+                         'computer': metaData['computer'],
+                         'material': material
+                        }
+    refine_dtypes = None
     while particleBool == True and iterCount < maxIter:
         iterCount += 1
 
@@ -166,6 +198,12 @@ def iterate(imgArray, paramDict, material, metaDataYAMLPath=None):
 
         # now refine the positions
         if refineBool:
+            if refine_dtypes == None:
+                # we have give some metaData on return types
+                loc_micro = loc[0:2]
+                df_refine_micro = tp.refine_leastsq(loc_micro, imgArray, **dict_refine)
+                refine_dtypes = df_refine_micro.dtypes.apply(lambda x: x.name).to_dict()
+                combined_dict['refine_dtypes'] = refine_dtypes
             print("Carrying out least squares particle refinement!")
             try: combined_dict['iteration'] = locatingParam[iterCount]['refine_lsq']
             except IndexError: combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
