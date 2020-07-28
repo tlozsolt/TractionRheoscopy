@@ -1036,10 +1036,15 @@ class dplHash:
                 postDeconScript += 'inst.visualize(computer=\'{computer}\')\n'.format(computer=computer)
 
         elif self.metaData['postDeconCombined']['dask'] == True:
-            postDeconScript = "import sys\n"
-            postDeconScript += "sys.path.insert(0,\"{path}\")\n".format(path=gitDir)
-            postDeconScript += "from particleLocating.postDeconCombined import PostDecon_dask as pd\n"
-            postDeconScript += "inst = pd(\'{yamlPath}\',{hv},computer=\'{computer}\')\n".format(yamlPath=yamlPath,
+            # this -f __name__ == __main__ is required since dask will use multiprocessing
+            # I dont understand this, but see the following comments on gitHub that exactly pertain
+            # to the errors I was getting on ODSY:
+            # https://github.com/dask/distributed/issues/2520
+            postDeconScript =  'if __name__ == \"__main__\':\n'
+            postDeconScript += "    import sys\n"
+            postDeconScript += "    sys.path.insert(0,\"{path}\")\n".format(path=gitDir)
+            postDeconScript += "    from particleLocating.postDeconCombined import PostDecon_dask as pd\n"
+            postDeconScript += "    inst = pd(\'{yamlPath}\',{hv},computer=\'{computer}\')\n".format(yamlPath=yamlPath,
                                                                                                  hv=hashValue,
                                                                                                  computer=computer)
             postDeconScript += "inst.postDecon_dask({hv},computer=\'{computer}\')\n".format(hv=hashValue,
