@@ -452,15 +452,13 @@ class PostDecon_dask(dpl.dplHash):
             # it solved the problem. Im suprised it worked.
             # See https://github.com/dask/distributed/issues/2520
             from dask.distributed import Client, LocalCluster
+            print("Starting LocalCluster inside __name__ =='__main__:' condition")
+            nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
+            nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
 
-            if __name__ == "__main__":
-                print("Starting LocalCluster inside __name__ =='__main__:' condition")
-                nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
-                nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
-
-                node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
-                client = Client(node)
-                client.restart()
+            node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
+            client = Client(node)
+            client.restart()
 
         da_decon = self.init_da
         # carry out smart crop
