@@ -455,8 +455,11 @@ class PostDecon_dask(dpl.dplHash):
             print("Starting LocalCluster inside __name__ =='__main__:' condition")
             nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
             nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
+            local_dir = self.dpl.metaData['dask_resources'][computer]['local_directory']
 
-            node = LocalCluster(n_workers=nprocs,threads_per_worker=nthreads)
+            node = LocalCluster(n_workers=nprocs,
+                                threads_per_worker=nthreads,
+                                local_directory=local_dir)
             client = Client(node)
             client.restart()
 
