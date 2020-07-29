@@ -350,7 +350,7 @@ locating:
   visualize: True
   iterative:
     bool: True # do iterative locating?
-    maxIter: 5 # how many iterative loops to do befroe force quitting?
+    maxIter: 7 # how many iterative loops to do befroe force quitting?
     mask:
       sed: [17, 17, 17] # keep in mind this can be much larger than a single particle diameter
       gel: [21,27,27] # pixel order is [z,y,x]
@@ -379,7 +379,7 @@ dask_resources:
     memory-limit: '4Gb'
 ODSY_Resources:
   queue: serial_requeue 
-  time: 361 # requested time in units of minutes
+  time: 180 # requested time in units of minutes
   cores: 4 # number of requested cores
   mem: 16000 # memory pool for all cores in units of Mb
   account: weitz_lab
