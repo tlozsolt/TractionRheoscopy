@@ -379,7 +379,7 @@ dask_resources:
     memory-limit: '4Gb'
 ODSY_Resources:
   queue: serial_requeue 
-  time: 180 # requested time in units of minutes
+  time: 361 # requested time in units of minutes
   cores: 4 # number of requested cores
   mem: 16000 # memory pool for all cores in units of Mb
   account: weitz_lab

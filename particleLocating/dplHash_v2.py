@@ -1045,10 +1045,10 @@ class dplHash:
             postDeconScript += "    sys.path.insert(0,\"{path}\")\n".format(path=gitDir)
             postDeconScript += "    from particleLocating.postDeconCombined import PostDecon_dask as pd\n"
             postDeconScript += "    inst = pd(\'{yamlPath}\',{hv},computer=\'{computer}\')\n".format(yamlPath=yamlPath,
-                                                                                                 hv=hashValue,
-                                                                                                 computer=computer)
-            postDeconScript += "inst.postDecon_dask({hv},computer=\'{computer}\')\n".format(hv=hashValue,
-                                                                                            computer=computer)
+                                                                                                     hv=hashValue,
+                                                                                                     computer=computer)
+            postDeconScript += "    inst.postDecon_dask({hv},computer=\'{computer}\')\n".format(hv=hashValue,
+                                                                                                computer=computer)
 
         else: raise ValueError("postDecon file could not be made because use dask or not?")
 
