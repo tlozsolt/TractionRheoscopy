@@ -376,11 +376,12 @@ dask_resources:
     ip: 'auto'
     nprocs: 8 # number of processes can be 2x the number of cores to boost utilization if memory is not constrained.
     nthreads: 24
-    local_directory: '/scratch'
+    #local_directory: '/scratch'
     memory-limit: '4Gb'
 ODSY_Resources:
   queue: serial_requeue 
   time: 180 # requested time in units of minutes
   cores: 4 # number of requested cores
+  nodes: 1 # this is important for dask, to force all cores to be on the same node
   mem: 16000 # memory pool for all cores in units of Mb
   account: weitz_lab

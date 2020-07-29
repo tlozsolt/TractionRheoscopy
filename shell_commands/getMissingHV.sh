@@ -33,3 +33,6 @@ sbatch --array=4,8,15,16,23,42  job_script.sbatch
 srun --pty -p test -t 60 --mem 16000 -n 4  /bin/bash
 module load
 
+# look at time elapsed for job id (not great formatting)
+sacct -j 65507205 --format=JobID,elapsed,nodelist,MaxVMSize
+

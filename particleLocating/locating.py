@@ -245,7 +245,21 @@ def createMask(locDF, imgArray, glyphShape,refineBool=True):
     xCoord = np.rint(locDF['x']).astype(int)
     yCoord = np.rint(locDF['y']).astype(int)
     zCoord = np.rint(locDF['z']).astype(int)
-    imgMask[zCoord,yCoord,xCoord] = 1
+
+    # these coordinates might need to be shifted to not get IndexErrors
+    coord = [zCoord,yCoord,xCoord]
+    shiftCoord = []
+    for n in range(len(coord)):
+        if coord[n] > imgMask.shape[n]:
+            # Note this will always shift to be in bounds, but the shift is arbitrarily large.
+            # I am really assuming that the shifts are small, 1-2px, and rare.
+            shiftCoord[n] = imgMask.shape[n] - 1
+        elif coord[n] < 0: shiftCoord[n] = 0
+        else: shiftCoord[n] = coord[n]
+
+    # assign shifted coordinates to prevent IndexErrors
+    imgMask[shiftCoord[0], shiftCoord[1], shiftCoord[2]] = 1
+
     imgMask = scipy.signal.oaconvolve(imgMask,maskGlyph)
     # crop the mask
     [dz,dy,dx] = ((np.array(maskGlyph.shape) -1)/2).astype(int)
