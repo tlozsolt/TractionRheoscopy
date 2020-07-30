@@ -247,18 +247,28 @@ def createMask(locDF, imgArray, glyphShape,refineBool=True):
     zCoord = np.rint(locDF['z']).astype(int)
 
     # these coordinates might need to be shifted to not get IndexErrors
-    coord = [zCoord,yCoord,xCoord]
-    shiftCoord = []
-    for n in range(len(coord)):
-        if coord[n] > imgMask.shape[n]:
-            # Note this will always shift to be in bounds, but the shift is arbitrarily large.
-            # I am really assuming that the shifts are small, 1-2px, and rare.
-            shiftCoord[n] = imgMask.shape[n] - 1
-        elif coord[n] < 0: shiftCoord[n] = 0
-        else: shiftCoord[n] = coord[n]
+    def shift(x,max=100):
+        # if x is **strictly** less than image shape
+        if x < max: return x
+        else: return max - 1
+
+    xCoord = xCoord.apply(partial(shift,max=imgMask.shape[2]))
+    yCoord = yCoord.apply(partial(shift,max=imgMask.shape[1]))
+    zCoord = zCoord.apply(partial(shift,max=imgMask.shape[0]))
+
+    imgMask[zCoord, yCoord, xCoord] = 1
+
+    #coord = [zCoord,yCoord,xCoord]
+    #shiftCoord = []
+    #for n in range(len(coord)):
+    #    if coord[n] > imgMask.shape[n]:
+    #        # Note this will always shift to be in bounds, but the shift is arbitrarily large.
+    #        # I am really assuming that the shifts are small, 1-2px, and rare.
+    #        shiftCoord[n] = imgMask.shape[n] - 1
+    #    elif coord[n] < 0: shiftCoord[n] = 0
+    #    else: shiftCoord[n] = coord[n]
 
     # assign shifted coordinates to prevent IndexErrors
-    imgMask[shiftCoord[0], shiftCoord[1], shiftCoord[2]] = 1
 
     imgMask = scipy.signal.oaconvolve(imgMask,maskGlyph)
     # crop the mask

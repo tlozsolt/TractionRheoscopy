@@ -368,7 +368,7 @@ locating:
     - {diameter: [19,27,27], minmass: 100000, preprocess: False, max_iterations: 20, refine_lsq: { disc: {fit_function: 'disc', diameter: [17,23, 23], param_val: {disc_size: 0.6}, compute_error: True}}}
 dask_resources:
   IMAC:
-    ip: '10.1.178.106:8786'
+    ip: '10.0.0.33:8786'
     nprocs: 14
     nthreads: 24
     memory-limit: '4Gb'

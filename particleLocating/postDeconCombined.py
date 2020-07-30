@@ -166,6 +166,7 @@ class PostDecon_dask(dpl.dplHash):
         refPos = self.dpl.getCropIndex(self.hashValue)
         originLog = [0,0,0] # relative changes in origin and dimensions to be updated and recorded in writeLog()
         dimLog = [0,0,0]
+        errorDict = {}
 
         # if appropriate, crop out the uniform decon FFT artifacts in XY and Z
         if metaData['fftCrop']['bool'] == True:
@@ -192,16 +193,25 @@ class PostDecon_dask(dpl.dplHash):
             # Now do some quality control on this max value:
             # is the max Value large enough?
             if maxValue < metaData['sedGelCrop']['minValue']:
-                print("maximum gradient for sedGelCrop is below the minValue listed in metaData")
-                print(maxIndex,maxValue,metaData['sedGelCrop']['minValue'])
-                raise KeyError
+                msg = "maximum gradient for sedGelCrop is below the minValue listed in metaData"
+                #print(maxIndex,maxValue,metaData['sedGelCrop']['minValue'])
+                errorDict["maxGradError"] = {'msg': msg,
+                                             'maxValue': maxValue,
+                                             'maxIndex': maxIndex,
+                                             'minValue': metaData['sedGelCrop']['minValue']}
+                for key in errorDict["maxGradError"]: print(key,errorDict['maxGradError'][key])
             # Is the index close to where the purported sed/gel interface is?
-            sedGelDeviation = abs((maxIndex + refPos[2][0] - metaData['sedGelCrop']['offset']) \
+            sedGelDeviation = abs((maxIndex + refPos[2][0] - metaData['sedGelCrop']['offset'])
                                   - self.dpl.metaData['imageParam']['gelSedimentLocation'])
             if sedGelDeviation > metaData['sedGelCrop']['maxDev']:
-                print("The purported gel/sediment location is {}".format(sedGelDeviation)," is further than expected "
-                      "given the approx value listed in metaData")
-                raise KeyError
+                msg = "The purported gel/sediment location is {} is further than expected".format(sedGelDeviation)
+                #raise KeyError
+                errorDict['sedGelDeviationError'] = {'sedGelDeviation': sedGelDeviation,
+                                                     'maxDev': metaData['sedGelCrop']['maxDev'],
+                                                     'maxIndex': maxIndex,
+                                                     'z ref pos': refPos[2][0],
+                                                     'nominal gel/sed loc': self.dpl.metaData['imageParam']['gelSedimentLocation']}
+                for key in errorDict['sedGelDeviationError']: print(key, errorDict['sedGelDeviationError'][key])
             # crop the stack using the maxindex and uniform offset
             offset = metaData['sedGelCrop']['offset']
             zSlices = fullStack.shape[0]
