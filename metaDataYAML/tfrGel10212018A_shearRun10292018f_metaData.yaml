@@ -376,7 +376,7 @@ dask_resources:
     ip: 'auto'
     nprocs: 8 # number of processes can be 2x the number of cores to boost utilization if memory is not constrained.
     nthreads: 24
-    local_directory: '/n/holyscratch01/spaepen_lab/zsolt/'
+    local_directory: '/n/holyscratch01/spaepen_lab/zsolt'
     memory-limit: '4Gb'
 ODSY_Resources:
   queue: serial_requeue 
