@@ -18,7 +18,7 @@ chmod +x mvIncomplete.x
 ./mvIncomplete.x
 # now all the incomplerte logs are in one place and running grep -L on that directory should still work
 # if run in the directory containing the incomplete logs
-grep -L 'particles: ' *.yaml | cut -d'_' -f4 | cut -d '.' -f1 | cut -c 3- | awk '{printf "%s,, $0 + 0}'
+grep -L 'particles: ' *.yaml | cut -d'_' -f4 | cut -d '.' -f1 | cut -c 3- | awk '{printf "%s,", $0 + 0}'
 # if run in the dpl directory
 grep -L 'particles: ' ../log/incompleteJobLogs/Jul_6_2020/*.yaml | cut -d'_' -f6 | cut -d '.' -f1 | cut -c 3- | awk '{printf "%s,", $0 + 0}'
 #since coomand line operations **overide** anything in the script I could pipe the missing hv directly and
