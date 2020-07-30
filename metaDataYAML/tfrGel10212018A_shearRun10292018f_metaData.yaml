@@ -374,7 +374,7 @@ dask_resources:
     memory-limit: '4Gb'
   ODSY:
     ip: 'auto'
-    nprocs: 8 # number of processes can be 2x the number of cores to boost utilization if memory is not constrained.
+    nprocs: 4 # number of processes can be 2x the number of cores to boost utilization if memory is not constrained.
     nthreads: 24
     local_directory: '/scratch'
     memory-limit: '4Gb'
