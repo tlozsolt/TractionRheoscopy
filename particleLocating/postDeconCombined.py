@@ -465,8 +465,8 @@ class PostDecon_dask(dpl.dplHash):
             print("Starting LocalCluster inside __name__ =='__main__:' condition")
             nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
             nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
-            #local_dir = self.dpl.metaData['dask_resources'][computer]['local_directory']
-            local_dir = self.dpl.getPath2File(0,kwrd='postDecon',pathOnlyBool=True, computer=computer)
+            local_dir = self.dpl.metaData['dask_resources'][computer]['local_directory']
+            #local_dir = self.dpl.getPath2File(0,kwrd='postDecon',pathOnlyBool=True, computer=computer)
 
             node = LocalCluster(n_workers=nprocs,
                                 threads_per_worker=nthreads,
