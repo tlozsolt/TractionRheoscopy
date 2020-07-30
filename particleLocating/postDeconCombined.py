@@ -471,7 +471,7 @@ class PostDecon_dask(dpl.dplHash):
             node = LocalCluster(n_workers=nprocs,
                                 threads_per_worker=nthreads,
                                 local_directory=local_dir,
-                                silence_logs='info')
+                                silence_logs='INFO')
             client = Client(node)
             client.restart()
 
