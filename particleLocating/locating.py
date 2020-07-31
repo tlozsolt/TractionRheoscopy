@@ -8,6 +8,7 @@ import scipy
 import pickle
 from dask.distributed import Client
 from dask import dataframe as ddf
+from dask.diagnostics import ProgressBar
 
 
 # ToDo:
@@ -45,7 +46,7 @@ def lsq_refine(df_loc, np_image, **refine_lsq_Meta):
                                  fit_function=fit_func,
                                  compute_error=True)
 
-def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
+def lsq_refine_combined(df_loc, np_image, daskClient, **refine_lsq_meta):
     """
     Refine the particle positions in df_loc using np_image as input
     and dictionary of keywords from yaml file
@@ -84,40 +85,30 @@ def lsq_refine_combined(df_loc, np_image, **refine_lsq_meta):
         return df_chunk
 
     # start the dask client
-    if daskParam['ip'] != 'auto': client = Client(daskParam['ip'])
-    else: client = Client()
-    client.restart()
+    #if daskParam['ip'] != 'auto': client = Client(daskParam['ip'])
+    #else: client = Client()
+    #client.restart()
     df_refine = pd.DataFrame({})
     for n in range(0,N,dN):
-        client.restart()
-        print(n + dN,N, '{:.2%}'.format((n +dN)/N))
+        #client.restart()
         ddf_loc = ddf.from_pandas(df_loc.loc[n:int(n + dN-1)],
                                   npartitions=npart)
-        if mat == 'sed': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-                                                                   **metaIteration['gauss']),
-                                                           meta=refine_dtypes).compute()
-        elif mat == 'gel': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-                                                                     **metaIteration['disc']),
-                                                             meta=refine_dtypes).compute()
-        else: raise ValueError("Material {} is not 'sed' or 'gel'."
-                               "Dont know if to refine with gauss or disc".format(mat))
+        with ProgressBar():
+            print(n + dN, N, '{:.2%}'.format((n + dN) / N))
+            if mat == 'sed': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                                       **metaIteration['gauss']),
+                                                               meta=refine_dtypes).compute()
+            elif mat == 'gel': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                                         **metaIteration['disc']),
+                                                                 meta=refine_dtypes).compute()
+            else: raise ValueError("Material {} is not 'sed' or 'gel'."
+                                   "Dont know if to refine with gauss or disc".format(mat))
         df_refine = pd.concat([df_refine,df_chunk])
-        #df_disc = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-        #                                          **metaIteration['disc']),
-        #                                  meta=refine_dtypes['disc']).compute()
-
-        # which columns are duplicated in the output
-        # This is really more of a post processing step. I think I should just save df_gauss and df_disc to a file
-        # and then merge the dataFrames, removing duplicate columns later.
-        #col_duplicate = [key for key in df_loc if df_loc[key].equals(df_gauss[key])]
-        #df_refinelsq = df_disc.drop(columns=col_duplicate).join(
-        #    df_gauss.drop(columns=col_duplicate),
-        #    lsuffix = '_lsqHat',rsuffix='_lsqGauss' )
-        #df_loc = df_loc.join(df_refinelsq)
+        daskClient.cancel([ddf_loc,df_chunk])
     return df_loc, df_refine
 
 
-def iterate(imgArray, metaData, material, metaDataYAMLPath=None):
+def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None):
     """
     This function applies the locatingFunc to the imageArray iteratively following Kate's work.
     The basic idea is to locate some particles, create a mask to zero out the positions of the located particles
@@ -179,7 +170,6 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None):
     refine_dtypes = None
     while particleBool == True and iterCount < maxIter:
         iterCount += 1
-
         # try moving down the list, until you cant...
         try:
             param_all = locatingParam[iterCount]
@@ -208,7 +198,7 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None):
             print("Carrying out least squares particle refinement!")
             try: combined_dict['iteration'] = locatingParam[iterCount]['refine_lsq']
             except IndexError: combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
-            loc, loc_refine = lsq_refine_combined(loc, imgArray_refine, **combined_dict)
+            loc, loc_refine = lsq_refine_combined(loc, imgArray_refine,daskClient, **combined_dict)
 
         # add to output
         locList.append(loc) # add the dataframe to locList and deal with merging later

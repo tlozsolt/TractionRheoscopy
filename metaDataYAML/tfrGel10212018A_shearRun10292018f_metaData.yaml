@@ -369,7 +369,7 @@ locating:
 dask_resources:
   IMAC:
     ip: '10.0.0.33:8786'
-    nprocs: 14
+    nprocs: 4
     nthreads: 24
     memory-limit: '4Gb'
   ODSY:

@@ -319,15 +319,16 @@ class PostDecon_dask(dpl.dplHash):
         #        + np.array(depth_delta)
         depth_dim = ((np.array(input_da.shape) % chunks_dim) + chunks_dim + np.array(depth_delta)) % chunks_dim
         #           ((             largest remainder       ) + unwrap and shift down             ) mod to get greatest lower bound
-        thresh_compute = input_da.map_overlap(maxEnt,
+        thresh_compute = (input_da.map_overlap(maxEnt,
                                               depth=tuple(depth_dim.astype(int)),
                                               dtype='float32',
-                                              boundary=boundary).compute()
+                                              boundary=boundary)).compute()
 
         # split thresh_compute into values and corresponding indices, and format for scipy.griddata
         values = thresh_compute[~np.isnan(thresh_compute)]
         indices = np.argwhere(~np.isnan(thresh_compute))
         points = (indices[:, 0], indices[:, 1], indices[:, 2])
+        client.cancel([input_da,thresh_compute])
         # note that I have to use nearest interpolation as the dask chunks chunk centers are not on the edges...
         # ... but then again if this was mirrored the edges would give the same values as an interior interpolation
         # other option is to fill with avg of values as opposed to nan
@@ -336,7 +337,7 @@ class PostDecon_dask(dpl.dplHash):
             'uint16')
         aboveThresh, belowThresh = applyThreshold(input_da.compute(scheduler='threads'), threshold_array)
         # now clean up garbage
-        del thresh_compute, values, indices, points, threshold_array, belowThresh
+        del values, indices, points, threshold_array, belowThresh
         gc.collect()
         return da.from_array(aboveThresh, chunks=(1,aboveThresh.shape[1],aboveThresh.shape[2]))
 
@@ -444,6 +445,7 @@ class PostDecon_dask(dpl.dplHash):
               "directly editing the function.\n"
               "Zsolt - Jul 20 2020\n")
         print("Initialiizing dask cluster")
+        global client
         if computer =='IMAC':
             from dask.distributed import Client
             #node = LocalCluster(n_workers=8, threads_per_worker=24,
@@ -453,6 +455,7 @@ class PostDecon_dask(dpl.dplHash):
             #client = Client(node)
             IMAC_ip = self.dpl.metaData['dask_resources'][computer]['ip']
             client = Client(IMAC_ip)
+            # restart since the cluster on imac may not be fresh.
             client.restart()
         else:
             # This should work... on odsy.. works on test node...do I need to set memory
@@ -473,18 +476,21 @@ class PostDecon_dask(dpl.dplHash):
                                 local_directory=local_dir,
                                 silence_logs='INFO')
             client = Client(node)
-            client.restart()
+            #client.restart()
 
+        #client.restart()
         da_decon = self.init_da
         # carry out smart crop
         print("Starting smart crop")
         da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
         # log the changes
         self.dpl.writeLog(hv, 'smartCrop', log_smartCrop, computer=computer)
+        client.cancel(da_decon)
 
         # Carry out the threshold
         print("Starting thresholding")
         da_threshold = self.threshold_da(da_smartCrop, **self.dpl.metaData['postDecon']['threshold'])
+        client.cancel(da_smartCrop)
 
         # post threshold filter
         print("Starting post threshold filtering")
@@ -494,12 +500,14 @@ class PostDecon_dask(dpl.dplHash):
 
         # carry out locating and refinement, iteratively
         print("Starting locating and refinement, iteratively")
+        client.restart()
         metaDataFolder = self.dpl.getPath2File(0,kwrd='metaDataYAML',computer=computer,pathOnlyBool=True)
         df_loc, df_refine, log_locating = locating.iterate(np_postThresholdFilter,
                                                            {'yamlMetaData': self.dpl.metaData,
                                                             'computer': computer},
                                                            self.mat,
-                                                           metaDataYAMLPath=metaDataFolder)
+                                                           metaDataYAMLPath=metaDataFolder,
+                                                           daskClient = client)
         # save input image  to visualize directory
         print("Saving input images to scratch visualize ")
         fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
