@@ -1363,7 +1363,7 @@ class dplHash:
         else:
             return refPos
 
-    def integrateTransVect(self, hv, step='postDecon', computer='ODSY'):
+    def integrateTransVect(self, hv, step='locating', computer='ODSY'):
         """
     Reads the yaml log file and returns the integrated translation vector for that specific hashValue
     :param hv:  hashValue
@@ -1375,7 +1375,7 @@ class dplHash:
     """
         # open the yaml log file and parse it
         with open(self.getPath2File(hv, kwrd='log', computer=computer), 'r') as stream:
-            yamlLog = yaml.load(stream, Loader=yaml.SafeLoader)
+          yamlLog = yaml.load(stream, Loader=yaml.SafeLoader)
         pipeline = self.metaData['pipeline']
         # create a list of pipeline steps that were both flagged as true and would be included in the log
         keyList = [list(elt.keys())[0] for elt in pipeline]
@@ -1385,19 +1385,20 @@ class dplHash:
         dim = np.array([0, 0, 0])
         # I need to integrate up through step listed in arguement as a safegaurd against incomplete jobs.
         for key in pipelineSteps:
+          try:
             logEntry = yamlLog[key]
             if key != step:
-                try:
-                    # print("key/step: ", key, step)
-                    origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
-                    dim += logEntry['dim']
-                except KeyError:
-                    print("There is something wrong when comparing pipeline to log. Perhaps incomplete job?")
-                    raise KeyError
+              origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
+              dim += logEntry['dim']
             else:  # break out of the for loop after you hit step kwrd arguement
-                origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
-                dim += logEntry['dim']
-                break
+              origin += logEntry['origin']  # note, relies on type conversion of logEntry to numpy.array
+              dim += logEntry['dim']
+              break
+          except KeyError:
+            print('key {} is in pipeline but not in log.'.format(key))
+            print('Problem? Perhaps incomplete job or postDecon Combined analysis')
+            if step == 'smartCrop': raise  # raise error if step is smart crop
+            else: pass
         return (origin, dim)
 
     def makeSmartCrop(self, hashValue, computer='ODSY', output='log'):

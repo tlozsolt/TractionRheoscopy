@@ -12,23 +12,25 @@ class ParticleStitch(dpl.dplHash):
         self.dpl = dpl.dplHash(metaDataPath)
         self.computer= computer
         self.locations = pd.DataFrame(columns = ['z (px, hash)', 'y (px, hash)', 'x (px, hash)',\
-                                                     'image mass', 'hashValue', 'material',\
-                                                     'z (um)', 'y (um)', 'x (um)'\
-                                                     ]\
-                                          )
+                                                 'dz (px)', 'dy (px)', 'dx (px)',\
+                                                  'image mass', 'hashValue', 'material', 'iteration', 'cost'\
+                                                  'z (um)', 'y (um)', 'x (um)'\
+                                                  ]\
+                                      )
 
-    def getCompleteHashValues(self):
+    def getCompleteHashValues(self,locDir=None, fName_regExp=None):
         """
-        Looks in the location directory specified in yamlMetaData and returns a list of hashValues
-        that are complete
-        Will raise a warning if list is not complete
+        Looks in the location directory specified in locDir (if None, default is to look in yamlMetaData)
+        and returns a list of hashValues that are complete
         :return: list of hashValues that have been located
         """
-        locDir = self.dpl.getPath2File(0,kwrd='locations',\
-                                       computer=self.computer,\
-                                       pathOnlyBool=True)
+        if locDir == None: locDir = self.dpl.getPath2File(0,kwrd='locations',\
+                                                          computer=self.computer,\
+                                                          pathOnlyBool=True)
         # get a list of all the csv files in the directory
-        locationFiles = glob.glob(locDir+'/*_trackPy.csv')
+        if fName_regExp == None:
+            fName_regExp = '*_trackPy_lsqRefine.csv'
+        locationFiles = glob.glob(locDir+'/{}'.format(fName_regExp))
         # do some string processing to extract just the hashValues.
         def fName2hv(fName):
             """ parses str:FName and returns int:hashValue"""
@@ -37,18 +39,19 @@ class ParticleStitch(dpl.dplHash):
             return hv
         return [fName2hv(fName) for fName in locationFiles]
 
-    def csv2DataFrame(self,hv):
-        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
-        path = self.dpl.getPath2File(hv,\
-                                     kwrd='locations',\
-                                     extension=pxLocationExtension,\
-                                     computer=self.computer)
-        df = pd.read_csv(path)
+    def csv2DataFrame(self,hv,path=None, sep=' '):
+        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
+        if path == None: path = self.dpl.getPath2File(hv,\
+                                                      kwrd='locations',\
+                                                      extension=pxLocationExtension,\
+                                                      computer=self.computer)
+        df = pd.read_csv(path, sep=sep)
         df['hashValue'] = hv
         df['material'] = self.dpl.sedOrGel(hashValue=hv)
-        return df.rename(columns = {'z (px)': 'z (px, hash)',
-                             'y (px)': 'y (px, hash)',
-                             'x (px)': 'x (px, hash)'})
+        df['frame'] = self.dpl.queryHash(hv)['index'][-1]
+        return df.rename(columns = {'z': 'z (px, hash)',
+                                    'y': 'y (px, hash)',
+                                    'x': 'x (px, hash)'})
 
     def addHashValue(self,hv):
         """
@@ -211,13 +214,15 @@ class ParticleStitch(dpl.dplHash):
         -> read in dataFrame: df1 associated with locations for input hashValue
         -> find all overlapping hashValue of hv1 that have been completed
         -> set a permanent index on df1
-        -> looping over all nnb that have hashValue larger than df1
+        -> looping over all nnb that have hashValue larger than df1 but at the same time point
            -> read in that dataFrame as df2
            -> reshift to absolute pixel coordinates
            -> create a psuedoTime index on df2 as 2 and df1 as 1
            -> find pseudo trajectories that are of length 2 using trackpy
            -> remove those pseduo trajectories from df1 by referening the permanent index on df1
            -> go to the next nnb
+        -> This process will yield a dataFrame df1 that will not have any double hits with future
+           dataFrames...but it does not gaurantee that I am keeping the most accurate (ie most interior location)
 
         I think this algorithm is indepndent for hashValue, which is a bit surprising in that stitching
         is not obviously a embarrassingly parralel, of course there is alarger memory footpring as
