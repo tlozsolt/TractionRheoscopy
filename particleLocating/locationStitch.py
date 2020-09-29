@@ -4,71 +4,56 @@ from joblib import Parallel, delayed
 import glob
 import trackpy
 import numpy as np
-from particleLocating import locating, hashStitch
+from scipy.spatial import cKDTree
+import numba
+from numba import prange
+import trackpy as tp
+import math
 
 
 class ParticleStitch(dpl.dplHash):
-    def __init__(self,metaDataPath,computer='ODSY'):
+    def __init__(self,metaDataPath,computer='IMAC'):
         self.dpl = dpl.dplHash(metaDataPath)
         self.computer= computer
-        self.locations = pd.DataFrame(columns = ['z (px, hash)', 'y (px, hash)', 'x (px, hash)',\
-                                                 'dz (px)', 'dy (px)', 'dx (px)',\
-                                                  'image mass', 'hashValue', 'material', 'iteration', 'cost'\
-                                                  'z (um)', 'y (um)', 'x (um)'\
-                                                  ]\
-                                      )
+        #self.locations = pd.DataFrame(columns = ['z (px, hash)', 'y (px, hash)', 'x (px, hash)',\
+        #                                         'dz (px)', 'dy (px)', 'dx (px)',\
+        #                                          'image mass', 'hashValue', 'material', 'n_iteration', 'cost',\
+        #                                          'z (um)', 'y (um)', 'x (um)'\
+        #                                          ]\
+        #                              )
+        self.locations = pd.DataFrame()
 
-    def getCompleteHashValues(self,locDir=None, fName_regExp=None):
+    @staticmethod
+    def csv2DataFrame(path, hv, mat, frame, sep=' '):
         """
-        Looks in the location directory specified in locDir (if None, default is to look in yamlMetaData)
-        and returns a list of hashValues that are complete
-        :return: list of hashValues that have been located
+        Read the csv file to a dataFrame and populate some additional columns
         """
-        if locDir == None: locDir = self.dpl.getPath2File(0,kwrd='locations',\
-                                                          computer=self.computer,\
-                                                          pathOnlyBool=True)
-        # get a list of all the csv files in the directory
-        if fName_regExp == None:
-            fName_regExp = '*_trackPy_lsqRefine.csv'
-        locationFiles = glob.glob(locDir+'/{}'.format(fName_regExp))
-        # do some string processing to extract just the hashValues.
-        def fName2hv(fName):
-            """ parses str:FName and returns int:hashValue"""
-            start = fName.find('_hv')
-            hv = int(fName[start +3: start + 8])
-            return hv
-        return [fName2hv(fName) for fName in locationFiles]
-
-    def csv2DataFrame(self,hv,path=None, sep=' '):
-        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
-        if path == None: path = self.dpl.getPath2File(hv,\
-                                                      kwrd='locations',\
-                                                      extension=pxLocationExtension,\
-                                                      computer=self.computer)
         df = pd.read_csv(path, sep=sep)
-        df['hashValue'] = hv
-        df['material'] = self.dpl.sedOrGel(hashValue=hv)
-        df['frame'] = self.dpl.queryHash(hv)['index'][-1]
+        df['hashValue'] = int(hv)
+        df['material'] = str(mat)
+        df['frame'] = int(frame)
         return df.rename(columns = {'z': 'z (px, hash)',
                                     'y': 'y (px, hash)',
                                     'x': 'x (px, hash)'})
 
-    def addHashValue(self,hv):
+    def addHashValue(self,hv,recenterDict = {'flag': True, 'coordStr':'(um, imageStack)'}):
         """
         for a given hashValue, will add append the locations to the self.locations and add column
         specifying the hashValue and material string with no other modification
         :return:
         """
-        df = self.csv2DataFrame(hv)
-        #df['hashValue'] = hv
-        #df['material'] = self.dpl.sedOrGel(hashValue=hv)
-        #df.rename(columns = {'z (px)': 'z (px, hash)',
-        #                     'y (px)': 'y (px, hash)',
-        #                     'x (px)': 'x (px, hash)'})
-        self.locations = pd.concat([self.locations,df])
+        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
+        path = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=self.computer)
+        mat = self.dpl.sedOrGel(hashValue=hv)
+        frame = int(self.dpl.queryHash(hv)['index'][-1])
+
+        df = self.csv2DataFrame(path, hv, mat, frame)
+        if recenterDict['flag'] == True:
+            df = self.recenterHash(df,hv,coordStr=recenterDict['coordStr'])
+        self.locations = pd.concat([self.locations,df],ignore_index=True)
         return True
 
-    def recenterHash(self,df,hv, coordStr = 'all'):
+    def recenterHash(self,df,hv, coordStr = '(um, imageStack)'):
         """
         This function operates on a dataFrame of particle locations
         Takes particle locations from hashValue and, depending on the material
@@ -169,6 +154,210 @@ class ParticleStitch(dpl.dplHash):
         return df
 
     @staticmethod
+    @numba.jit(nopython=True, nogil=True, parallel=True)
+    def sumError(z_std, y_std, x_std, zPx, yPx, xPx):
+        """
+        compute sum of squared errors in um.
+        :z_std, y_std, and x_std are arrays of output lsq_refine and each value represents
+                                 the ** pixel** uncertainty in the position of the particle
+                                 in each coordinate
+        :zPx, yPx, and xPx are float32 pixel to micron multiplicatiive
+                          conversion factors.
+        :return an array of sqrt(sum(*_std)**2)
+        """
+        out = np.empty_like(z_std)
+        for n in prange(len(z_std)):
+            error = np.sqrt((z_std[n] * zPx) ** 2 + (y_std[n] * yPx) ** 2 + (x_std[n] * xPx) ** 2)
+            out[n] = error
+        return out
+
+    @staticmethod
+    def computeError(df, pos_keyList=('z_std', 'y_std', 'x_std'), px2Micron=[0.15, 0.115, 0.115]):
+        """
+        Wrapper function around np_sumError to handle dataFrame inputs
+        """
+        z = df[pos_keyList[0]].to_numpy()
+        y = df[pos_keyList[1]].to_numpy()
+        x = df[pos_keyList[2]].to_numpy()
+        zPx = px2Micron[0]
+        yPx = px2Micron[1]
+        xPx = px2Micron[2]
+        totalError = ParticleStitch.sumError(z, y, x, zPx, yPx, xPx)
+        return pd.Series(totalError, index=df.index, name='totalError')
+
+    @staticmethod
+    @numba.jit(nopython=True, nogil=True)
+    def minError_flagDouble(pairList, errorList):
+        """
+        :pairList list of pairs of integers specificying iloc location in pandas dataFrame where two positions
+                                            are within some cutoff distance used to generate the pairs
+        :errorList: list of total std errors with same indexing scheme as the parent dataFrame from which
+                                             the pairList was derived
+        :return pair of values (True, False) for example, on what to set the keepBool value
+        """
+        out1 = np.empty_like(pairList)
+        out2 = np.empty_like(pairList)
+        for n in range(len(pairList)):
+            p1 = pairList[n, 0]
+            p2 = pairList[n, 1]
+            errorPair = (errorList[int(p1)], errorList[int(p2)])
+            out1[n, 0] = p1
+            out1[n, 1] = bool(errorPair[0] < errorPair[1])
+            out2[n, 0] = p2
+            out2[n, 1] = bool(errorPair[1] <= errorPair[0])
+        return out1, out2
+
+    @staticmethod
+    def removeDoubles(df,
+                      cutoff,
+                      material,
+                      frame,
+                      posKeyList=('z (um, rheo_sedHeight)', 'y (um, rheo_sedHeight)', 'x (um, rheo_sedHeight)'),
+                      px2Micron=(0.15, 0.115, 0.115)):
+        """
+        Wrapper function that carries out a few stesp to remove double hits
+
+        :df dataframe of locating output. Can include both sed and gel and multiple frames.
+                                          Really should be a dask dataframe for out of mem computations
+        :cutoff, float32 distance in microns below which particle pairs should be anaylzed for removing one of the pairs
+        :material, str, either 'sed' or 'gel'
+        :frame, int, what frame number to remove doubles from. zero-indexed as standard for trackpy
+        :posKeyList, tuple of strings, keys for dataFrame df giving the z,y,x positions. df[posKeyList[0]] returns a series
+                                       of particle positions
+        : px2Micron, tuple of float32, mutiplicative factors converting pixel to microns. Passed to compute error to
+                                       compute the total squared error to determine which particle to flag for removal
+        """
+        # split into sed and gel for a given timeFrame and delete the combined list
+        df_partial = df[(df['material'] == material) &
+                        (df['frame'] == frame)].reset_index(drop=True)
+        # create the search tree (fast scipy cKDTree)
+        tree = cKDTree(df_partial[list(posKeyList)])
+
+        # query the pair list (also fast)
+        pairs = np.array(sorted(tree.query_pairs(cutoff)))
+
+        # compute total Error for every particle (accelerated by numba)
+        df_partial['totalError'] = ParticleStitch.computeError(df_partial, px2Micron=px2Micron)
+
+        # call minError_flagDouble (numba wrapped in python)
+        flag1, flag2 = ParticleStitch.minError_flagDouble(pairs, df_partial['totalError'].to_numpy())
+
+        # combine and remove doubles using groupby and apply on dataframe
+        flag_df = pd.DataFrame(np.concatenate((flag1, flag2), axis=0), columns=['index', 'keepBool']). \
+            set_index('index').groupby('index', as_index=True).apply(pd.DataFrame.product)
+
+        # format the dataFrame to have boolean values in keepBool index and fill out the array for all the particles that were never flagged for possible removal
+        df_partial['keepBool'] = 1  # set all the values to keep
+        df_partial[
+            'keepBool'] = flag_df  # for each index in flag_df set df_partial.loc[index]['keepBool'] to flag_df.loc[index]
+        df_partial['keepBool'] = df_partial['keepBool'].fillna(
+            1)  # if it was never check for double hits, keepBool value is nan and you must keep it
+        df_partial['keepBool'] = df_partial['keepBool'].replace(1, True)
+        df_partial['keepBool'] = df_partial['keepBool'].replace(0, False)
+        return df_partial
+
+    def stitch(self,
+               hvList,
+               cutOff=0.25,
+               recenterDict ={'flag': True, 'coordStr':'(um, imageStack)'} ):
+        """
+        stitches all the hashValues in hvList
+        """
+        # loop over hashValues
+        for hv in hvList: self.addHashValue(hv,recenterDict=recenterDict)
+
+        loc = self.locations
+        if recenterDict['flag'] == False: posLabels = ['z', 'y','x']
+        else:
+            coordStr = recenterDict['coordStr']
+            posKeyList = ['z {}'.format(coordStr),
+                         'y {}'.format(coordStr),
+                         'x {}'.format(coordStr)]
+        mat = self.dpl.sedOrGel(hvList[0])
+        frame = self.dpl.queryHash(hvList[0])['index'][-1]
+        px2Micron_dict = self.dpl.metaData['imageParam']['px2Micron']
+        px2Micron = (px2Micron_dict['z'],
+                     px2Micron_dict['y'],
+                     px2Micron_dict['x'])
+
+        # remove doubles
+        stitch = self.removeDoubles(loc,
+                                    cutoff=cutOff,
+                                    material=mat,
+                                    frame=frame,
+                                    posKeyList=posKeyList,
+                                    px2Micron=px2Micron)
+        #stitch = stitch.astype({'frame':'int8',
+        #                        'hashValue':'int8',
+        #                        'n_iteration':'int8',
+        #                        'material':'str'})
+        self.locations = stitch
+        return stitch
+
+    def df2h5(self, df, mat, stem):
+        """ send all columns of df to hdf5 dataStore using tp.PandasHDFStore"""
+        fName = self.dpl.metaData['fileNamePrefix']['global']
+        fName +='{}_stitched.h5'.format(mat)
+        with tp.PandasHDFStore(stem+'/{}'.format(fName)) as s:
+            s.put(df)
+        return stem+'/{}'.format(fName)
+
+    #def splitNSave(self,
+    #               df = self.locations,
+    #               coordStr=('(um imageStack)', '(px, hash)' ),
+    #               path = '',
+    #               col_partitions = {'locations': ['z','y','x','frame','hashValue'],
+    #                                 'locationOverlap': ['z','y','x','frame', 'hashValue'],
+    #                                 'locationHash': ['z','y','x', 'frame', 'hashValue'],
+    #                                 'locatingExtra': {'gel': ['mass', 'raw_mass', 'n_iteration', 'disc_size','frame'],
+    #                                                    'sed': ['mass', 'raw_mass', 'n_iteration', 'size','frame']},
+    #                                 'locatingError': ['z_std', 'y_std','x_std', 'cost', 'totalError','frame'],
+    #                                 'errorExtra': ['background','background_std','signal', 'signal_std','ep','frame']
+    #                                 }
+    #               ):
+    #    prefix = self.dpl.metaData['fileNamePrefix']['global']
+    #    prefix +='_{}'.format(mat)
+    #    # select the right columns and rows if applicable
+    #    for key in col_partitions:
+    #        prefix += '_{}.h5'.format(key)
+    #        if key == 'locations' or key == 'locationOverlap':
+    #            col_partitions[key] = ['z {}'.format(coordStr[0]),
+    #                                   'y {}'.format(coordStr[0]),
+    #                                   'x {}'.format(coordStr[0]),
+    #                                   'frame', 'hashValue']
+    #            with tp.PandasHDFStore(stem+'/{}'.format(prefix)) as s:
+    #                columns = col_partitions[key]
+    #                if key =='locations': tmp = df[columns][df['keepBool']]
+    #                elif key =='locationOverlap': tmp = df[columns][~df['keepBool']]
+    #                s.put(tmp)
+
+    #        elif key == 'locationHash':
+    #            col_partitions[key] = ['z {}'.format(coordStr[1]),
+    #                                   'y {}'.format(coordStr[1]),
+    #                                   'x {}'.format(coordStr[1]),
+    #                                   'frame', 'hashValue']
+    #        else: pass
+    #        #with tp.PandasHDFStore(stem+'/{}'.format(fName)) as s:
+    #        #    tmp = df[]
+    #        #    s.put()
+    #    return True
+        # keep the index in all cases
+        # export using pd.to_hdf()
+
+
+        # write to hdf5 or parquet file possibly multiple files to able to load some but not all columns :
+        #  -> bare minimum of locations in um for particles to keep
+
+        #  -> locations in um that were removed in stitching
+        #  -> frame number
+        #  -> errors from refinement
+        #  -> locating extras (mass, cost, hv, px locations)
+        #  -> everything else that is not null and is not kept around for book keeping
+        #     ->
+
+
+
+    @staticmethod
     def dataFrameLocation2xyz(df,outDir, columns = ['x','y','z'], particleStr = 'X'):
         """
         outputs a datFrame with location labels to xyz file format
@@ -189,7 +378,6 @@ class ParticleStitch(dpl.dplHash):
             f.write(df.to_csv(columns=['particleString']+columns,sep =' ',index=False, header=False))
         return outDir
 
-
     def trimEdges(self,hv):
         """
         Eliminates particles in hv that are within 1 diameter of the edge of the sample
@@ -206,7 +394,28 @@ class ParticleStitch(dpl.dplHash):
         # find unique values in the return list
         # return the dataFrame with edge particles dropped.
 
-    def findDoubleHits(self, hv1,outputStr='stitch'):
+    def _getCompleteHashValues(self,locDir=None, fName_regExp=None):
+        """
+        Looks in the location directory specified in locDir (if None, default is to look in yamlMetaData)
+        and returns a list of hashValues that are complete
+        :return: list of hashValues that have been located
+        """
+        if locDir == None: locDir = self.dpl.getPath2File(0,kwrd='locations', \
+                                                          computer=self.computer, \
+                                                          pathOnlyBool=True)
+        # get a list of all the csv files in the directory
+        if fName_regExp == None:
+            fName_regExp = '*_trackPy_lsqRefine.csv'
+        locationFiles = glob.glob(locDir+'/{}'.format(fName_regExp))
+        # do some string processing to extract just the hashValues.
+        def fName2hv(fName):
+            """ parses str:FName and returns int:hashValue"""
+            start = fName.find('_hv')
+            hv = int(fName[start +3: start + 8])
+            return hv
+        return [fName2hv(fName) for fName in locationFiles]
+
+    def _findDoubleHits(self, hv1,outputStr='stitch'):
         """
         Given two hashValues, returns a list of double hits and checks that the double hits
         are within the expected overlap region of the two hashValues.
@@ -361,8 +570,7 @@ class ParticleStitch(dpl.dplHash):
             print("outputStr {} is not recognized!".format(outputStr))
             raise ValueError
 
-
-    def parStitch(self,n_jobs=8,matStr='sed'):
+    def _parStitch(self,n_jobs=8,matStr='sed'):
         """
         Cycle through all the available hashValues, stitch them by adding to self.locations
         :param n_jobs: number of cores to use for par for loop
@@ -383,8 +591,6 @@ class ParticleStitch(dpl.dplHash):
 
         self.locations = pd.concat(Parallel(n_jobs=n_jobs)(delayed(self.findDoubleHits)(hv) for hv in stitchList))
         return self.locations
-
-
 
 if __name__ == '__main__':
     yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy' \

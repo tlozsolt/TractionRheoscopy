@@ -1395,8 +1395,8 @@ class dplHash:
               dim += logEntry['dim']
               break
           except KeyError:
-            print('key {} is in pipeline but not in log.'.format(key))
-            print('Problem? Perhaps incomplete job or postDecon Combined analysis')
+            #print('key {} is in pipeline but not in log.'.format(key))
+            #print('Problem? Perhaps incomplete job or postDecon Combined analysis')
             if step == 'smartCrop': raise  # raise error if step is smart crop
             else: pass
         return (origin, dim)
