@@ -30,6 +30,40 @@ def send2Fiji(arrayList,\
   print("Images saved to tif and copied to system clipboard.")
   return macroText
 
+
+def recastImage(imgArray, dtypeOut):
+  """
+  output an array where each value has been recast to a new data type without any other change
+  The entire dynamic range of the image is remapped to the output bit depth. There is no clipping.
+  :param imgArray: np.array of image data
+  :param dtypeOut: str specifying output data type. Currently either 'uint16' or 'uint8'
+  :return:
+  """
+  if dtypeOut == 'uint16':
+    min, max = 0.99 * np.amin(imgArray), 1.01 * np.amax(imgArray)
+    m = 2 ** 16 / (max - min)
+    b = 2 ** 16 - m * max
+    mArray = np.full(imgArray.shape, m)
+    bArray = np.full(imgArray.shape, b)
+    return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint16')
+  elif dtypeOut == 'uint8':
+    min, max = 0.99 * np.amin(imgArray), 1.01 * np.amax(imgArray)
+    m = 2 ** 8 / (max - min)
+    b = 2 ** 8 - m * max
+    mArray = np.full(imgArray.shape, m)
+    bArray = np.full(imgArray.shape, b)
+    return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint8')
+  elif dtypeOut == 'uint16_corr':
+    min, max = -1.00001,1.00001
+    m = 2 ** 16 / (max - min)
+    b = 2 ** 16 - m * max
+    mArray = np.full(imgArray.shape, m)
+    bArray = np.full(imgArray.shape, b)
+    return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint16')
+  else:
+    raise ValueError('recasting is only availabe to uint8 and uint16, not dtypeOut=', dtypeOut)
+
+
 if __name__ == "__main__":
   # open an array and apply a filter
   testImgPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/'\
