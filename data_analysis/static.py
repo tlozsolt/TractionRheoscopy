@@ -9,8 +9,8 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from shapely.ops import polygonize, unary_union
-from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
+#from shapely.ops import polygonize, unary_union
+#from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
 
 import yaml
 
@@ -228,6 +228,8 @@ def gelStrain(df,h_offset, pos_keys=None, frame=None):
     for t in frame:
         displacement = df.loc[t, pos_keys_list] - ref_config
         displacement['e_xz'] = displacement[pos_keys['x']]/(ref_config[pos_keys['z']] + h_offset)
+        #displacement['e_yz'] = displacement[pos_keys['y']]/(ref_config[pos_keys['z']] + h_offset)
+        #displacement['e_zz'] = displacement[pos_keys['z']]/(ref_config[pos_keys['z']] + h_offset)
         displacement['z (um, below gel)'] = df.loc[t, 'z (um, below gel)']
         displacement = displacement.stack().rename('(0,{})'.format(t))
         out = out.join(displacement)
@@ -435,7 +437,7 @@ def computeLocalStrain(refPos, curPos, nnbArray):
         out[n,:] = np.concatenate((np.array([D2_min]), sym_flat, skew_flat))
     return out
 
-def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None):
+def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
     """
     Wrapper function ofr computeLocalStrain to pair it with pandas dataFrames
     and return pandas data frames with the particle ids intact.
@@ -458,12 +460,12 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None):
     curConfig = curConfig.loc[idx].to_numpy()
 
     # generate search tree
-    print('generating search tree')
+    if verbose == True: print('generating search tree')
     refTree = cKDTree(refConfig)
     #curTree = cKDTree(curConfig)
 
     # query tree with all points to nnb upto first minima in rdf
-    print('querying tree for nnb')
+    if verbose == True: print('querying tree for nnb')
     nnbIdx = refTree.query_ball_point(refConfig, nnb_cutoff)
 
     # let's keep track of the number of nnb for each particle id
@@ -479,7 +481,7 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None):
     #     -if local strain run on central particle, X and Y matrices are both zero and so no effect.
     nnbIdx_np = np.array([padN(nnbIdx[m],m) for m in range(len(nnbIdx))])
 
-    print('computing local strain')
+    if verbose == True: print('computing local strain')
     localStrainArray_np = computeLocalStrain(refConfig,curConfig,nnbIdx_np)
     localStrainArray_df = pd.DataFrame(localStrainArray_np,columns=['D2_min',
                                                                     'exx', 'exy', 'exz', 'eyy', 'eyz', 'ezz',
