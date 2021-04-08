@@ -1,5 +1,9 @@
 import numpy as np
 import pandas as pd
+from scipy.fft import fft, ifft
+from scipy.fftpack import fftshift, fftfreq
+from scipy import signal
+from scipy.stats import gaussian_kde
 from data_analysis import static
 
 def resampleConfig(posDataFrame, N_samples = 10, keyList=None, px2Micron=None):
@@ -34,6 +38,61 @@ def resampleConfig(posDataFrame, N_samples = 10, keyList=None, px2Micron=None):
                    pd.DataFrame(zPos.flatten(), index=mIdx, columns = [keyList['z']] ))
     return pd.concat([ref,resampled_df])
 
+def distDecon(signal, error):
+    """
+    This function takes in two numpy arrays signal and error and returns a deconvolved distribution assuming
+    the signal was corrupted by additive error from the distriubtion error.
+    THe procedure is:
+        1) Determine kernel density estimates for both signal and error
+        2) return iFFT( FFT(signal_kde) / FFT(error_kde) )
+    Param
+    signal: 1D numpy array of values. Only the distribution will used so order here does not matter
+    error: 1D numpy array of values of simulated errors, typically generated using resampleConfiguration in
+           markov chain monte carlo method.
+
+    return: kde of deconvolved distribution.
+    """
+    return True
+
+def _estimateSNR(N, bw_kde=None, mu=0, sigma=2):
+    """
+    estimates the signal to noise ratio used in Weiner deconvolution by comparing kde from sampled gaussian
+    to exact gaussian. These results are independent of mu and sigma, and depend only on the number of samples
+    and likely the bandwidth used to get kde
+
+    N: positive integer, the number of samples to draw. This should match the number of sampled from which you
+       have resampled the error distribution
+    bw_kde: small positive number used in estimating the kernel density from the resampled histogram. There are optimal
+            choices for this, however they depend on on the distribution and in particular heavy tails. I think
+            qualitatively the rule is to start from gaussian and use larger bandwidths to smooth out poorly sampled
+            heavy tails, possibly replacing sigma with IQR or something to that effect. Check results by eye.
+
+            For gaussian distribution, see Silverman's rule and Scott's rule for optimal choices of bw_kde:
+            silverman's rule: ~1.06*sigma*N**(-1/5)
+            scott's rule: N**(-1/5)
+            If bw_kde == None: Scott's rule is used.
+
+    mu, sigma: parameters for gaussian distribution
+
+    return: (SNR as function of frequency, shifted frequency scale)
+    """
+
+def _wienerDecon(measurement, impulseResponse, SNR, t):
+    """
+    Compute a wiener regularized fourier deconvolution using the following fomrula:
+    ifft( fft(measurement) / fft(impulseResponse) * (1/(1 + 1/(SNR)))
+    where SNR is ration of power spectral density of pds(signal)/psd(kernel)
+
+    meaurement: np array of probability mass function of measured singal sampled at regular intervals
+    impulseResonse: np array of probability mass fucntion of impulse response sampled at regualr intervals
+    SNR: np array of frequency dependent ratio of signal to noise, typically psd(idealSignal)/psd(sampling error)
+
+    return deconvolved probability density.
+    """
+    impulse_psd = fft(impulseResponse)*np.conj(impulseResponse)
+    delta = t[1] - t[0]
+    return (ifft(fft(measurement)/fft(impulseResponse)*(1/(1+1/(impulse_psd (SNR)))))/delta,
+            fftshift(t))
 
 
 if __name__ == '__main__':

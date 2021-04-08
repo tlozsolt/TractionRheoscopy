@@ -1,0 +1,12 @@
+ilastic:
+  classifier: autoContext
+  layer1:
+    L1: gel background
+    L2: gel tracer
+    L3: sediment colloid
+    L4: sediment background
+    L5: fluorescent chunk in sediment
+    L6: non fluorescent piece
+  layer2:
+    L1: gel
+    L2: sediment

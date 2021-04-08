@@ -2,6 +2,7 @@ import numpy as np
 import pandas
 from scipy import signal
 from particleLocating import pyFiji, threshold, flatField
+from particleLocating import dplHash_v2 as dpl
 import seaborn as sns
 from matplotlib import pyplot as plt
 
@@ -68,7 +69,7 @@ class pxLocations:
   All heavy lifting is done by pandas as reccommended by the python soft-matter
   community
   """
-  def __init__(self,file,units='px',program='trackpy',locColumns=['z','y','x'], sep=', '):
+  def __init__(self,file,units='px',program='trackpy',locColumns=['z','y','x'], sep=','):
     try:
         if program == 'katekilfoil':
             locArray = np.loadtxt(file)
@@ -89,47 +90,123 @@ class pxLocations:
             print("input type {} is not recognized. either filepath to img or np array is expected".format(type(file)))
             raise TypeError
 
-class locationOverlay:
-  """
-  a class for creating a storing synthetic images from an array of location outputs
-  """
-  def __init__(self,locationpath,locatinginputpath,locatingprogram = 'katekilfoil',locColumns=['z','y','x'],sep=', '):
-    # initalize a numpy array with the correct pixel dimensions, maybe padded
-    try: inputImg = flatField.zStack2Mem(locatinginputpath)
-    except ValueError:
-        if isinstance(locatinginputpath,(np.ndarray, np.generic)): inputImg = locatinginputpath
-        else:
-            print("inpute type {} is not recognized. either filepath to img or np array is expected".format(type(locationpath)))
-            raise TypeError
-    (dz,dy,dx) = inputImg.shape
-    imgArray = np.pad(np.zeros((dz,dy,dx),dtype='uint8'),1)
-    # import the locations from a text file
-    l = pxLocations(locationpath,program=locatingprogram,locColumns=locColumns,sep=sep)
-    g = particleGlyph([9,7,7],[11,9,9])
-    # from the pixel locations, place a predefined glyph at the center
-    # assign a pixel value of 1 to each pixel that corresponds to a coordinate in location
-    z_key, y_key, x_key = locColumns
-    inbound_loc = l.locations[(l.locations[z_key] < dz) &
-                              (l.locations[y_key] < dy) &
-                              (l.locations[x_key] < dx)]
-    #zcoord = np.rint(l.locations[z_key]).astype(int)
-    #ycoord = np.rint(l.locations[y_key]).astype(int)
-    #xcoord = np.rint(l.locations[x_key]).astype(int)
-    zcoord = np.rint(inbound_loc[z_key]).astype(int)
-    ycoord = np.rint(inbound_loc[y_key]).astype(int)
-    xcoord = np.rint(inbound_loc[x_key]).astype(int)
-    if locatingprogram == 'katekilfoil': imgArray[zcoord,xcoord,ycoord] = 1
-    elif locatingprogram == 'trackpy': imgArray[zcoord,ycoord,xcoord] = 1
-    else: raise KeyError
-    # i assume that would look something like imgArray[xCoord,yCoord,zCoord] = 1, where xCoord is 1d array of all the x coordinates mapped to integers
-    # now convolve with the glyph using split and fft methods in scipy
-    self.glyphImage = signal.oaconvolve(imgArray,g.glyph).astype('uint8')
-    self.inputPadded = threshold.arrayThreshold.recastImage(signal.oaconvolve(np.pad(inputImg,1),g.deltaKernel),'uint8')
-    self.deltaImage = imgArray.astype('uint8')
+class locationOverlay():
+    """
+    a class for creating a storing synthetic images from an array of location outputs
+    """
 
-    # save the image and the array of singles
+    def __init__(self,metaDataPath: str, computer: str='IMAC'):
+        self.dpl = dpl.dplHash(metaDataPath)
+        self.computer= computer
+        self.metaData = self.dpl.metaData['paintByLocations']
 
-    # fill in some metaData attributes that will be used for exporting
+    def loadFromFile(self, hv: int):
+        self.hv = hv
+        sep,loc_columns = self.metaData['sep'], self.metaData['locColumns']
+        locationInputPath = self.dpl.getPath2File(hv, kwrd='visualize', computer=self.computer, extension='locInput.tif')
+
+        _refineLocExt = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
+        refinePath = self.dpl.getPath2File(hv, kwrd='locations', extension=_refineLocExt, computer=self.computer)
+
+        self.locations = pandas.read_csv(refinePath,sep=sep)[loc_columns]
+        self.inputImg = flatField.zStack2Mem(locationInputPath)
+
+    def makeGlyphImg(self):
+        """
+
+        """
+
+        # read in some metaData parameters
+        mat = self.dpl.sedOrGel(self.hv)
+        dim = self.metaData[mat]['dim']
+        boxDim = self.metaData[mat]['boxDim']
+        locColumns = self.metaData['locColumns']
+
+        # create glyph object
+        g = particleGlyph(dim,boxDim)
+
+        # name keys for indexing pandas df of locations
+        z_key, y_key, x_key = locColumns
+
+        # get input image dimensions and initialize output padded imgArray
+        dz, dy, dx = self.inputImg.shape
+        #deltaImg = np.pad(np.zeros((dz, dy, dx), dtype='uint8'), 1)
+        # try padding after assignement of particle centers
+        deltaImg = np.zeros((dz, dy, dx), dtype='uint8')
+
+        # what are the positions that have centers within the edges of the
+        # image so that I can do the convolution with glyph
+        inbound_loc = self.locations[(self.locations[z_key] < dz) &
+                                     (self.locations[y_key] < dy) &
+                                     (self.locations[x_key] < dx)]
+
+        # some simple rounding and type conversion to use coord as int indices
+        zcoord = np.rint(inbound_loc[z_key]).astype(int)
+        ycoord = np.rint(inbound_loc[y_key]).astype(int)
+        xcoord = np.rint(inbound_loc[x_key]).astype(int)
+
+        # assign center locations a value of 1
+        deltaImg[zcoord, ycoord, xcoord] = 1
+
+        # now pad to get the same dimesions
+        deltaImg = np.pad(deltaImg,1)
+
+        # convolve delta field with glyph
+        self.glyphImage = signal.oaconvolve(deltaImg, g.glyph).astype('uint8')
+        self.inputPadded = threshold.arrayThreshold.recastImage(
+            signal.oaconvolve(np.pad(self.inputImg, 1), g.deltaKernel), 'uint8')
+        self.deltaImage = deltaImg.astype('uint8')
+
+    def send2pyFiji(self):
+        pyFiji.send2Fiji([self.glyphImage, self.inputPadded, self.deltaImage])
+
+    def runImac(self, hv: int):
+        self.loadFromFile(hv)
+        self.makeGlyphImg()
+        self.send2pyFiji()
+
+    """
+    
+    def __init__(self,locationpath,locatinginputpath,locatingprogram = 'katekilfoil',locColumns=['z','y','x'],sep=','):
+      # initalize a numpy array with the correct pixel dimensions, maybe padded
+      try: inputImg = flatField.zStack2Mem(locatinginputpath)
+      except ValueError:
+          if isinstance(locatinginputpath,(np.ndarray, np.generic)): inputImg = locatinginputpath
+          else:
+              print("inpute type {} is not recognized. either filepath to img or np array is expected".format(type(locationpath)))
+              raise TypeError
+      (dz,dy,dx) = inputImg.shape
+      imgArray = np.pad(np.zeros((dz,dy,dx),dtype='uint8'),1)
+      # import the locations from a text file
+      l = pxLocations(locationpath,program=locatingprogram,locColumns=locColumns,sep=sep)
+      g = particleGlyph([18,14,14],[22,18,18])
+      # from the pixel locations, place a predefined glyph at the center
+      # assign a pixel value of 1 to each pixel that corresponds to a coordinate in location
+
+      # this should be changed to a dictionary based lookup, not a list of keys
+      z_key, y_key, x_key = locColumns
+      inbound_loc = l.locations[(l.locations[z_key] < dz) &
+                                (l.locations[y_key] < dy) &
+                                (l.locations[x_key] < dx)]
+      #zcoord = np.rint(l.locations[z_key]).astype(int)
+      #ycoord = np.rint(l.locations[y_key]).astype(int)
+      #xcoord = np.rint(l.locations[x_key]).astype(int)
+      zcoord = np.rint(inbound_loc[z_key]).astype(int)
+      ycoord = np.rint(inbound_loc[y_key]).astype(int)
+      xcoord = np.rint(inbound_loc[x_key]).astype(int)
+      if locatingprogram == 'katekilfoil': imgArray[zcoord,xcoord,ycoord] = 1
+      elif locatingprogram == 'trackpy': imgArray[zcoord,ycoord,xcoord] = 1
+      else: raise KeyError
+      # i assume that would look something like imgArray[xCoord,yCoord,zCoord] = 1, where xCoord is 1d array of all the x coordinates mapped to integers
+      # now convolve with the glyph using split and fft methods in scipy
+      self.glyphImage = signal.oaconvolve(imgArray,g.glyph).astype('uint8')
+      self.inputPadded = threshold.arrayThreshold.recastImage(signal.oaconvolve(np.pad(inputImg,1),g.deltaKernel),'uint8')
+      self.deltaImage = imgArray.astype('uint8')
+      """
+
+      # save the image and the array of singles
+
+      # fill in some metaData attributes that will be used for exporting
 
 if __name__ == "__main__":
     #locationPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/' \

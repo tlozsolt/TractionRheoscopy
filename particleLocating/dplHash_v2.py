@@ -1047,8 +1047,9 @@ class dplHash:
             postDeconScript += "    inst = pd(\'{yamlPath}\',{hv},computer=\'{computer}\')\n".format(yamlPath=yamlPath,
                                                                                                      hv=hashValue,
                                                                                                      computer=computer)
-            postDeconScript += "    inst.postDecon_dask({hv},computer=\'{computer}\')\n".format(hv=hashValue,
-                                                                                                computer=computer)
+            #postDeconScript += "    inst.postDecon_dask({hv},computer=\'{computer}\')\n".format(hv=hashValue,
+            #                                                                                    computer=computer)
+            postDeconScript += "    inst.postDecon_dask()\n"
 
         else: raise ValueError("postDecon file could not be made because use dask or not?")
 
@@ -2194,14 +2195,15 @@ class dplHash:
 if __name__ == "__main__":
     # Tests to run
     # %% load yaml file and call some simple hashValue entries
-    yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy' \
-                      '/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
-    yamlTestingPath = '/home/zsolt/TractionRheoscopy/metaDataYAML/' \
-                      'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+    #yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy' \
+    #                  '/metaDataYAML/tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
+    #yamlTestingPath = '/home/zsolt/TractionRheoscopy/metaDataYAML/' \
+    #                  'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting.yaml'
     # yamlTestingPath = '/Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy/metaDataYAML/'\
     #                  'tfrGel09052019b_shearRun05062019i_metaData_scriptTesting_stitching.yaml'
-    print("Loading yaml metaData file: ", yamlTestingPath)
-    dplInst = dplHash(yamlTestingPath)
+    yamlPath = '/Users/zsolt/Colloid_git/TractionRheoscopy/metaDataYAML/tfrGel10212018A_shearRun10292018f_metaData.yaml'
+    print("Loading yaml metaData file: ", yamlPath)
+    dplInst = dplHash(yamlPath)
 
     # %% test postDecon
     # dplInst.postDecon_python(1,computer='MBP', output = 'pyFiji')

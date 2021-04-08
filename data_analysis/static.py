@@ -14,6 +14,30 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 
 import yaml
 
+def loadExperiment(hdfStem=None,
+                   fNameDict = None):
+    """
+    hdfStem, str: path to hdf pandas archives
+    fNameList list of str, fileNames of hdf paths to open
+
+    loads the hdf files and returns a dictionary of pandas files with keywords
+    that can be used as variable names if you want
+
+    if None, initiliazed to the experiment tfrGel10212018A_shearRun10292018f
+    """
+    if hdfStem is None:
+        hdfStem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
+    if fNameDict is None:
+        fNameDict = {'sedPos': 'tfrGel10212018A_shearRun10292018f_sed_stitched_pandas.h5',
+                     'sedStrain_traj': 'tfrGel10212018A_shearRun10292018f_sed_strainTrajZeroRef.h5',
+                     'gelPos': 'tfrGel10212018A_shearRun10292018f_gel_stitched_pandas.h5',
+                     'eigen' : 'tfrGel10212018A_shearRun10292018f_{}.h5'.format('eigenStrain_decomposition'),
+                     'sedStrain_rot' : 'tfrGel10212018A_shearRun10292018f_{}.h5'.format('sedStrain_paraX_perpY')
+                     }
+    out = {}
+    for key,fName in fNameDict.items():
+        out[key] = pd.read_hdf(hdfStem + fName)
+    return out
 
 def loadData2Mem(path, col_list=None):
     """
@@ -121,7 +145,7 @@ def fitTopSurface(df, frame=None, pos_keys=None, n_bin = 15):
         z = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['z (um, imageStack)'].to_numpy()
         A = np.vstack([x,y,np.ones(len(x))]).T
         try:
-            fit, residual, rank, s = np.linalg.lstsq(A, z)
+            fit, residual, rank, s = np.linalg.lstsq(A, z, rcond=None)
             out[t] = {'fit ax + by + c': fit, 'residual': residual, 'rank' : rank, 's': s}
         except np.linalg.LinAlgError:
             out[t] = 'fit did not converge with nbin = {} is likely too small'.format(n_bin)
@@ -175,7 +199,7 @@ def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_f
         else: raise ValueError('Unrognized option {} for method in distFromPlane'.format(method))
     return None
 
-def gelStrain(df,h_offset, pos_keys=None, frame=None):
+def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
     """
     Computes the strain in the gel for each tracer particle.
     For particles that are not in the reference configuration, they are ignored.
@@ -189,6 +213,8 @@ def gelStrain(df,h_offset, pos_keys=None, frame=None):
                is required. Perhaps, reference height of the top most particle? Affects quantitative results
                but not qualitiative results. If input keys is rheo_sed_depth then this this parameter
                should be 0
+    : R : np arrray, 2x2 rotation matrix that converts image coordinates to shear coordinates by removing the small
+               misalignment between the shear direction and the x direction.
     : pos_keys: dictionary mapping of position keys to use {'x': 'x (um, imageStack), ...} for example
     :frame: int or Nonoe. Which frame to run this analysis on. If frame==None, run all the available frames
 
@@ -207,14 +233,15 @@ def gelStrain(df,h_offset, pos_keys=None, frame=None):
     >>> tmp = gelStrain_df.unstack()
     >>> tmp[tmp['dt -1']['z (um, imageStack)'] > 20].stack().dropna()
     """
-    if pos_keys == None:
+    if pos_keys is None:
         pos_keys = {}
         pos_keys['x'] = 'x (um, imageStack)'
         pos_keys['y'] = 'y (um, imageStack)'
         pos_keys['z'] = 'z (um, imageStack)'
-        pos_keys_list = list(pos_keys.values())
 
-    if frame == None:
+    pos_keys_list = list(pos_keys.values())
+
+    if frame is None:
         frame = range(max(df.index.get_level_values('frame') + 1))
     elif type(frame) == int:
         frame = [frame]
@@ -223,14 +250,44 @@ def gelStrain(df,h_offset, pos_keys=None, frame=None):
     ref_config = df.loc[0,pos_keys_list]
     out = df.loc[0, pos_keys_list]
     out['e_xz'] = 0
+    out['e_yz'] = 0
+    out['e_zz'] = 0
+    if R is not None:
+        out['x (um, shearCoord para)'] = 0
+        out['y (um, shearCoord perp)'] = 0
+        out['e_para'] = 0
+        out['e_perp'] = 0
     out['z (um, below gel)'] = df.loc[0,'z (um, below gel)']
     out = out.stack().rename('Ref Pos').to_frame()
+
+    def rotate(rotMat, p, paraOrPerp='para'):
+        x, y = rotMat.dot(p)
+        if paraOrPerp == 'para': return x
+        elif paraOrPerp == 'perp': return y
+        else: return x, y
+
     for t in frame:
         displacement = df.loc[t, pos_keys_list] - ref_config
         displacement['e_xz'] = displacement[pos_keys['x']]/(ref_config[pos_keys['z']] + h_offset)
-        #displacement['e_yz'] = displacement[pos_keys['y']]/(ref_config[pos_keys['z']] + h_offset)
-        #displacement['e_zz'] = displacement[pos_keys['z']]/(ref_config[pos_keys['z']] + h_offset)
+        displacement['e_yz'] = displacement[pos_keys['y']]/(ref_config[pos_keys['z']] + h_offset)
+        displacement['e_zz'] = displacement[pos_keys['z']]/(ref_config[pos_keys['z']] + h_offset)
         displacement['z (um, below gel)'] = df.loc[t, 'z (um, below gel)']
+
+        if R is not None:
+            # rotation matrix was given, so rotate and name perp and para
+            displacement['x (um, shearCoord para)'] = displacement.apply(lambda p: rotate(R,
+                                                                                            (p[pos_keys['x']],
+                                                                                             p[pos_keys['y']]),
+                                                                                            paraOrPerp='para'),
+                                                                         axis=1 )
+            displacement['y (um, shearCoord perp)'] = displacement.apply(lambda p: rotate(R,
+                                                                                        (p[pos_keys['x']],
+                                                                                         p[pos_keys['y']]),
+                                                                                        paraOrPerp='perp'),
+                                                                         axis=1 )
+            displacement['e_para'] = displacement['x (um, shearCoord para)']/(ref_config[pos_keys['z']] + h_offset)
+            displacement['e_perp'] = displacement['y (um, shearCoord perp)']/(ref_config[pos_keys['z']] + h_offset)
+
         displacement = displacement.stack().rename('(0,{})'.format(t))
         out = out.join(displacement)
     out.set_index(out.index.rename(['particle','value']),inplace=True)
@@ -344,6 +401,28 @@ def plotSpatialGelStress(gelStrain_df, t,sedPos_df, pos_keys=None, type='mean', 
     with open(path+statistics_fName, 'a') as f:
         yaml.dump({t: statistics},f)
     return "File saved to {}".format(path+fName)
+
+@numba.jit(nopython=True, nogil=True, cache=False)
+def computeRotation(pos,R):
+    """
+    Rotates the position in pos array using the rotation matrix R
+
+    Parameters
+    __________
+
+    pos: numpy array of particle positions
+         pos[i] gives the [x,y,z] position of the particles
+    R: numpy matrix, typically 2D
+
+    returns: numpy array of same dimension of pos, with with rotated positions.
+    """
+    out = np.zeros(pos.shape)
+    for n in range(len(pos)):
+        x,y = pos[n][0], pos[n][1]
+        out[n] = R.dot((x,y))
+    return out
+
+
 
 @numba.jit(nopython=True,nogil=True,cache=False)
 def computeLocalStrain(refPos, curPos, nnbArray):
@@ -488,18 +567,19 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
                                                                     'rxy', 'rxz','ryz'], index = idx).join(nnb_count)
     return localStrainArray_df
 
-def makeLocalStrainTraj(pos_df, tPairList, output = 'strainTraj'):
+def makeLocalStrainTraj(pos_df, tPairList, output = 'strainTraj',pos_keys=None,verbose=False):
     """
     Make LocalStrainTraj on a list of time points
     tPairs = list(zip([0 for n in range(90)],[n for n in range(2,90)]))
 
     This is a wrapper.  Mostly handles formatting the dataFrames.
     """
-    strain_traj = localStrain(pos_df, 0, 1)
+    strain_traj = localStrain(pos_df, 0, 1, pos_keys = pos_keys)
     strain_traj = strain_traj.stack().rename('(0,1)').to_frame()
     for n in range(len(tPairList)):
+        if verbose == True: print("Starting {} entry in list of len {}".format(n, len(tPairList)))
         tRef, tCur = tPairList[n]
-        tmp = localStrain(pos_df, tRef, tCur)
+        tmp = localStrain(pos_df, tRef, tCur, pos_keys=pos_keys)
         tmp = tmp.stack().rename('({},{})'.format(tRef, tCur)).to_frame()
         strain_traj = strain_traj.join(tmp)
         del tmp
@@ -512,6 +592,77 @@ def makeLocalStrainTraj(pos_df, tPairList, output = 'strainTraj'):
         return strain_traj
     else: raise KeyError('output {} not recognized'.format(output))
 
+def loadParticle(t, path_partial=None, fName_frmt=None):
+    if path_partial is None:
+        path_partial = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/partial_data_Aidan/'
+    if fName_frmt is None:
+        fName_frmt = 'shearRun10292018f_centerParticles_t{:02}.h5'
+
+    pos_t = pd.read_hdf(path_partial + fName_frmt.format(t))
+    idx_t = pd.MultiIndex.from_product([[t], pos_t.index], names=['frame', 'particle'])
+
+    return pos_t.set_index(idx_t)
+
+def df2xyz(df, fPath,fName, mode='w'):
+    """
+    Write a pandas dataFrame to xyz file
+    """
+    df.shape[0]
+    fPath_frmt = fPath+'/{}'
+    with open(fPath_frmt.format(fName),mode) as f:
+        f.write(str(df.shape[0]))
+        f.write('\n#particleID ')
+        df.to_csv(f,mode=mode, sep=' ')
+    return fPath_frmt.format(fName)
+
+def traj2frameParticle(sedStrain_traj):
+    """
+    Coverts dataFrame of sedStrain_traj with multiIndex (particle,value) and columns of time '(0,3)' to
+    dataFrame with multiIndex (frame, particle) and columns of value: ('(0,3)', 5634)
+    is particle 5634 on time interval '(0,3)'
+    """
+    sedStrain_tmp = sedStrain_traj.transpose().stack('particle')
+    idx = sedStrain_tmp.index.set_names(['frame', 'particle'])
+    sedStrain_frameParticle = pd.DataFrame(sedStrain_tmp, index=idx)
+    return sedStrain_frameParticle
+
+def strainDiag(strain_fp, signature=None):
+    """
+    compute dataFrame of eigen vectors and eigen values from strain dataFrame in frameParticle format
+
+    This function is slow as hell. I am not sure why. Perhaps it takes a long to to diagonalize?
+    Perhaps the list comprehension is not the right way to go and instead I should loop
+    like rotation matrix code using jit.
+
+    It would be ideal if this function, especially the wrapper part was rewritten with multiprocessing
+    and write to file, applied automatically across time indices.
+
+    """
+    if signature is None:
+        _keys = ['exx','exy','exz','eyy','eyz','ezz']
+        _sig = np.array([(0,0), (0,1), (0,2), (1,1), (1,2), (2,2)])
+        _join = ['nnb count', 'D2_min']
+        _out = ['u','ux','uy','uz','v','vx','vy','vz','w','wx','wy','wz']
+    else:
+        _keys = signature['keys']
+        _sig = signature['sig']
+        _join = signature['join']
+
+    def _strainDiag(strain_1d):
+        exx,exy,exz,eyy,eyz,ezz = strain_1d
+        e = np.array([[exx, exy, exz],
+                      [exy, eyy, eyz],
+                      [exz, eyz, ezz]])
+        eigen_val, eigen_vec = np.linalg.eig(e)
+        # now sort by eigen value
+        idx = eigen_val.argsort()[::-1]
+        # return sorted val and vec
+        tmp = eigen_val[idx],eigen_vec[:,idx]
+        return np.array([np.concatenate((tmp[0][n],tmp[1][n]),axis=None) for n in range(3)]).flatten()
+    eigen = [_strainDiag(elt) for elt in strain_fp[_keys].to_numpy()]
+    m_idx = strain_fp.index
+    eigen_df = pd.DataFrame(np.array(eigen), index=m_idx, columns=_out)
+    return eigen_df
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'

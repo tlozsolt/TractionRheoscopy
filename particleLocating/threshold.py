@@ -158,14 +158,14 @@ class arrayThreshold:
         :return:
         """
         if dtypeOut == 'uint16':
-           min,max = 0.99*np.amin(imgArray) ,1.01*np.amax(imgArray)
+           min,max = 0.99*np.nanmin(imgArray) ,1.01*np.nanmax(imgArray)
            m = 2**16/(max-min)
            b = 2**16-m*max
            mArray = np.full(imgArray.shape,m)
            bArray = np.full(imgArray.shape,b)
            return np.array(np.multiply(mArray,imgArray) + bArray).astype('uint16')
         elif dtypeOut == 'uint8':
-            min, max = 0.99*np.amin(imgArray), 1.01*np.amax(imgArray)
+            min, max = 0.99*np.nanmin(imgArray), 1.01*np.nanmax(imgArray)
             m = 2 ** 8 / (max - min)
             b = 2 ** 8 - m * max
             mArray = np.full(imgArray.shape, m)

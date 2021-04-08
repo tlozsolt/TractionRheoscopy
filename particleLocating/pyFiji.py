@@ -4,10 +4,9 @@ import numpy as np
 import datetime
 import skimage as ski
 from scipy import ndimage
+import tifffile
 
-def send2Fiji(arrayList,\
-              wdir ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
-                    'OddysseyHashScripting/pyFiji/testImages/',metaData=None):
+def send2Fiji(arrayList, wdir = None, metaData=None):
   """ This function takes a nparray or a list of np.array
   [+] writes each array to tif in wdir using a tmp.tif
   [+] creates an text object that contains a fiji macro
@@ -16,9 +15,12 @@ def send2Fiji(arrayList,\
   This last step is accomplished by creating a simple macro and mapping it it to F1 using fiji shortcut
   I also created a macro to close all windows in fiji and mapped that to F2.
   """
+  if wdir is None: wdir = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/pyFiji/'
   def send2FijiSingleArray(nparray,index):
     dataStr = str(datetime.date.today())
-    path = flatField.array2tif(nparray,wdir+'/tmp_'+ dataStr + str(index)+'.tif',metaData=metaData)
+    #path = flatField.array2tif(nparray,wdir+'/tmp_'+ dataStr + str(index)+'.tif',metaData=metaData)
+    path = wdir + 'tmp_{}.tif'.format(index)
+    tifffile.imwrite(path, nparray)
     return 'open("'+ path +'");\n'
   macroText = ''
   if type(arrayList) == np.ndarray:
@@ -30,24 +32,28 @@ def send2Fiji(arrayList,\
   print("Images saved to tif and copied to system clipboard.")
   return macroText
 
-
 def recastImage(imgArray, dtypeOut):
   """
   output an array where each value has been recast to a new data type without any other change
   The entire dynamic range of the image is remapped to the output bit depth. There is no clipping.
   :param imgArray: np.array of image data
-  :param dtypeOut: str specifying output data type. Currently either 'uint16' or 'uint8'
+  :param dtypeOut: str or dict specifying output data type.
+      'uint16': rescale to array max and array min and convert to 16bit integer
+      'uint8': rescale to array max and array min and convert to 8bit integer
+      'uint16_corr': rescale to **fixed** range of -1 to 1 and convery to 16bit integer
+      'uint16_dict': dictionary with custom max and min values and 16 bit output
+
   :return:
   """
   if dtypeOut == 'uint16':
-    min, max = 0.99 * np.amin(imgArray), 1.01 * np.amax(imgArray)
+    min, max = 0.99 * np.nanmin(imgArray), 1.01 * np.nanmax(imgArray)
     m = 2 ** 16 / (max - min)
     b = 2 ** 16 - m * max
     mArray = np.full(imgArray.shape, m)
     bArray = np.full(imgArray.shape, b)
     return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint16')
   elif dtypeOut == 'uint8':
-    min, max = 0.99 * np.amin(imgArray), 1.01 * np.amax(imgArray)
+    min, max = 0.99 * np.nanmin(imgArray), 1.01 * np.nanmax(imgArray)
     m = 2 ** 8 / (max - min)
     b = 2 ** 8 - m * max
     mArray = np.full(imgArray.shape, m)
@@ -55,6 +61,13 @@ def recastImage(imgArray, dtypeOut):
     return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint8')
   elif dtypeOut == 'uint16_corr':
     min, max = -1.00001,1.00001
+    m = 2 ** 16 / (max - min)
+    b = 2 ** 16 - m * max
+    mArray = np.full(imgArray.shape, m)
+    bArray = np.full(imgArray.shape, b)
+    return np.array(np.multiply(mArray, imgArray) + bArray).astype('uint16')
+  elif type(dtypeOut) == dict:
+    min, max = dtypeOut['min'], dtypeOut['max']
     m = 2 ** 16 / (max - min)
     b = 2 ** 16 - m * max
     mArray = np.full(imgArray.shape, m)

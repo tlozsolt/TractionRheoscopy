@@ -1,0 +1,9 @@
+rotationMatrix:
+    coordStr: (um, rheo_sedHeight)
+    handed: right
+    positiveSignature: clockwise
+    units: degrees
+    theta_x: 0 # rotation angle about x-axis
+    theta_y: 0 # rotation angle about y-axis
+    theta_z: 20 # rotation angle about z-axis
+    

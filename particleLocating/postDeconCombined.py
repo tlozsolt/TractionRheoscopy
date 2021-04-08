@@ -2,6 +2,7 @@ from particleLocating import dplHash_v2 as dpl
 from particleLocating import locating, paintByLocations, flatField, pyFiji
 from particleLocating import threshold
 from particleLocating import curvatureFilter
+from particleLocating import ilastik
 import dask_image
 import dask_image.imread
 import dask.array as da
@@ -89,16 +90,17 @@ class PostDecon(dpl.dplHash):
                                          computer=computer)
         self.locations[0].to_csv(locationPath,index=False)
 
-    def visualize(self,computer='ODSY'):
-        self.overlay = paintByLocations.locationOverlay(self.locations[0],self.postDecon[0], locatingprogram = 'trackpy')
-        fName_glyph = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visGlyph.tif')
-        fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visLocInput.tif')
-        flatField.array2tif(self.overlay.inputPadded,
-                            fName_locInput,
-                            metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
-        flatField.array2tif(self.overlay.glyphImage,
-                            fName_glyph,
-                            metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
+    # removed in attempt to fix compilation error (Zsolt, March 28 2021)
+    #def visualize(self,computer='ODSY'):
+    #    self.overlay = paintByLocations.locationOverlay(self.locations[0],self.postDecon[0], locatingprogram = 'trackpy')
+    #    fName_glyph = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visGlyph.tif')
+    #    fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='visLocInput.tif')
+    #    flatField.array2tif(self.overlay.inputPadded,
+    #                        fName_locInput,
+    #                        metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
+    #    flatField.array2tif(self.overlay.glyphImage,
+    #                        fName_glyph,
+    #                        metaData = yaml.dump(self.dpl.metaData, sort_keys = False))
 
 class PostDecon_dask(dpl.dplHash):
     """
@@ -121,6 +123,7 @@ class PostDecon_dask(dpl.dplHash):
         self.metaDataPath = metaDataPath
         self.mat = self.dpl.sedOrGel(self.hashValue)
         self.init_da = self.tif2Dask(None)
+        self.refine_array = None
 
 
     def tif2Dask(self,fPath):
@@ -168,6 +171,26 @@ class PostDecon_dask(dpl.dplHash):
         dimLog = [0,0,0]
         errorDict = {}
 
+        # run ilastik before cropping
+        if self.dpl.metaData['smartCrop']['ilastik'] == True and fullStack is None:
+            ilastik_meta = self.dpl.metaData['ilastik']
+
+            # create threshold class in order to access getPathIlastik function...this is a bug that should be a fixed
+            pxThreshold = ilastik.ilastikThreshold(self.metaDataPath,computer=self.computer)
+            pxThreshold._sethv(self.hashValue)
+
+            #run classifier
+            run_args = self.dpl.metaData['ilastik']['pxClassifier']['run_args']
+            exec, project, decon = pxThreshold.getPathIlastik('exec'),\
+                                   pxThreshold.getPathIlastik('project'),\
+                                   pxThreshold.getPathIlastik('decon')
+            pxClassifier = ilastik.pixelClassifier(run_args, exec, project)
+            pxClassifier.run(pxClassifier.parseArgs(decon))
+
+            # now run threshold
+            pxThreshold.setHashValue(self.hashValue)
+            fullStack = da.from_array(pxThreshold.threshold(self.mat))
+
         # if appropriate, crop out the uniform decon FFT artifacts in XY and Z
         if metaData['fftCrop']['bool'] == True:
             dim = fullStack.shape
@@ -182,7 +205,10 @@ class PostDecon_dask(dpl.dplHash):
 
         # is this hashvalue contain a sed/gel interface? Is it mostly sed or gel?
         sedGel = self.dpl.sedGelInterface(self.hashValue)
-        if sedGel[1] == True and metaData['sedGelCrop']['bool'] == True:
+        if sedGel[1] == True \
+                and metaData['sedGelCrop']['bool'] == True \
+                and metaData['sedGelCrop']['method'] == 'zGradAvgXY' \
+                and metaData['ilastik'] == False:
             # Same cropping algo as dpl.smartCrop
             # need to compute zGradAvgXY in order to find out crop parameters.
             pixelZGrad = flatField.zGradAvgXY(
@@ -427,7 +453,7 @@ class PostDecon_dask(dpl.dplHash):
     def iterativeLocate_da(self, input_da,**locatingMeta):
         pass
 
-    def postDecon_dask(self, hv, computer='ODSY'):
+    def postDecon_dask(self):
         """
         In principle this function carries out all steps after deconvolution:
             [+] smartCrop
@@ -440,6 +466,8 @@ class PostDecon_dask(dpl.dplHash):
         However the steps marked [-] have not been implemented yet
         This will also automatically log the results, however the job control could be improved.
         """
+        computer=self.computer
+
         print("Warning, calling postDecon_dask from postDeconCombined.PostDecon_dask\n"
               "Job control over steps has not been implemented in any way apart from\n"
               "directly editing the function.\n"
@@ -447,15 +475,27 @@ class PostDecon_dask(dpl.dplHash):
         print("Initialiizing dask cluster")
         global client
         if computer =='IMAC':
-            from dask.distributed import Client
+            from dask.distributed import Client, LocalCluster
             #node = LocalCluster(n_workers=8, threads_per_worker=24,
             #                    ip='tcp://localhost:8786',
             #                    memory_limit='4Gb')
 
+            #~~~~~~~~~~~~~~~~~~ Not working, March 26 2021
             #client = Client(node)
-            IMAC_ip = self.dpl.metaData['dask_resources'][computer]['ip']
-            client = Client(IMAC_ip)
-            # restart since the cluster on imac may not be fresh.
+            #IMAC_ip = self.dpl.metaData['dask_resources'][computer]['ip']
+            #client = Client(IMAC_ip)
+            #~~~~~~~~~~~~~~~~~~~~~~~
+
+            nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
+            nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
+            mem = self.dpl.metaData['dask_resources'][computer]['memory-limit']
+            node = LocalCluster(n_workers=nprocs,
+                                threads_per_worker=nthreads,
+                                memory_limit=mem,
+                                silence_logs='INFO')
+            client = Client(node)
+            #client.restart()
+            ## restart since the cluster on imac may not be fresh.
             client.restart()
         else:
             # This should work... on odsy.. works on test node...do I need to set memory
@@ -479,13 +519,20 @@ class PostDecon_dask(dpl.dplHash):
             #client.restart()
 
         #client.restart()
-        da_decon = self.init_da
-        # carry out smart crop
-        print("Starting smart crop")
-        da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
+        if self.dpl.metaData['smartCrop']['ilastik'] == False:
+            da_decon = self.init_da
+            # carry out smart crop
+            print("Starting smart crop")
+            da_smartCrop, log_smartCrop = self.smartCrop_da(da_decon)
+            client.cancel(da_decon)
+        elif self.dpl.metaData['smartCrop']['ilastik'] == True:
+            da_smartCrop, log_smartCrop = self.smartCrop_da(None)
+            if self.dpl.metaData['locating']['refine_lsq']['refine_array'] == 'smartCrop':
+                self.refine_array = threshold.arrayThreshold.recastImage(da_smartCrop,'uint16')
+
+
         # log the changes
-        self.dpl.writeLog(hv, 'smartCrop', log_smartCrop, computer=computer)
-        client.cancel(da_decon)
+        self.dpl.writeLog(self.hashValue, 'smartCrop', log_smartCrop, computer=computer)
 
         # Carry out the threshold
         print("Starting thresholding")
@@ -507,7 +554,26 @@ class PostDecon_dask(dpl.dplHash):
                                                             'computer': computer},
                                                            self.mat,
                                                            metaDataYAMLPath=metaDataFolder,
-                                                           daskClient = client)
+                                                           daskClient = client,
+                                                           imgArray_refine = self.refine_array)
+
+        # integrate pxProb channels and add as columns to output locations df_refine
+        pxIntegrate = ilastik.ilastikIntegrate(self.metaDataPath, computer=self.computer)
+        #set hashvalue
+        pxIntegrate.setHashValue(self.hashValue)
+        #read pxProb
+        pxIntegrate._readPxProb(None)
+        df_ilastik = pxIntegrate.integratePxProb(df_refine)
+        loc_idx = df_refine.index
+        df_refine = df_refine.join(df_ilastik.set_index(loc_idx))
+
+        # set hashvalue
+        pxIntegrate.setHashValue(self.hashValue)
+        #read pxProb and crop
+        pxIntegrate._readPxProb(None)
+        # integrate with df_refine, and maybe check that column labels are correct
+        df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
+
         # save input image  to visualize directory
         print("Saving input images to scratch visualize ")
         fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
@@ -517,14 +583,20 @@ class PostDecon_dask(dpl.dplHash):
 
         # save locations to csv
         print("Saving locations, both refined and centroid")
-        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
-        refineLocExt = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
-        locationPath = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=computer)
-        refinePath = self.dpl.getPath2File(hv, kwrd='locations', extension=refineLocExt, computer=computer)
+        pxLocationExtension = '_' + self.dpl.sedOrGel(self.hashValue) + "_trackPy.csv"
+        refineLocExt = '_' + self.dpl.sedOrGel(self.hashValue) + "_trackPy_lsqRefine.csv"
+        locationPath = self.dpl.getPath2File(self.hashValue, kwrd='locations', extension=pxLocationExtension, computer=computer)
+        refinePath = self.dpl.getPath2File(self.hashValue, kwrd='locations', extension=refineLocExt, computer=computer)
         df_loc.to_csv(locationPath, index=False, sep=' ')
         df_refine.to_csv(refinePath, index=False, sep=' ')
-        self.dpl.writeLog(hv, 'locating', log_locating, computer=computer)
+        self.dpl.writeLog(self.hashValue, 'locating', log_locating, computer=computer)
 
+        client.close()
+        node.close()
+        self.results = {'df_loc': df_loc,
+                        'df_refine':df_refine,
+                        'np_postThresholdFilter':np_postThresholdFilter,
+                        'log_locating': log_locating}
         return df_loc, df_refine, np_postThresholdFilter, log_locating
 
 

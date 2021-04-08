@@ -36,3 +36,7 @@ module load
 # look at time elapsed for job id (not great formatting)
 sacct -j 65507205 --format=JobID,elapsed,nodelist,MaxVMSize
 
+# ssh into storage server
+# log into vpn w/ cisco anyconnect
+ssh zsolt@10.243.56.39 #kulcs is tfrWeitzlab
+

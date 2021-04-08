@@ -76,7 +76,7 @@ def lsq_refine_combined(df_loc, np_image, daskClient, **refine_lsq_meta):
     if daskParam['memory-limit'] == '4Gb': npart = int(2*daskParam['nprocs'])
     elif daskParam['memory-limit'] =='2Gb': npart = int(daskParam['nprocs'])
     else:
-        print("Mem limit {} is not either `4Gb` or `2Gb`\n".format(daskParam['memory_limit']))
+        print("Mem limit {} is not either `4Gb` or `2Gb`\n".format(daskParam['memory-limit']))
         print("Setting number of partitions equal to nprocs in dask_resources")
         npart = int(daskParam['nprocs'])
 
@@ -95,9 +95,13 @@ def lsq_refine_combined(df_loc, np_image, daskClient, **refine_lsq_meta):
                                   npartitions=npart)
         with ProgressBar():
             print(n + dN, N, '{:.2%}'.format((n + dN) / N))
-            if mat == 'sed': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+            if mat == 'sed' and metaGlobal['func'][mat] == 'gauss': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
                                                                        **metaIteration['gauss']),
-                                                               meta=refine_dtypes).compute()
+                                                                       meta=refine_dtypes).compute()
+            elif mat == 'sed' and metaGlobal['func'][mat] == 'disc':
+                df_chunk = ddf_loc.map_partitions(partial(ddf_refine, np_imageArray=np_image,
+                                                          **metaIteration['disc']),
+                                                          meta=refine_dtypes).compute()
             elif mat == 'gel': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
                                                                          **metaIteration['disc']),
                                                                  meta=refine_dtypes).compute()
@@ -108,7 +112,7 @@ def lsq_refine_combined(df_loc, np_image, daskClient, **refine_lsq_meta):
     return df_loc, df_refine
 
 
-def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None):
+def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None, imgArray_refine=None):
     """
     This function applies the locatingFunc to the imageArray iteratively following Kate's work.
     The basic idea is to locate some particles, create a mask to zero out the positions of the located particles
@@ -119,7 +123,8 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
     :metaDataYAMLPath: str, path to metaDataYAML directory. Used to import df_locMicro.pkl to precompute output datatypes
     :return: pandas data frame with particle locations and extra output from trackpy (ie mass, eccentricity, etc)
     """
-    global imgArray_refine, combined_dict
+    #global imgArray_refine, combined_dict
+    global combined_dict
     paramDict = metaData['yamlMetaData']['locating']
     locatingParam = paramDict[material]
     iterativeParam = paramDict['iterative']
@@ -135,7 +140,7 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
     if paramDict['refine_lsq']['bool']:
         # if we are refining during iterative locating, create a deep
         # copy of imgArray and refine on that.
-        imgArray_refine = imgArray.copy()
+        if imgArray_refine is None: imgArray_refine = imgArray.copy()
 
         # create the complicated nest of input dictionaries included a computation of return dtypes
         # with keys global, iteration, refine_dtypes
@@ -149,7 +154,8 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         #                         'param_val': {'disc_size': 0.6}}
         #               }
         try:
-            if material == 'sed': dict_refine = locatingParam[-1]['refine_lsq']['gauss']
+            #if material == 'sed': dict_refine = locatingParam[-1]['refine_lsq']['gauss']
+            if material == 'sed': dict_refine = locatingParam[-1]['refine_lsq']['disc']
             elif material == 'gel': dict_refine = locatingParam[-1]['refine_lsq']['disc']
         except KeyError:
             print("You are trying mix sed and gel refinement functions...thats not yet implemented")
@@ -165,7 +171,8 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
                          #'refine_dtypes' : refine_dtypes,
                          'dask_resources': daskParam,
                          'computer': metaData['computer'],
-                         'material': material
+                         'material': material,
+                         'func': paramDict['refine_lsq']['func'][material]
                         }
     refine_dtypes = None
     while particleBool == True and iterCount < maxIter:

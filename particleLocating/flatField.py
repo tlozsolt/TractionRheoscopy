@@ -4,6 +4,7 @@ from scipy import ndimage
 import skimage as ski
 import time
 from particleLocating import threshold
+import tifffile
 
 """
     This file is contains helper functions to access tiff stacks
@@ -58,9 +59,11 @@ def zStack2Mem(path,stackBool=True):
     :return:
     """
     if stackBool == True:
-      with ski.external.tifffile.TiffFile(path) as tif:
-        data = tif.asarray()
-      return data
+      #with ski.external.tifffile.TiffFile(path) as tif:
+      #  data = tif.asarray()
+      #return data
+      with open(path,'r') as f:
+          return tifffile.imread(path)
     elif stackBool == False:
         from skimage import io
         # load an image collection
@@ -103,7 +106,11 @@ def array2tif(array,path,metaData=None):
         OUTPUT:
           -write the file and returns the path complete with filename
     """
-    ski.external.tifffile.imsave(path,array,description=metaData)
+    # This stopped working with the latest update to sci kit image.
+    # all tifffile submodules were removed
+    # Zsolt, March 2021
+    #ski.external.tifffile.imsave(path,array,description=metaData)
+    tifffile.imsave(path,array, description=metaData)
     return path
 
 def avgSlice(slice):
