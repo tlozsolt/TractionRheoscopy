@@ -91,20 +91,25 @@ def lsq_refine_combined(df_loc, np_image, daskClient, **refine_lsq_meta):
     df_refine = pd.DataFrame({})
     for n in range(0,N,dN):
         #client.restart()
-        ddf_loc = ddf.from_pandas(df_loc.loc[n:int(n + dN-1)],
-                                  npartitions=npart)
+        # replace loc with iloc and fix off by one error (apr 13 2021)
+        ddf_loc = ddf.from_pandas(df_loc.iloc[n:int(n + dN)], npartitions=npart)
         with ProgressBar():
             print(n + dN, N, '{:.2%}'.format((n + dN) / N))
-            if mat == 'sed' and metaGlobal['func'][mat] == 'gauss': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-                                                                       **metaIteration['gauss']),
-                                                                       meta=refine_dtypes).compute()
+            if mat == 'sed' and metaGlobal['func'][mat] == 'gauss':
+                df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                          **metaIteration['gauss']),
+                                                          meta=refine_dtypes).compute()
+
             elif mat == 'sed' and metaGlobal['func'][mat] == 'disc':
                 df_chunk = ddf_loc.map_partitions(partial(ddf_refine, np_imageArray=np_image,
                                                           **metaIteration['disc']),
                                                           meta=refine_dtypes).compute()
-            elif mat == 'gel': df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
-                                                                         **metaIteration['disc']),
-                                                                 meta=refine_dtypes).compute()
+
+            elif mat == 'gel':
+                df_chunk = ddf_loc.map_partitions(partial(ddf_refine,np_imageArray = np_image,
+                                                          **metaIteration['disc']),
+                                                          meta=refine_dtypes).compute()
+
             else: raise ValueError("Material {} is not 'sed' or 'gel'."
                                    "Dont know if to refine with gauss or disc".format(mat))
         df_refine = pd.concat([df_refine,df_chunk])
@@ -194,7 +199,15 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         print("{} particles located!".format(loc.shape))
         if loc.shape[0] == 0: break
 
-        # now refine the positions
+        # now refine the positions...why should I refine within iterative locating?
+        # I dont know. There is some problem with this where refinement multiplies the number of particles
+        # depending on the number of iterative locating rounds. Not sure. I think it may be something complicated
+        #  to do with clearing the memory state of dask between rounds as I cant fathom why it happens
+        #  ...going back to running refinement once after all rounds of particle locating.
+        # after all locating rounds and setting mask based on centroid locations.
+        # update, I think the problem wasnt with this at all but rather a careless join I was doing downstream of this
+        # oops.
+        """
         if refineBool:
             if refine_dtypes == None:
                 # we have give some metaData on return types
@@ -206,21 +219,41 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
             try: combined_dict['iteration'] = locatingParam[iterCount]['refine_lsq']
             except IndexError: combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
             loc, loc_refine = lsq_refine_combined(loc, imgArray_refine,daskClient, **combined_dict)
+        """
 
         # add to output
         locList.append(loc) # add the dataframe to locList and deal with merging later
-        refineList.append(loc_refine)
+        """
+        #refineList.append(loc_refine)
         if not refineBool: mask = createMask(loc,imgArray,iterativeParam['mask'][material])
         else: mask = createMask(loc_refine, imgArray, iterativeParam['mask'][material])
+        """
+        mask = createMask(loc,imgArray,iterativeParam['mask'][material])
         imgArray = imgArray*np.logical_not(mask)
-    particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
-                                                    "y": "y_centroid (px)",
-                                                    "z": "z_centroid (px)"})
-    refineDF = pd.concat(refineList)
+    particleDF = pd.concat(locList)
+    #particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
+    #                                                "y": "y_centroid (px)",
+    #                                                "z": "z_centroid (px)"})
+    if refineBool:
+        if refine_dtypes == None:
+            # we have give some metaData on return types
+            loc_micro = particleDF[0:2]
+            df_refine_micro = tp.refine_leastsq(loc_micro, imgArray, **dict_refine)
+            refine_dtypes = df_refine_micro.dtypes.apply(lambda x: x.name).to_dict()
+            combined_dict['refine_dtypes'] = refine_dtypes
+        print("Carrying out least squares particle refinement!")
+        try:
+            combined_dict['iteration'] = locatingParam[iterCount]['refine_lsq']
+        except IndexError:
+            combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
+        _, loc_refine = lsq_refine_combined(particleDF, imgArray_refine, daskClient, **combined_dict)
+    refineDF = loc_refine
+    #refineDF = pd.concat(refineList)
     logDict = {'locating' : {'particles': particleDF.shape[0],
                              'iterations': iterCount,
                              'refine_lsq': paramDict['refine_lsq']['bool']}}
-    return [particleDF, refineDF, logDict]
+    col_rename = {"x": "x_centroid (px)", "y": "y_centroid (px)", "z": "z_centroid (px)"}
+    return [particleDF.rename(columns=col_rename).reset_index(), refineDF.reset_index(), logDict]
 
 def createMask(locDF, imgArray, glyphShape,refineBool=True):
     """

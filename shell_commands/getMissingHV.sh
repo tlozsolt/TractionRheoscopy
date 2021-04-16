@@ -40,3 +40,22 @@ sacct -j 65507205 --format=JobID,elapsed,nodelist,MaxVMSize
 # log into vpn w/ cisco anyconnect
 ssh zsolt@10.243.56.39 #kulcs is tfrWeitzlab
 
+# SSH ControlMaster
+# in ~/.ssh/config
+"""
+Host odyZsolt
+User jzterdik
+HostName login.rc.fas.harvard.edu
+ControlMaster auto
+ControlPath ~/.ssh/%r@%h:%p
+"""
+# then start background ssh process
+ssh -CX -o ServerAliveInterval=30 -fN odyZsolt
+# which I expect to generate a login with 2 factor auth
+# all subsequent data copying should work like this, and no require logging in
+tar cvf - /mnt/serverdata/zsolt/zsolt/tfrGel09052019x/tfrGel09052019A/shear18052019x/tfrGel09052019a_shearRun20052019e_20190520_75051\ PM_20190521_21001\ AM | ssh odyZsolt "cat > /n/holylfs02/TRANSFER/jzterdik/tfrGel09052019x/tfrGel09052019a_shearRun20052019e.tar"
+
+# steps to submitting a locating run for the first time in a while
+# - copy calibration files
+#
+
