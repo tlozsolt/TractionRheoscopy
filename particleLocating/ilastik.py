@@ -98,7 +98,8 @@ class pixelClassifier(ilastikClassifier):
 
         arg_list.append(self.exec)
         if args['headless'] is True: arg_list.append('--headless')
-        if args['readonly'] is True: arg_list.append('--readonly')
+        # possible that this line depends on the version of ilastik.
+        if args['readonly'] is True: arg_list.append('--readonly=True')
 
         arg_list.append('--project={}'.format(self.project))
         arg_list.append('--export_source={}'.format(args['export_source']))
@@ -310,7 +311,7 @@ class ilastikIntegrate(dpl.dplHash):
             prob_total = 0
             cz, cy, cx = [int(coord) for coord in np.rint(pos[0:3])]
             for n in range(len(Nx)):
-                prob_total += img[cz + Nz[n], \
+                prob_total += ilmg[cz + Nz[n], \
                                   cy + Ny[n], \
                                   cx + Nx[n]]
             out[N] = prob_total
