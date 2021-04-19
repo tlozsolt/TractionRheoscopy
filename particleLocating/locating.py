@@ -207,7 +207,6 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         # after all locating rounds and setting mask based on centroid locations.
         # update, I think the problem wasnt with this at all but rather a careless join I was doing downstream of this
         # oops.
-        """
         if refineBool:
             if refine_dtypes == None:
                 # we have give some metaData on return types
@@ -219,21 +218,19 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
             try: combined_dict['iteration'] = locatingParam[iterCount]['refine_lsq']
             except IndexError: combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
             loc, loc_refine = lsq_refine_combined(loc, imgArray_refine,daskClient, **combined_dict)
-        """
 
         # add to output
         locList.append(loc) # add the dataframe to locList and deal with merging later
-        """
-        #refineList.append(loc_refine)
+        refineList.append(loc_refine)
         if not refineBool: mask = createMask(loc,imgArray,iterativeParam['mask'][material])
         else: mask = createMask(loc_refine, imgArray, iterativeParam['mask'][material])
-        """
         mask = createMask(loc,imgArray,iterativeParam['mask'][material])
         imgArray = imgArray*np.logical_not(mask)
-    particleDF = pd.concat(locList)
-    #particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
-    #                                                "y": "y_centroid (px)",
-    #                                                "z": "z_centroid (px)"})
+    #particleDF = pd.concat(locList)
+    particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
+                                                    "y": "y_centroid (px)",
+                                                    "z": "z_centroid (px)"})
+    """
     if refineBool:
         if refine_dtypes == None:
             # we have give some metaData on return types
@@ -248,7 +245,8 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
             combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
         _, loc_refine = lsq_refine_combined(particleDF, imgArray_refine, daskClient, **combined_dict)
     refineDF = loc_refine
-    #refineDF = pd.concat(refineList)
+    """
+    refineDF = pd.concat(refineList)
     logDict = {'locating' : {'particles': particleDF.shape[0],
                              'iterations': iterCount,
                              'refine_lsq': paramDict['refine_lsq']['bool']}}

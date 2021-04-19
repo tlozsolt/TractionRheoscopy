@@ -3,7 +3,7 @@ filePaths:
   scratchDirectory_MBP: /Volumes/TFR/tfrGel10212018A_shearRun10292018f
   scratchDirectory_IMAC: /Volumes/TFR/tfrGel10212018A_shearRun10292018f
   scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM
-  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/tfrGel10212018A/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM # intermediate storage, no long term backup. Folder for each run
+  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
   testImgPath : '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/pyFiji/testImages'
 
@@ -403,7 +403,7 @@ locating:
 
   iterative:
     bool: True # do iterative locating?
-    maxIter: 5 # how many iterative locating loops to do before force quitting? Note this is *not* the same as how iterations of refinement to do, but rather how many iterations of iterative locating to do.
+    maxIter: 7 # how many iterative locating loops to do before force quitting? Note this is *not* the same as how iterations of refinement to do, but rather how many iterations of iterative locating to do.
     mask:
       sed: [17, 17, 17] # keep in mind this can be much larger than a single particle diameter
       gel: [21,27,27] # pixel order is [z,y,x]
