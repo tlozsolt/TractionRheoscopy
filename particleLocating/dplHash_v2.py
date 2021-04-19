@@ -1704,6 +1704,7 @@ class dplHash:
         def exec_hash():
             if computer == 'ODSY':
                 output = self.metaData['filePaths']['loadPython_ODSY'] + '\n'
+                output = self.metaData['filePaths']['loadIlastik_ODSY'] + '\n'
                 output += "source activate tractionRheoscopy\n"
             elif computer == 'MBP' or computer == 'IMAC':
                 output = ""
