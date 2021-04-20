@@ -2109,21 +2109,23 @@ class dplHash:
         if resubmitBool == False:
             # compute the number of jobArrays and set up second index if necessary
             hashSize = self.metaData['hashDimensions']['hashSize']  # 'hashDimension' is created during initialization \
-            # and is not on the yaml file
-            leaf = math.floor(hashSize / 10000)
-            # now figure out what array index you need given the hashSize and number of leaves
-            nTail_jobArray = hashSize - 10000 * leaf
+            partition = 10000 # hard coded, depends on slurm. no reason to make this a parameter
+            leaves = math.floor(hashSize / partition)
+            tail = hashSize - parition * leaves
+
         elif resubmitBool == True:
             # compute the maximum single entry need to be resubmitted
             # partition the actual values into leaves
             # basically this part needs to recreate the leaf and arrayIndex value corresponding to the missing hashValue
             missinghv_intList = self.resubmit_MissingHV()
-            leaf = max(missinghv_intList)[0]
-        for jobs in range(leaf + 1):
+            leaves = max(missinghv_intList)[0]
+        for jobs in range(leaves + 1):
             output = header
             if jobs == 0:  # you are in the remainders
+                lower, upper = leaves*partition, leaves*partition + tail
+                array_min, array_max = 0, tail
                 if resubmitBool == False:
-                    output += "#SBATCH --array=0-" + str(nTail_jobArray) + "\n"
+                    output += "#SBATCH --array={}-{}\n".format(array_min,array_max)
                 elif resubmitBool == True:
                     output += "#SBATCH --array="
                     tmp = ''
@@ -2131,8 +2133,10 @@ class dplHash:
                         if hv[0] == jobs: tmp += str(hv[1]) + ','
                     output += tmp.rstrip(',')
             else:
+                lower, upper = (leaves - jobs) * partition, (leaves - jobs + 1) * partition
+                array_min, array_max = 0, partition - 1
                 if resubmitBool == False:
-                    output += "#SBATCH --array=0-9999\n"
+                    output += "#SBATCH --array={}-{}\n".format(array_min, array_max)
                 elif resubmitBool == True:
                     output += "#SBATCH --array="
                     tmp = ''
@@ -2141,7 +2145,7 @@ class dplHash:
                     output += tmp.rstrip(',')
             output += footer
             output += "\n"
-            output += "HASHVALUE=$((SLURM_ARRAY_TASK_ID+" + str((jobs) * 10000) + "))\n"
+            output += "HASHVALUE=$((SLURM_ARRAY_TASK_ID+{}))\n".format(lower)
             # Create a bash variable for the true hashValue for this lead that we can pass to python.
             # Note the bash expression $(( )) means "arithemtic interpretation"
             # and that bash is sensitive to white space. ie 'HASHVALUE=122' will work, but 'HASHVALUE = 122' will not work
