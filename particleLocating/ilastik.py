@@ -311,7 +311,7 @@ class ilastikIntegrate(dpl.dplHash):
             prob_total = 0
             cz, cy, cx = [int(coord) for coord in np.rint(pos[0:3])]
             for n in range(len(Nx)):
-                prob_total += ilmg[cz + Nz[n], \
+                prob_total += img[cz + Nz[n], \
                                   cy + Ny[n], \
                                   cx + Nx[n]]
             out[N] = prob_total

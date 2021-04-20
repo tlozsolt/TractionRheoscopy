@@ -84,4 +84,36 @@ scp tractionRheoscopy_env_04_18_2021.yml jzterdik@login.rc.fas.harvard.edu:/n/ho
 # on odsy, run to create new environment TractionRheoscopy
 conda-env create --prefix /n/home04/jzterdik/.conda/envs/TractionRheoscopy -f=/n/home04/jzterdik/tractionRheoscopy_env_04_18_2021.yml
 
+# install mpi4py in order to try srun and --distriubuted flags on ilastik
+# following: https://researchcomputing.princeton.edu/support/knowledge-base/mpi4py
+# and: https://docs.rc.fas.harvard.edu/kb/mpi-software-on-odyssey/
+# and: https://www.ilastik.org/documentation/basics/headless
+# this didnt work...contacted RC Help. The alternative to set RAM and processors manually
+# I think did work
+module load gcc/8.2.0-fasrc01
+module load openmpi/4.0.1-fasrc01
+export MPICC=$(which mpicc)
+echo $MPICC
+    >>> /n/helmod/apps/centos7/Comp/gcc/8.2.0-fasrc01/openmpi/4.0.1-fasrc01/bin/mpicc
+pip install mpi4py
+
+# debug ilastik
+# add following configuration to $HOME/.ilastikrc
+[lazyflow]
+total_ram_mb=12000
+threads=8
+#
+# then in python, after loading modules etc and delete previous h6 probabilities output file
+import sys, subprocess
+sys.path.append('/n/home04/jzterdik/TractionRheoscopy')
+from particleLocating import dplHash_v2 as dpl
+from particleLocating import ilastik
+meta = '/n/home04/jzterdik/TractionRheoscopy/metaDataYAML/tfrGel10212018A_shearRun10292018f_metaData.yaml'
+pxThreshold = ilastik.ilastikThreshold(meta,computer='ODSY')
+pxThreshold._sethv(1)
+exec, project, decon = pxThreshold.getPathIlastik('exec'), pxThreshold.getPathIlastik('project'), pxThreshold.getPathIlastik('decon')
+run_args = pxThreshold.dpl.metaData['ilastik']['pxClassifier']['run_args']
+pxClassifier = ilastik.pixelClassifier(run_args,exec,project)
+args = pxClassifier.parseArgs(decon)
+subprocess.run(args_srun)
 
