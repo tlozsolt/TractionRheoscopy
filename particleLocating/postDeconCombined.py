@@ -11,6 +11,7 @@ from functools import partial
 from scipy.interpolate import griddata
 import cv2
 from scipy import ndimage
+import os
 import yaml
 import numpy as np
 
@@ -185,6 +186,26 @@ class PostDecon_dask(dpl.dplHash):
                                    pxThreshold.getPathIlastik('project'),\
                                    pxThreshold.getPathIlastik('decon')
             pxClassifier = ilastik.pixelClassifier(run_args, exec, project)
+
+            # make sure that output fileName is empty. If file is present, delete it
+            if ilastik_meta['pxClassifier']['output_filename_format'] == '{dataset_dir}/{nickname}_probabilities.h5':
+                #out_fullPath = '/n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/decon/tfrGel10212018A_shearRun10292018f_decon_hv00122_probabilities.h5'
+
+                #path = '/n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/decon/'
+                deconPath = self.dpl.getPath2File(self.hashValue,
+                                                  kwrd='decon',
+                                                  computer=self.computer,
+                                                  pathOnlyBool=True)
+
+                #nickname = 'tfrGel10212018A_shearRun10292018f_decon_hv00122'
+                nickname = self.dpl.getPath2File(self.hashValue, kwrd='decon',
+                                                 computer=self.computer, fileNameOnlyBool=True).split('.')[0]
+                suffix = '_probabilities.h5'
+                fullPath = '{path}/{stem}{suffix}'.format(path=deconPath, stem = nickname, suffix=suffix)
+                if os.path.exists(fullPath):
+                    print("Removing previous ilastik file, and running classifier again\n")
+                    os.remove(fullPath)
+
             pxClassifier.run(pxClassifier.parseArgs(decon))
 
             # now run threshold
