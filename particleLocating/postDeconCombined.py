@@ -188,7 +188,7 @@ class PostDecon_dask(dpl.dplHash):
             pxClassifier = ilastik.pixelClassifier(run_args, exec, project)
 
             # make sure that output fileName is empty. If file is present, delete it
-            if ilastik_meta['pxClassifier']['output_filename_format'] == '{dataset_dir}/{nickname}_probabilities.h5':
+            if ilastik_meta['pxClassifier']['run_args']['output_filename_format'] == '{dataset_dir}/{nickname}_probabilities.h5':
                 #out_fullPath = '/n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/decon/tfrGel10212018A_shearRun10292018f_decon_hv00122_probabilities.h5'
 
                 #path = '/n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/decon/'
