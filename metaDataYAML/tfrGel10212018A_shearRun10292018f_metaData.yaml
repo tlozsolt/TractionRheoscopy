@@ -238,7 +238,8 @@ ilastik:
         output_format: hdf5
         output_filename_format: '{dataset_dir}/{nickname}_probabilities.h5'
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
-      classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
+      #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
+      classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1

@@ -3,6 +3,7 @@ from particleLocating import flatField, pyFiji, threshold, curvatureFilter, upSc
 #from particleLocating.postDeconCombined import PostDecon_dask as pd_dask
 from datetime import datetime
 import numpy as np
+import pandas
 import skimage
 
 """
@@ -184,6 +185,18 @@ class dplHash:
     I feel like the rest of this is a nested for loop over 
     indices:  time, no. of gel and  no of sed chunks, xy chunks, 
     """
+        # create hash_df to allow for indexing using pandas.
+        # I dont want to touch self.hash as I would likely have to rewrite some of the access functions
+        # This is however a better more elegant data structure for query in the hash table
+        # what the hashValues for first and last time points?
+        # >>> hash_df[(hash_df['t'] == 0) |  (hash_df['t']==89)].index
+        hash_df = pandas.DataFrame(hashTable.T)
+        hash_df['x'] = hash_df['index'].apply(lambda x: x[0])
+        hash_df['y'] = hash_df['index'].apply(lambda x: x[1])
+        hash_df['z'] = hash_df['index'].apply(lambda x: x[2])
+        hash_df['t'] = hash_df['index'].apply(lambda x: x[3])
+
+        self.hash_df = hash_df
         self.hash = hashTable
         self.invHash = hashInverse
         self.metaDataPath = metaDataPath
@@ -2162,7 +2175,13 @@ class dplHash:
                                              extension="dpl_leaf" + str(jobs).zfill(3) + '.sbatch')
             with open(fName_SBATCH, 'w') as f:
                 f.write(output)
-        return "submission script *.sbatch file(s) written to: " \
+
+        # write hashTable to file as well
+        tmp = self.hash_df[['x','y','z','t','material']]
+        _hashPath = self.getPath2File(0, kwrd='dplPath', computer=computer, pathOnlyBool=True) +'/{}'.format('hashTable.text')
+        tmp.to_csv(_hashPath, sep=' ')
+
+        return "submission script *.sbatch file(s) and hashTable.text written to: " \
                + self.getPath2File(0, kwrd='dplPath', computer=computer, pathOnlyBool=True)
 
     def getMissingValues(partial, complete):
