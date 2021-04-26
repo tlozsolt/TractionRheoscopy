@@ -190,7 +190,7 @@ class dplHash:
         # This is however a better more elegant data structure for query in the hash table
         # what the hashValues for first and last time points?
         # >>> hash_df[(hash_df['t'] == 0) |  (hash_df['t']==89)].index
-        hash_df = pandas.DataFrame(hashTable.T)
+        hash_df = pandas.DataFrame(hashTable).T
         hash_df['x'] = hash_df['index'].apply(lambda x: x[0])
         hash_df['y'] = hash_df['index'].apply(lambda x: x[1])
         hash_df['z'] = hash_df['index'].apply(lambda x: x[2])
