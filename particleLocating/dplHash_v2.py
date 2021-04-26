@@ -2124,7 +2124,7 @@ class dplHash:
             hashSize = self.metaData['hashDimensions']['hashSize']  # 'hashDimension' is created during initialization \
             partition = 10000 # hard coded, depends on slurm. no reason to make this a parameter
             leaves = math.floor(hashSize / partition)
-            tail = hashSize - parition * leaves
+            tail = hashSize - partition * leaves
 
         elif resubmitBool == True:
             # compute the maximum single entry need to be resubmitted
