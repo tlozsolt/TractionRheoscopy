@@ -27,7 +27,7 @@ sbatch --array=4,8,15,16,23,42  job_script.sbatch
 # although I am a bit worried that wont work for few reasons:
 # - I need to strip the final comma
 # - I need to deal with leaf sizes which will give me duplicate hashValues (hv00001 could hashValue 00001 or 10001)
-# I dont know how to pipe the output back to shell, but copy paste would work...
+# I dont know how to pipe the output back to shell, but copy paste would work....
 
 # start interactive session on odsy with 60 min, 4 cores and 16Gb of ram
 srun --pty -p test -t 60 --mem 16000 -n 4  /bin/bash
