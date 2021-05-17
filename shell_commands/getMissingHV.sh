@@ -126,3 +126,6 @@ echo "starting hashvalue $HASHVALUE with array index $SLURM_ARRAY_TASK_ID"
 
 # shell command for selecting initial and last (or actually 89th) time form hashTable.text
 awk '{ if($5 == 0 || $5 == 89) printf "%s ", $1}' hashTable.text
+
+# shell command for checking home directory useage.
+df -h ~
