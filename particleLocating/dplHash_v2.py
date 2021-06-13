@@ -196,6 +196,11 @@ class dplHash:
         hash_df['z'] = hash_df['index'].apply(lambda x: x[2])
         hash_df['t'] = hash_df['index'].apply(lambda x: x[3])
 
+        # type cast hash_df index to integer as currently the index is str from hashTable keys that require
+        # nonmutable type.
+        _idx = hash_df.index.map(int)
+        hash_df.set_index(_idx, inplace=True)
+
         self.hash_df = hash_df
         self.hash = hashTable
         self.invHash = hashInverse
@@ -1634,7 +1639,7 @@ class dplHash:
             # print("This is a scratch dir: ", d)
             if not os.path.exists(d): os.makedirs(d)
 
-    def makeAllScripts(self, hashValue, computer='ODSY'):
+    def makeAllScripts(self, hashValue, computer='ODSY', purgeBool = True):
         """
     single python method to create all the scripts for a given hashValue.
 
@@ -1682,6 +1687,9 @@ class dplHash:
                 else:
                     print("software for postDecon is {software}, and is not ImageJ or python".format(software))
             if 'locating' in keyList: self.makeParticleLocating_matlab(hashValue, computer)
+        if purgeBool:
+            print("Calling purgeIntermediate Files")
+            self.purgeIntermediateFiles(hashValue,computer=computer)
         return None
 
     def makeDPL_bashScript(self, computer='ODSY', errorLog='singleFile'):
@@ -1968,6 +1976,28 @@ class dplHash:
             f.write(masterScript)
         os.chmod(output_fName, 509)  # google "chmod +x on python". No idea wtf octal literal is and what 509 means here
         return output_fName
+
+    def purgeIntermediateFiles(self, hashValue, computer='ODSY', kwrdList = None):
+        """
+        This removes all files, not including submission fiels from scratch directories
+        for a specific hashValue
+        Files removed (typical run on postDeconCombined
+        [+] flatField
+        [+] decon
+        [+] ilastik
+        [-] particle locations
+        [-] visualization
+        [+] log
+        """
+        if kwrdList is None:
+            kwrdList = ['flatField', 'decon', 'ilastik', 'log']
+
+        for kwrd in kwrdList:
+            fPath = self.getPath2File(hashValue,kwrd=kwrd,computer=computer)
+            try:
+                os.remove(fPath)
+                print("Removed existing file for kwrd {}".format(kwrd))
+            except FileNotFoundError: pass
 
     def makeDPL_bashScript_legacy(self, computer='ODSY', dplBool=[1, 1, 1, 1, 1]):
         """

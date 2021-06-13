@@ -249,12 +249,12 @@ ilastik:
         nonfluorescent_chunk: 5
       sedGelSplit:
         weights:
-          sed: [-1,0,1,1,0,0]
-          gel: [1,1,0,-1,0,0]
+          sed: [0,0,1,1,1,0]
+          gel: [1,1,0,0,1,0]
           chunk: [0,0,0,0,1,1]
         cutoff:
-          gel: 0.7
-          sed: 0.7
+          gel: 0.5
+          sed: 0.5
           chunk: 0.5
 
 smartCrop:
@@ -306,17 +306,19 @@ postDecon:
     local: # python only
       bool: True
       blockDim:
-        X: 250
-        Y: 250
+        X: 150 #was 250 as a standard choice
+        Y: 150
         Z: 50
       sample: # number of samples at which to compute local thresholding
-        n_xyz : [3,3,4] # this will be a list
+        n_xyz : [5,5,4] # this will be a list
+        #n_xyz : [3,3,4] # this will be a list, used for 250,250,50 chunks
       parallel:
         bool: True
         n_jobs: 8
       dask:
-        rechunk_nzyx: [4,5,5]
-        depth_delta: -2 # how much smaller to make depth than the chunk size?
+        #rechunk_nzyx: [4,5,5]
+        rechunk_nzyx: [7,15,15]
+        depth_delta: -10 # how much smaller to make depth than the chunk size?
         boundary: reflect
     method:
       gel: MaxEnt
@@ -417,24 +419,8 @@ locating:
       sed: disc
       gel: disc
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [15, 15, 15],
-        separation: [11,11,11],
-        minmass: 9000,
-        preprocess: False,
-        max_iterations: 30,
-        refine_lsq:
-          { disc:
-              {fit_function: 'disc',
-               diameter: [9,11, 11],
-               max_iter: 35,
-               max_shift: 0.1,
-               max_rms_dev: 0.5,
-               param_val:
-                 {disc_size: 0.2,
-                  size_x: 3.4,
-                  size_y : 3.4,
-                  size_z: 2},
-               compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 0, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 1000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [9, 9, 9], max_shift: 0.1, max_rms_dev: 0.01, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
