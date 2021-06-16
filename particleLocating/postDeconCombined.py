@@ -352,7 +352,7 @@ class PostDecon_dask(dpl.dplHash):
         # ToDo:
         #  - uodate to take in kwarg from metaData
         #  - also rechunk the data
-        rechunk_nzyx = thresholdMeta['local']['dask']['rechunk_nzyx']
+        rechunk_nzyx = thresholdMeta['local']['dask']['rechunk_nzyx'][self.mat]
         depth_delta = thresholdMeta['local']['dask']['depth_delta']
         boundary = thresholdMeta['local']['dask']['boundary']
 

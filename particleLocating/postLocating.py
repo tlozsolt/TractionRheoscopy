@@ -85,9 +85,9 @@ def detectOutliersTukey(particleCount, k = 3, col_key = 'particle count'):
 
     return outlier_df
 
-def compileOutliers(particleCount, hashSize=125, k=1.5):
-    out = []
+def compileOutliers(particleCount, binHash, hashSize=125, k=1.5):
 
+    out = []
     for hv_modt in range(hashSize):
         particleCount_slice =particleCount.loc[binHash.drop('xyzt', axis=1).loc[hv_modt].values].sort_index()
         outlier = detectOutliersTukey(particleCount_slice,k=k).copy()
@@ -103,7 +103,8 @@ def compileOutliers(particleCount, hashSize=125, k=1.5):
 
 if __name__ == '__main__':
     #logPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/location_2021_05_24/log/'
-    logPath = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/debug/locations_log_archive_10_06_2021/log/'
+    #logPath = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/debug/locations_log_archive_10_06_2021/log/'
+    logPath = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/Transfer_ODSY/tfrGel10212018A_shearRun10292018f/tfrGel10212018A_shearRun10292018f/log/'
     metaDataPath = '/Users/zsolt/Colloid_git/TractionRheoscopy/metaDataYAML/tfrGel10212018A_shearRun10292018f_metaData.yaml'
 
     hash_df = dpl.dplHash(metaDataPath).hash_df
