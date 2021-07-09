@@ -2,11 +2,15 @@
 # Some example of failures:
 # - dramatically fewer particles located due to misidentified gel/sediment phase
 #   during ilastik pxClassifier.
+import pyperclip
 
 from particleLocating import dplHash_v2 as dpl
 import pandas as pd
+import numpy as np
 import os
 import yaml
+import seaborn as sns
+from matplotlib import pyplot as plt
 
 def binHashValue(hash_df):
     """
@@ -101,6 +105,90 @@ def compileOutliers(particleCount, binHash, hashSize=125, k=1.5):
             #print(detectOutliersTukey(particleCount_slice))
     return pd.concat(out)
 
+def test(logPath, metaPath):
+    hash_df = dpl.dplHash(metaPath).hash_df
+    particleCount = particleCountFromLog(logPath)
+    binHash = binHashValue(hash_df)
+    outliers = compileOutliers(particleCount,binHash)
+    return outliers, binHash, particleCount
+
+#%%
+def plotParticleCount(outliers, binHash, particleCount, hashDim=None, path=None, fName_frmt = None):
+    if hashDim is None: hashDim = 125
+    if path is None: path = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/scratch/particleCount_plot'
+    if fName_frmt is None: fName_frmt = 'particleCounts_{mat}_{xyz}.png'
+
+    sns.set(rc={'figure.figsize': (16, 9)})
+    sns.set_context("talk")
+    # g = sns.lineplot(y=par, x=range(90),label='Shear displacement')
+    #g = sns.lineplot(y=perp, x=range(90), label='Displacement perpendicular to shear')
+    #g.legend()
+
+    for hv in range(hashDim):
+        plt.clf()
+        # what is the xyz value?
+        xyz = binHash.loc[hv].pop('xyzt')
+        if xyz[-1] < 2: mat = 'gel'
+        else: mat = 'sed'
+
+        data = particleCount.loc[binHash.drop('xyzt', axis=1).loc[hv].values]
+        g = sns.lineplot(data=data, label='Particle count (x,y,z) = {}'.format(xyz))
+
+        # what fileName?
+        fName = fName_frmt.format(xyz=''.join([str(elt) for elt in xyz]), mat=mat)
+        g.figure.savefig(path +'/{}'.format(fName))
+#%%
+# compute derivative
+#data = particleCount.loc[binHash.drop('xyzt', axis=1).loc[89].values].to_numpy().squeeze()
+# resets the index
+#diff = data.apply(np.diff)
+# >>> data -> [14690, 3415, .., 16840]
+#pd.DataFrame(data=np.concatenate([np.array(data.iloc[-1] - data.iloc[1]),data.apply(np.diff).values.squeeze()]), index=data.index)
+
+
+#%%
+def _hvTraj(hv, particleCount, binHash):
+    return particleCount.loc[binHash.drop('xyzt', axis=1).loc[hv].values]
+
+def _deltaParticleCount(hvTraj):
+    #hvTraj = _hvTraj(hv,particleCount_df, binHash_df)
+    return pd.DataFrame(data=np.concatenate([np.array(hvTraj.iloc[-1] - hvTraj.iloc[1]),
+                                             hvTraj.apply(np.diff).values.squeeze()]), index=hvTraj.index,columns={'deltaCounts'})
+
+def deltaParticleCount(hv, particleCount, binHash):
+    hvTraj = _hvTraj(hv, particleCount, binHash)
+    diff = _deltaParticleCount(hvTraj)
+    data = hvTraj.join(diff)
+    data['deltaCounts/Counts'] = data['deltaCounts']/data['particle count']
+    return data
+
+#%%
+def clipIndex(pd_index):
+    """
+    Takes a pandas index object and copies the content to the clipboard without commas as required by bash scripts.
+    """
+    N = pd_index.size
+    out = ' '.join(map(str,list(pd_index)))
+    pyperclip.copy(out)
+    return print("Copied index of length {} to clipboard".format(N))
+
+#%%
+# find the indices you need to resubmit based on results in log folder (index resub) and differnt criteria (index)
+index_resub = particleCountFromLog('/path/to/archive/')
+
+out = []
+for hv in range(125): out.append(deltaParticleCount(hv,particleCount,binHash))
+resub = pd.concat(out)
+
+#apply selection criterion of 10% change up or down on particle count
+index = resub[abs(resub['deltaCounts/Counts']) > 0.1].index
+
+# note the manual copying of hash values 455 and 720 which were hashValues that were submitted in index_resub but did
+# not complete
+index.difference(index_resub.intersection(index)).union(pd.Index([455,720]))
+
+
+#%%
 if __name__ == '__main__':
     #logPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/location_2021_05_24/log/'
     #logPath = '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/debug/locations_log_archive_10_06_2021/log/'

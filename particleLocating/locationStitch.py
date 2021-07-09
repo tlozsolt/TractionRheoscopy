@@ -36,14 +36,18 @@ class ParticleStitch(dpl.dplHash):
                                     'y': 'y (px, hash)',
                                     'x': 'x (px, hash)'})
 
-    def addHashValue(self,hv,recenterDict = {'flag': True, 'coordStr':'(um, imageStack)'}):
+    def addHashValue(self,hv,recenterDict = {'flag': True, 'coordStr':'(um, imageStack)'}, path=None):
         """
         for a given hashValue, will add append the locations to the self.locations and add column
         specifying the hashValue and material string with no other modification
         :return:
         """
         pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
-        path = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=self.computer)
+        if path is None:
+            path = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=self.computer)
+        else:
+            fName = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=self.computer, fileNameOnlyBool=True)
+            path +=  fName
         mat = self.dpl.sedOrGel(hashValue=hv)
         frame = int(self.dpl.queryHash(hv)['index'][-1])
 
@@ -100,6 +104,7 @@ class ParticleStitch(dpl.dplHash):
         imgDim = {'x': self.dpl.metaData['imageParam']['xDim'],\
                   'y': self.dpl.metaData['imageParam']['yDim'], \
                   'z': self.dpl.metaData['imageParam']['zDim']}
+        # This path should be paired to the location and log directories
         origin,dim = self.dpl.integrateTransVect(hv,computer=computer)
         if coordStr =='(px, imageStack)':
             df['x '+ coordStr] = df['x (px, hash)'] + origin[0]
@@ -259,12 +264,29 @@ class ParticleStitch(dpl.dplHash):
     def stitch(self,
                hvList,
                cutOff=0.25,
-               recenterDict ={'flag': True, 'coordStr':'(um, imageStack)'} ):
+               recenterDict ={'flag': True, 'coordStr':'(um, imageStack)'},
+               **kwargs):
         """
         stitches all the hashValues in hvList
+
+        Params
+        ~~~~~~~~~
+        hvList: list, of hashValues. Will be used to form fileNames
+        cutoff: float, passed to removeDoubles. A distacne in the same units as coordStr in recenterDict
+        recenterDict: dictionary, of parameters pass to addHashValue, importantly specifying whether to recenter
+                                  and what coord system (as specified by coordStr) to return the results
+        **kwargs: dict, optional argument for later use.
+
+                  'path': Currently added keyword argument 'path' to specify the the path
+                          the location csv files are at. If not specified will default to None and resume
+                          previous functionality
+                          - Zsolt July 21 2021
         """
+
         # loop over hashValues
-        for hv in hvList: self.addHashValue(hv,recenterDict=recenterDict)
+        try: path = kwargs['path']
+        except KeyError: path=None
+        for hv in hvList: self.addHashValue(hv,recenterDict=recenterDict, path=path)
 
         loc = self.locations
         if recenterDict['flag'] == False: posLabels = ['z', 'y','x']
@@ -302,6 +324,19 @@ class ParticleStitch(dpl.dplHash):
             s.put(df)
         return stem+'/{}'.format(fName)
 
+    def stitchAll(self, tMax = None):
+        hash_df = self.dpl.hash_df
+        if tMax is None: tRange = hash_df['t'].max() + 1
+        else: tRange = tMax + 1
+        for t in range(tRange):
+            for mat in ['sed','gel']:
+                hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
+                stitch = self.stitch(hvList)
+                path = self.dpl.getPath2File(0,kwrd='locations', computer=self.computer, pathOnlyBool=True)
+                fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_{}'.format(mat)+'_t{:03d}.h5'.format(t)
+                stitch.to_hdf(path +'/{}'.format(fName), str(t))
+            print("stitched t={}".format(t))
+        return True
     #def splitNSave(self,
     #               df = self.locations,
     #               coordStr=('(um imageStack)', '(px, hash)' ),
@@ -354,8 +389,6 @@ class ParticleStitch(dpl.dplHash):
         #  -> locating extras (mass, cost, hv, px locations)
         #  -> everything else that is not null and is not kept around for book keeping
         #     ->
-
-
 
     @staticmethod
     def dataFrameLocation2xyz(df,outDir, columns = ['x','y','z'], particleStr = 'X'):
@@ -584,7 +617,7 @@ class ParticleStitch(dpl.dplHash):
                                 for elt in [int(keyStr) for keyStr in self.dpl.hash.keys()]\
                                 if self.dpl.sedOrGel(elt) == matStr])
             stitchList = sorted([hv for hv in completedHV if hv in allHashValue])
-        elif matStr == 'all': stitchList = completdHV
+        elif matStr == 'all': stitchList = completedHV
         else:
             print('matStr input to parStitch must be \'sed\' \'gel\' or \'all\', not {}'.format(matStr))
             raise KeyError
@@ -602,6 +635,17 @@ if __name__ == '__main__':
     #dfSed = inst.parStitch()
     inst.dataFrameLocation2xyz(inst.locations,tmpDir+'/tmpAllSed.xyz',\
                                columns=['x (um, imageStack)','y (um, imageStack)','z (um, imageStack)'])
+
+    """
+    June 27 2021
+    
+    Commands to stitch 
+    
+    >>> stitch_inst = locationStitch.ParticleStitch(yamPath)
+    >> stitch_inst.stitchAll()
+    
+    This will save an h5 file for every time point with all columns. There is no tracking, only stitching.
+    """
 
 
 

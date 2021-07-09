@@ -664,6 +664,32 @@ def strainDiag(strain_fp, signature=None):
     eigen_df = pd.DataFrame(np.array(eigen), index=m_idx, columns=_out)
     return eigen_df
 
+def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
+    """
+    Given a certain particle_idx (or list of IDs) in the tracked output of trackpy and a frame number,
+    return all the locating statistics.
+
+    Untested as of Jul 6, 2021
+    -zsolt
+    """
+    #
+    if tracked_df is None and id_type != 'index':
+        raise KeyError('if id_type is not index, you must provide the tracked_df output from trackpy')
+
+    # load the stitched dataframe
+    mat = 'sed'
+    path = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations'
+    fName_frmt = 'tfrGel10212018A_shearRun10292018f_stitched_{}'.format(mat)+'_t{:03}.h5'
+    fName = path + '/' + fName_frmt.format(frame)
+    stitched = pd.read_hdf(fName, key='{}'.format(frame))
+
+    # index into with particle_idx provided
+    if id_type == 'index': return stitched[stitched['keepBool' == True]].loc[particle_idx]
+    elif id_type == 'particle_id':
+        _idx = tracked_df.loc[tracked_df['particle'].isin(particle_idx)].index
+        return stitched[stitched['keepBool' == True]].loc[_idx]
+    else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
+
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
     hdf_fName = 'tfrGel10212018A_shearRun10292018f_sed_stitched.h5'
