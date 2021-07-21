@@ -41,7 +41,7 @@ def particleCountFromLog(path):
     hvList = []
     particleCount = []
     for f in os.listdir(path):
-        if f.endswith('.yaml'): log = yaml.safe_load(open(path + f))
+        if f.endswith('.yaml'): log = yaml.safe_load(open(path + '/' + f))
         else: continue
         #try: log = yaml.safe_load(open(path + f))
         #except IsADirectoryError: pass
@@ -49,7 +49,7 @@ def particleCountFromLog(path):
             hvList.append(log['hashValue'])
             particleCount.append(log['locating']['particles'])
         except KeyError:
-            print("hashvalue {} did not get to locating step".format(log['hashValue']))
+            print("hashvalue {} did not get to locating step or some other problem occurred".format(f))
             particleCount.append(-1)
     return pd.DataFrame(data=particleCount, index=pd.Index(hvList, name='hv')).rename(columns={0:'particle count'})
 
@@ -174,18 +174,18 @@ def clipIndex(pd_index):
 
 #%%
 # find the indices you need to resubmit based on results in log folder (index resub) and differnt criteria (index)
-index_resub = particleCountFromLog('/path/to/archive/')
-
-out = []
-for hv in range(125): out.append(deltaParticleCount(hv,particleCount,binHash))
-resub = pd.concat(out)
-
-#apply selection criterion of 10% change up or down on particle count
-index = resub[abs(resub['deltaCounts/Counts']) > 0.1].index
-
-# note the manual copying of hash values 455 and 720 which were hashValues that were submitted in index_resub but did
-# not complete
-index.difference(index_resub.intersection(index)).union(pd.Index([455,720]))
+#index_resub = particleCountFromLog('/path/to/archive/')
+#
+#out = []
+#for hv in range(125): out.append(deltaParticleCount(hv,particleCount,binHash))
+#resub = pd.concat(out)
+#
+##apply selection criterion of 10% change up or down on particle count
+#index = resub[abs(resub['deltaCounts/Counts']) > 0.1].index
+#
+## note the manual copying of hash values 455 and 720 which were hashValues that were submitted in index_resub but did
+## not complete
+#index.difference(index_resub.intersection(index)).union(pd.Index([455,720]))
 
 
 #%%

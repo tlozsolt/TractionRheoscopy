@@ -607,12 +607,11 @@ def df2xyz(df, fPath,fName, mode='w'):
     """
     Write a pandas dataFrame to xyz file
     """
-    df.shape[0]
     fPath_frmt = fPath+'/{}'
     with open(fPath_frmt.format(fName),mode) as f:
         f.write(str(df.shape[0]))
         f.write('\n#particleID ')
-        df.to_csv(f,mode=mode, sep=' ')
+        df.to_csv(f,mode=mode, sep=' ', na_rep='NAN')
     return fPath_frmt.format(fName)
 
 def traj2frameParticle(sedStrain_traj):

@@ -1,15 +1,17 @@
 # traction rheoscopy metaData template
 filePaths:
-  scratchDirectory_MBP: /path/to/file
-  scratchDirectory_IMAC: /Volumes/TFR/tfrGel09102018b_shearRun09232018a
-  scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09232018x/tfrGel09102018b_shearRun09232018a
-  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel09102018b/shearRun09232018x/tfrGel09102018b_shearRun09232018a
+  scratchDirectory_MBP: /Volumes/TFR/tfrGel10212018A_shearRun10292018d
+  scratchDirectory_IMAC: /Volumes/TFR/tfrGel10212018A_shearRun10292018d
+  scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018d20181029_113914 PM_20181030_13137 AM
+  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018d20181029_113914 PM_20181030_13137 AM
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
   testImgPath : '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/pyFiji/testImages'
 
   # projectDirectory is permanent and specific to this metaDataFile
-  projectDirectory_MBP: /path/to/file
-  projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018bsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018b20181029_84902 PM_20181029_95335 PM
+  projectDirectory_MBP: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018d
+  projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018d
+  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel10212018A/tfrGel10212018A_shearRun10292018d
+  tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
   tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
   TRANSFER_ODSY: /n/holylfs02/TRANSFER/jzterdik # large scale, and permanent due to special agreement with Harvard RC
@@ -51,7 +53,7 @@ filePaths:
     - dplPath # note that files written to dplPath are **all** the script files,
               # which also have hard coded extensions such as "extension='_preprocessing.ijm'
               # not the default extensions read from the yaml file as is the case for all other directories
-  # 
+  #
   # calibration data
   gelRheology: /path/to/gel/rheology/on/stoargeServer/
   experimentTable: /path/to/table/of/shearParameters/
@@ -86,7 +88,7 @@ filePaths:
   ilastik_IMAC: /Applications/ilastik-1.4.0b13-OSX.app/Contents/ilastik-release/run_ilastik.sh
 ################
 fileNamePrefix:
-  global: tfrGel09102018b_shearRun09232018a_
+  global: tfrGel10212018A_shearRun10292018d_
   preprocessing: preProcess_
   decon: decon_
   postDecon: postDecon8Bit_
@@ -96,7 +98,7 @@ fileNamePrefix:
   ilastik: ilastik_
   metaDataYAML: metaData
   log: log_
-  rawTiff: 405nm20180927_80357 PM_ # may not be necessary as I only read from the raw directory and never write to it.
+  rawTiff: tfrGel10212018A_shearRun10292018d20181029_113914 PM_ # may not be necessary as I only read from the raw directory and never write to it.
   dplPath: dplScript_
   darkTiff: darkImage_NoBinning_CameraZylaSideRFP  # does not have global fileNamePrefix
   psfTiffRegExp: 'psf_dim400_400_150_absZ*.tif' # Will depdend on bining
@@ -129,28 +131,28 @@ imageParam:
   stackBool: False
   xDim: 2048 # full image dimension in x direction, units of pixels
   yDim: 2048 # ...and in in y
-  zDim: 829 # number of z -slices
-  timeSteps: 136 # total number of number of time steps
+  zDim: 596 # number of z -slices
+  timeSteps: 38 # total number of number of time steps
   shearTime: [NAN, NAN] # shear start and stop timesteps assuming zero indexing
   px2Micron: {'x': 0.115, 'y': 0.115, 'z': 0.15} # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
   #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
   stackTime: 176 # time to acquire a stack in seconds
   stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
-  gelSedimentLocation: 206 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
-  interfaceRange: [194,206]
-  shearPostLocation: 823 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
-  gelSedimentLocation_fullStack: NAN # location of gel/sediment transition in full stack image, not imaging stack
-  reference2ImageStack: [NAN,NAN]
+  gelSedimentLocation: 222 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+  interfaceRange: [178,222]
+  shearPostLocation: 571 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+  gelSedimentLocation_fullStack: 0 # location of gel/sediment transition in full stack image, not imaging stack
+  reference2ImageStack: [937,163]
   coverSlipReferenceStack:
   piezoPos: # position of the objective piezo as read off optical encoder at various locations
-    imageStackBottom: 150 # required for generating height dependent psf
+    imageStackBottom: 150
     imageStackTop: NAN
     coverslip: 0
     gelSediment: NAN
 #######
 #######
 shearParam:
-  exptIntention: large strain, approx 20% to see deformation dynamics between colloidal crystal glass interface. planar interface is approximately at z600 but moves down over time as shear induced crystal growth occurs. # shear processing to crystallize, oscillatory rheology at freq, etc
+  exptIntention: strain sweep to locate yield point # shear processing to crystallize, oscillatory rheology at freq, etc
   waveform: triangle # triangle, triangle wave, sine, ...
   velocity: 0.00000 # velocity of plate in microns per second
   a: 0.000000 # step size, typical target is two steps per second given serial bandwidth 
@@ -237,7 +239,7 @@ ilastik:
         output_filename_format: '{dataset_dir}/{nickname}_probabilities.h5'
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
-      classifier_fName: 'tfrGel09102018b_shearRun09232018a.ilp'
+      classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1
@@ -314,10 +316,10 @@ postDecon:
         bool: True
         n_jobs: 8
       dask:
-        #rechunk_nzyx: [4,5,5] # use separate rechunk sizes on sediment and gel as gel is considerably more sparse, and each chunk should have both particles and background in it.
+        #rechunk_nzyx: [4,5,5]
         rechunk_nzyx:
             sed: [7,15,15]
-            gel: [4,5,5]
+            gel : [4,5,5]
         depth_delta: -10 # how much smaller to make depth than the chunk size?
         boundary: reflect
     method:
@@ -428,31 +430,7 @@ locating:
   gel:
     #- {diameter: [21,25,25], minmass: 9000000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_shift: 0.05, max_rms_dev: 0.2, param_mode: {background: 'var',disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x:[6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
     - {diameter: [21,25,25], minmass: 0, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_rms_dev: 0.2, param_mode: { background: 'var', disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x: [6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
-    - {diameter: [21,25,25],
-       minmass: 9000000,
-       preprocess: False,
-       max_iterations: 30,
-       refine_lsq:
-         { disc:
-             {fit_function: 'disc',
-              diameter: [16,21, 21],
-              max_iter: 65,
-              max_rms_dev: 0.2,
-              param_mode: { background: 'var',
-                            disc_size: 'var',
-                            size_z: 'var',
-                            size_x: 'var',
-                            size_y: 'var'},
-              bounds: {'disc_size': [0.2,0.8],
-                       size_x: [6,12],
-                       size_y: [6,12],
-                       size_z: [4,11]},
-              param_val: {disc_size: 0.42,
-                          size_x: 9.5,
-                          size_y: 9.5,
-                          size_z: 7.05,
-                          background: 0 },
-              compute_error: True}}}
+    - {diameter: [21,25,25], minmass: 9000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_rms_dev: 0.2, param_mode: { background: 'var', disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x: [6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
 dask_resources:
   IMAC:
     #ip: '10.0.0.33:8786'

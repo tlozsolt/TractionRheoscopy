@@ -324,11 +324,10 @@ class ParticleStitch(dpl.dplHash):
             s.put(df)
         return stem+'/{}'.format(fName)
 
-    def stitchAll(self, tMax = None):
+    def stitchAll(self, tMin= None, tMax = None):
         hash_df = self.dpl.hash_df
-        if tMax is None: tRange = hash_df['t'].max() + 1
-        else: tRange = tMax + 1
-        for t in range(tRange):
+        if tMax is None and tMin is None: tMax = hash_df['t'].max() + 1
+        for t in range(tMin, tMax+1):
             for mat in ['sed','gel']:
                 hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
                 stitch = self.stitch(hvList)
