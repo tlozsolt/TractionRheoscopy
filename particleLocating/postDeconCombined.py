@@ -474,6 +474,21 @@ class PostDecon_dask(dpl.dplHash):
     def iterativeLocate_da(self, input_da,**locatingMeta):
         pass
 
+    def rmPxClassifier(self):
+        deconPath = self.dpl.getPath2File( self.hashValue,
+                                          kwrd='decon',
+                                          computer=self.computer,
+                                          pathOnlyBool=True)
+
+        # nickname = 'tfrGel10212018A_shearRun10292018f_decon_hv00122'
+        nickname = self.dpl.getPath2File(self.hashValue, kwrd='decon',
+                                         computer=self.computer, fileNameOnlyBool=True).split('.')[0]
+        suffix = '_probabilities.h5'
+        fullPath = '{path}/{stem}{suffix}'.format(path=deconPath, stem=nickname, suffix=suffix)
+        if os.path.exists(fullPath):
+            print("Removing ilastik file\n")
+            os.remove(fullPath)
+
     def postDecon_dask(self):
         """
         In principle this function carries out all steps after deconvolution:
@@ -591,16 +606,16 @@ class PostDecon_dask(dpl.dplHash):
         # set hashvalue
         pxIntegrate.setHashValue(self.hashValue)
         #read pxProb and crop
-        pxIntegrate._readPxProb(None)
+        #pxIntegrate._readPxProb(None)
         # integrate with df_refine, and maybe check that column labels are correct
-        df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
+        #df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
 
         # save input image  to visualize directory
-        print("Saving input images to scratch visualize ")
-        fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
-        flatField.array2tif(np_postThresholdFilter,
-                            fName_locInput,
-                            metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
+        #print("Saving input images to scratch visualize ")
+        #fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
+        #flatField.array2tif(np_postThresholdFilter,
+        #                    fName_locInput,
+        #                    metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
 
         # save locations to csv
         print("Saving locations, both refined and centroid")
@@ -618,6 +633,11 @@ class PostDecon_dask(dpl.dplHash):
                         'df_refine':df_refine,
                         'np_postThresholdFilter':np_postThresholdFilter,
                         'log_locating': log_locating}
+
+        # clean up files on scratch
+        print("Removing pxClassifier now that job is complete to save scratch space")
+        self.rmPxClassifier()
+
         return df_loc, df_refine, np_postThresholdFilter, log_locating
 
 
