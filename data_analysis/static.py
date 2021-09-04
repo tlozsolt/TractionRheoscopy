@@ -9,6 +9,8 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
+from deprecated import deprecated
+from multiprocessing import Pool
 #from shapely.ops import polygonize, unary_union
 #from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
 
@@ -102,7 +104,7 @@ def bin(df, zlabel = 'z (um, imageStack)', nbins = 10,frame=None):
     tmp['bin'] = pd.cut(tmp[zlabel],nbins)
     return tmp.groupby('bin')
 
-def fitTopSurface(df, frame=None, pos_keys=None, n_bin = 15):
+def fitTopSurface(df, frame=None, pos_keys=None, n_bin = 15, method='maxProject'):
     """
     Fit the top surface of the gel or sediment to a linear plane and return a dictionary of fit parameters
     frame is either:
@@ -138,12 +140,23 @@ def fitTopSurface(df, frame=None, pos_keys=None, n_bin = 15):
     out = {}
     for t in frame:
         tmp = df.xs(t,level='frame').copy()
-        tmp['xbin'] = pd.cut(tmp[pos_key['x']], n_bin)
-        tmp['ybin'] = pd.cut(tmp[pos_key['y']], n_bin)
-        x = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['xbin'].apply(lambda x: 0.5 * (x.left + x.right)).to_numpy()
-        y = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['ybin'].apply(lambda x: 0.5 * (x.left + x.right)).to_numpy()
-        z = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['z (um, imageStack)'].to_numpy()
-        A = np.vstack([x,y,np.ones(len(x))]).T
+        if method != 'ovito':
+            tmp['xbin'] = pd.cut(tmp[pos_key['x']], n_bin)
+            tmp['ybin'] = pd.cut(tmp[pos_key['y']], n_bin)
+            # Comment, I think this gives an array x and y bin centers of the particles in the gel that have the highest z
+            # coordinate. The plane is fit to the x and y bin centers of the particle with the largest z value in the bin...
+            # I think its much better to get a permanent index of particles, slice into pos_df to get locations, and then fit
+            # the plane to xyz coordinates of those particle.
+            # the function should also be agnostic to what plane or material you are feeding. just pass an index and
+            # position dataframe and return a plane through those points. particle sslection is implicit in the index passed
+            # zsolt, Aug 2021
+            x = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['xbin'].apply(lambda x: 0.5 * (x.left + x.right)).to_numpy()
+            y = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['ybin'].apply(lambda x: 0.5 * (x.left + x.right)).to_numpy()
+            z = tmp.groupby(['xbin', 'ybin']).max()['z (um, imageStack)'].reset_index()['z (um, imageStack)'].to_numpy()
+            A = np.vstack([x,y,np.ones(len(x))]).T
+        elif method == 'ovito':
+            print('Try using fitSurface()')
+            raise NotImplemented
         try:
             fit, residual, rank, s = np.linalg.lstsq(A, z, rcond=None)
             out[t] = {'fit ax + by + c': fit, 'residual': residual, 'rank' : rank, 's': s}
@@ -152,6 +165,38 @@ def fitTopSurface(df, frame=None, pos_keys=None, n_bin = 15):
             pass
     return out
 
+def fitSurface_singleTime(pos_df, idx, coordStr):
+    """For a given position dataframe, fit a plance through the particles specified by idx
+    pos_df: index should match idx (not a multiindex)
+    idx: index of particles, whose positions should be fit to a plane
+    """
+    tmp = pos_df.loc[idx]
+    tmp['ones'] = 1
+    A_keys = ['x {}'.format(coordStr), 'y {}'.format(coordStr), 'ones']
+    fit, residual, rank, s = np.linalg.lstsq(tmp[A_keys].to_numpy(), tmp['z {}'.format(coordStr)].to_numpy())
+    return {'fit function': 'ax + by + c',
+            'coordinate string': coordStr,
+            'number of points': idx.shape[0],
+            'a':fit[0], 'b': fit[1], 'c':fit[2],
+            'residual': residual.squeeze(),
+            'rank': rank, 's': s}
+
+def fitSurface(pos_df, idx, coordStr = '(um, imageStack)'):
+    """loop over all the frames, fitting each surface"""
+    frames = max(pos_df.index.get_level_values('frame'))
+    out = {}
+    for t in range(frames + 1):
+        tmp = pos_df.xs(t,level='frame')
+        out[t] = fitSurface_singleTime(tmp,idx.intersection(tmp.index),coordStr)
+    return pd.DataFrame(out).T
+
+def readOvitoIdx(path):
+    'parses an xyz file with a single column of particle ids and returns a pandas index object'
+    tmp = pd.read_csv(path, sep='\n').drop(0).set_axis(['particle id'], axis=1)
+    return pd.Index(np.array(tmp['particle id']).astype(np.int))
+
+@deprecated(version='pre-Pandas', reason='This function assumes a dictionary of fit parameters as opposed to DataFrame.\n '
+                                          'Use pt2Plane and distFromPlane_df instead')
 def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_fit'):
     """
     Compute the vertical distance for particle coordinates
@@ -199,6 +244,44 @@ def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_f
         else: raise ValueError('Unrognized option {} for method in distFromPlane'.format(method))
     return None
 
+def pt2Plane(pt_zyx, plane_abc):
+    """
+    returns the distance of pt_zyx to plane defined by f(z) = ax + by + c
+    """
+    try: z, y, x = pt_zyx[:, 0], pt_zyx[:, 1], pt_zyx[:, 2]
+    except IndexError: z,y,x = pt_zyx
+    a, b, c = plane_abc
+    return z - (a * x + b * y + c)
+
+def distFromPlane_df(pos_df, fit_df, idStr, coordStr = '(um, imageStack)'):
+    """
+    >>> gel_pos = gel_pos.join(da.distFromPlane_df(gel_pos, gel_fits,'dist top gel'))
+    """
+    #check that coordinate systems match
+    if coordStr != fit_df['coordinate string'].iloc[0]: raise ValueError('Mismatching coordinate systems!')
+    n_frames = fit_df.index.shape[0]
+    out = []
+    # loop over time, maybe make parallel?
+    for t in range(n_frames):
+
+        cols = ['{} {}'.format(x,coordStr) for x in ['z','y','x']]
+        # slice the multi-index on pos_df, and keep track of the multiindex
+        tmp_df = pos_df.loc[(t, slice(None)), :][cols]
+        mIdx = tmp_df.index
+
+        # select the right plane to fit
+        fit_tmp = fit_df.loc[t][['a','b','c']]
+
+        # compute the distance
+        _dist = pt2Plane(tmp_df.values, fit_tmp.values)
+
+        # reassemble the dataFrame from arrays so that you can join the output with pos_df
+        dist_df = pd.DataFrame({idStr:_dist}, index=mIdx)
+        out.append(dist_df)
+
+    # concatenate and return
+    return pd.concat(out)
+
 def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
     """
     Computes the strain in the gel for each tracer particle.
@@ -209,6 +292,8 @@ def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
     :df pandas dataFrame of gel particle positions with multi index (frame, particleID)
                Should be the output of loadData2Mem applied to gel hdf5 file
     :h_offset: float, height to offset (likely the imageStack locations) to get true gel height
+               For imageStack coordinate system, this the height above the coverslip for a hypthetical particle
+               at the bottom of the imaging stack (ie z=0)
                This is simply added to the positions currently, but something more sophisticated
                is required. Perhaps, reference height of the top most particle? Affects quantitative results
                but not qualitiative results. If input keys is rheo_sed_depth then this this parameter
@@ -288,7 +373,10 @@ def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
             displacement['e_para'] = displacement['x (um, shearCoord para)']/(ref_config[pos_keys['z']] + h_offset)
             displacement['e_perp'] = displacement['y (um, shearCoord perp)']/(ref_config[pos_keys['z']] + h_offset)
 
-        displacement = displacement.stack().rename('(0,{})'.format(t))
+        #displacement = displacement.stack().rename('(0,{})'.format(t))
+        # modified to make parsing index easier, Aug 2021
+        # use '0 10'.split() -> ['0','10'] -> list comprehension applying int
+        displacement = displacement.stack().rename('0 {}'.format(t))
         out = out.join(displacement)
     out.set_index(out.index.rename(['particle','value']),inplace=True)
     return out
@@ -422,8 +510,6 @@ def computeRotation(pos,R):
         out[n] = R.dot((x,y))
     return out
 
-
-
 @numba.jit(nopython=True,nogil=True,cache=False)
 def computeLocalStrain(refPos, curPos, nnbArray):
     """
@@ -520,6 +606,10 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
     """
     Wrapper function ofr computeLocalStrain to pair it with pandas dataFrames
     and return pandas data frames with the particle ids intact.
+
+    This will compute the strain for all complete trajectoris between t0 and tf
+        (I think this means that the strain for a given particle may change quite a bit if is looses one of
+        its neighbors due to poor tracking)
     """
     if pos_keys == None:
         pos_keys = {}
@@ -549,16 +639,18 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
 
     # let's keep track of the number of nnb for each particle id
     nnb_count = pd.Series(np.array([len(nnbList) for nnbList in nnbIdx]),index=idx,name='nnb count')
+    max_nnb = nnb_count.max()
 
-    # pad nnbIdx to array Nx17
-    def padN(l,val,N=17): return np.pad(np.array(l),(0,N),mode='constant',constant_values=val)[0:N]
+    def padN(l,val,N): return np.pad(np.array(l),(0,N),mode='constant',constant_values=val)[0:N]
     # Caution, think about this next line of code
     #     -the index of the central particle may not be the first entry
+    #     -but the index of the particle **is** the row number in nnb_idx
     #     -I need to pad nnbIdx with index of the central particle to get around a bug numba
     #      https://github.com/numba/numba/issues/5680
     #      having to deal with if/else clauses in for looops
     #     -if local strain run on central particle, X and Y matrices are both zero and so no effect.
-    nnbIdx_np = np.array([padN(nnbIdx[m],m) for m in range(len(nnbIdx))])
+    nnbIdx_np = np.array([padN(nnbIdx[m],m, N=max_nnb+1) for m in range(len(nnbIdx))])
+
 
     if verbose == True: print('computing local strain')
     localStrainArray_np = computeLocalStrain(refConfig,curConfig,nnbIdx_np)
@@ -567,30 +659,65 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
                                                                     'rxy', 'rxz','ryz'], index = idx).join(nnb_count)
     return localStrainArray_df
 
-def makeLocalStrainTraj(pos_df, tPairList, output = 'strainTraj',pos_keys=None,verbose=False):
+@deprecated(version='pre frame particle convention', reason='This function is not parallel. Use localStrain_fp instead')
+def makeLocalStrainTraj(pos_df, tPairList, nnbCutoff, output = 'strainTraj',pos_keys=None,verbose=False):
     """
     Make LocalStrainTraj on a list of time points
     tPairs = list(zip([0 for n in range(90)],[n for n in range(2,90)]))
+    >> tPairs = [(n-3, n) for n in range(3,22)]
+    or
+    >> tPairs = [(0,n) for n in range(22)]
 
     This is a wrapper.  Mostly handles formatting the dataFrames.
+
+    It would be great if this was parallel with multiprocessing to deal with each of the (ref,cur)
+    pairs in parallel. I feel like I may have already done this on some random jupyter nb? zsolt, Aug 2021
+    >> see da.static.localStrain_fp
     """
-    strain_traj = localStrain(pos_df, 0, 1, pos_keys = pos_keys)
-    strain_traj = strain_traj.stack().rename('(0,1)').to_frame()
-    for n in range(len(tPairList)):
-        if verbose == True: print("Starting {} entry in list of len {}".format(n, len(tPairList)))
+    if verbose: print("Starting {}, entry {} of {} strains ".format(tPairList[0], 0, len(tPairList)))
+
+    # start with the first elt in tPairList and set up a permanent data structure
+    t0_ref, t0_cur = tPairList[0]
+    strain_traj = localStrain(pos_df, t0_ref, t0_cur, nnb_cutoff=nnbCutoff, pos_keys = pos_keys)
+    strain_traj = strain_traj.stack().rename('({},{})'.format(t0_ref, t0_cur)).to_frame()
+
+    # proceed to the rest of the for loop
+    for n in range(1,len(tPairList)):
         tRef, tCur = tPairList[n]
-        tmp = localStrain(pos_df, tRef, tCur, pos_keys=pos_keys)
+        if verbose: print("Starting {}, entry {} of {} strains ".format(tPairList[n],n, len(tPairList)))
+        tmp = localStrain(pos_df, tRef, tCur, nnb_cutoff=nnbCutoff, pos_keys=pos_keys)
         tmp = tmp.stack().rename('({},{})'.format(tRef, tCur)).to_frame()
         strain_traj = strain_traj.join(tmp)
         del tmp
+    # some naming of the indices
     strain_traj.set_index(strain_traj.index.rename(['particle', 'values']), inplace=True)
+
+    # what output do you want?
     if output == 'hdf':
         raise KeyError('Saving strainTraj directly to hdf is not implemented yet')
         #strain_fName = 'tfrGel10212018A_shearRun10292018f_sed_strainTraj_consecutive.h5'
         #strain_traj.to_hdf(hdf_stem + strain_fName, '(0,t)', mode='a', format='table', data_columns=True)
-    elif output == 'strainTraj':
-        return strain_traj
+    elif output == 'strainTraj': return strain_traj
+    elif output == 'frameParticle':
+        if verbose: print('converting strainTraj to frameParticle')
+        return traj2frameParticle(strain_traj)
     else: raise KeyError('output {} not recognized'.format(output))
+
+def localStrain_fp(pos_df, tPair, nnbCutoff):
+    """
+    tPair = (0,1) for example
+
+    combine with multiprocessing in jupyter notebook like:
+
+    >> def g(tPair): return da.localStrain_fp(sed_pos, tPair, 2.6)
+    >> from multiprocessing import Pool
+    >> with Pool(2) as p: out = p.map(g,[(0,1),(3,4)])
+    >> sed_strain_df = pd.concat(out)
+    """
+    ref, cur = tPair
+    tmp = localStrain(pos_df, ref, cur, nnb_cutoff=nnbCutoff)
+    mIdx = pd.MultiIndex.from_product([[tPair], tmp.index], names=['frame', 'particle'])
+    return tmp.set_index(mIdx)
 
 def loadParticle(t, path_partial=None, fName_frmt=None):
     if path_partial is None:
@@ -607,7 +734,7 @@ def df2xyz(df, fPath,fName, mode='w'):
     """
     Write a pandas dataFrame to xyz file
     """
-    fPath_frmt = fPath+'/{}'
+    fPath_frmt = fPath+'{}'
     with open(fPath_frmt.format(fName),mode) as f:
         f.write(str(df.shape[0]))
         f.write('\n#particleID ')
@@ -688,6 +815,177 @@ def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
         _idx = tracked_df.loc[tracked_df['particle'].isin(particle_idx)].index
         return stitched[stitched['keepBool' == True]].loc[_idx]
     else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
+
+def loadStitched(time_list, mat, path = None, fName_frmt=None, params = None):
+
+    #if path is None: path = '/Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018a/locations'
+    #if fName_frmt is None: fName_frmt = 'tfrGel09102018b_shearRun09232018a_stitched_{}'.format(mat)+'_t{:03}.h5'
+    if path is None: input("input path ot locations (eg \'/Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018a/locations\'")
+    if fName_frmt is None: input("what is the fName_frmt (eg \''tfrGel09102018b_shearRun09232018a_stitched_{}'.format(mat)+'_t{:03}.h5'\'")
+
+    if params is None:
+        posKeys = ['{} (um, imageStack)'.format(x) for x in ['x','y','z']]
+        posKeys += ['{}_std'.format(x) for x in ['x','y','z']]
+        posKeys += ['size_{}'.format(x) for x in ['x','y','z']]
+        posKeys += ['totalError', 'disc_size', 'mass', 'raw_mass', 'signal', 'background']
+        posKeys += [ 'sed_Colloid_core', 'sed_Colloid_shell',
+                     'fluorescent_chunk_core', 'fluorescent_chunk_shell',
+                     'gel_Tracer_core', 'gel_Tracer_shell',
+                     'sed_Background_core', 'sed_Background_shell',
+                     'nonfluorescent_chunk_core', 'nonfluorescent_chunk_shell',
+                     'gel_Background_core', 'gel_Background_shell']
+        col_keys = ['frame' ]
+
+    for t in time_list:
+        print('Stitched time {}'.format(t))
+        fName = path +'/'+ fName_frmt.format(t)
+        data = pd.read_hdf(fName,key='{}'.format(t))
+        yield data[data['keepBool'] == True][posKeys + col_keys]
+
+def stitched_h5(stitched_outPath, max_t, param_dict):
+    path = param_dict['path']
+    mat = param_dict['mat']
+    fName_frmt = param_dict['fName_frmt']
+
+    with tp.PandasHDFStoreBig(stitched_outPath) as s:
+        for data in loadStitched(range(max_t), mat, path=path, fName_frmt=fName_frmt):
+            s.put(data)
+
+def getCompleteIdx(df1,df2, key='particle'):
+    """
+    Get particle indices shared between dataframes df1 and df2
+    If df1 and df2 are the initial and final time points, then this will return
+    the particle id (from tracking) of particles with complete trajectories.
+    """
+    return df1.index.intersection(df2.index)
+    #return pd.Index(df1[key]).intersection(pd.Index(df2[key]))
+
+def getDroppedIdx(df1,df2, key='particle'):
+    """
+    Get the indices of df1 that are not present in df2.
+    Note this function is not symmetric under permutation of df1 and df2
+    If df1 and df2 are the initial and final time points, then this will return
+    the particle id of particle in the initial time that have incomplete trajectories.
+    """
+    idx1 = pd.Index(df1[key])
+    idx2 = pd.Index(df2[key])
+    return idx1.difference(idx2)
+
+def xyzDropped(df1,df2, key='particle'):
+    """
+    Write xyz files for the particle with complete and incomplete traj between df1 and df2.
+    """
+    path = input("Type path where the xyz files should be saved")
+    fName_frmt = input("fName_frmt eg \'/sed_{flag}_t{start:02}_t{stop:02}.xyz\'")
+    comIdx = getCompleteIdx(df1,df2)
+    dropIdx = getDroppedIdx(df1,df2)
+    start, stop = df1['frame'].iloc[0], df2['frame'].iloc[0]
+    df2xyz(df1.set_index(key).loc[comIdx],path, fName_frmt.format(flag='complete',start=start, stop=stop))
+    df2xyz(df1.set_index(key).loc[dropIdx],path, fName_frmt.format(flag='incomplete',start=start, stop=stop))
+    return path+'/{}'.format(fName_frmt)
+
+def sliceFP(pos_df, idx):
+    """
+    slice a multiIndex position DataFrame (pos_df with multiIndex (frame, particle) to get all colummns (col) and particle indices idx
+    for all the time time points in the multiIndex
+
+    this effectively returns the trajectories of the particles in idx over time.
+
+    wow, this a huge timesaver but there may be an even faster way with pos_df.xs(t,level='frames).loc[idx] and
+    looping over frame number t
+
+    returns a DataFrame of
+    """
+    col = pos_df.keys()
+    out = {}
+    # unstacking is the slowest part, keep it outside the for loop
+    unstacked = pos_df.unstack()
+    for name in col:
+        out[name] = unstacked[name].T.loc[idx].T.stack()
+    return pd.DataFrame(out)
+
+def sliceTraj(pos_df, idx):
+    """
+    for a single column, return a trajectory format of all particles in idx
+    """
+    col = pos_df.keys()
+    out = {}
+    # unstacking is the slowest part, keep it outside the for loop
+    unstacked = pos_df.unstack()
+    for name in col:
+        out[name] = unstacked[name].T.loc[idx]
+    return out
+
+def computeDisplacement(pos_df, coordStr='(um, imageStack)'):
+    """
+    compute the dipslacment of every particle relative to the first frame
+    will fill in nan for particles that are either not in the first frame
+    or after they are dropped.
+
+    """
+    # moving window, v2
+    # something with pad and roll to compute displacement in moving window
+    # >> https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rolling.html
+    xyz=['x','y','z']
+    pos_keys = ['{} {}'.format(coord,coordStr) for coord in xyz]
+    unstacked = pos_df[pos_keys].unstack()
+
+    out = {}
+    for coord in xyz:
+        key,pos = ('disp {}'.format(coord), '{} {}'.format(coord,coordStr))
+        out[key] = (unstacked[pos] - unstacked[pos].loc[0]).stack()
+    return pd.DataFrame(out)
+
+def heatMap(disp_df, out_frmt = None, interactive = False):
+    """ Make a heatmap in seaborn of displacement that have been binned in xy
+    # >> https://matthewmcgonagle.github.io/blog/2019/01/22/HeatmapBins
+    """
+
+    # bin in x,y
+    disp_df['xbin'] = pd.cut(disp_df['x (um, imageStack)'], pd.interval_range(0, 235, 10))
+    disp_df['ybin'] = pd.cut(disp_df['y (um, imageStack)'], pd.interval_range(0, 235, 10))
+
+    import seaborn as sns
+    from matplotlib import pyplot as plt
+    sns.set(rc={'figure.figsize': (16, 9)})
+    sns.set_context('paper', font_scale=4)
+
+    def getMid(pair):
+        """ usage: mIdx_xybins.map(getMid) returns a multiindex of bin centers. """
+        def _getMid(interval): return (interval.right + interval.left) / 2
+        x, y = pair
+        return _getMid(x), _getMid(y)
+
+    binned_displacement = disp_df.groupby(['xbin', 'ybin']).mean()[
+        ['disp {}'.format(coord) for coord in ['x', 'y', 'z']]]
+    binned_displacement['disp sqrt(x**2 + y**2)'] = np.sqrt(
+        binned_displacement['disp x'] ** 2 + binned_displacement['disp y'] ** 2)
+    binned_mIdx = binned_displacement.index.map(getMid)
+    # plot the displacement in x and y in nanometers
+    v = {'x': (0, 330), 'y': (0, 330), 'sqrt(x**2 + y**2)': (0, 330)}
+    for i, coord in enumerate(['x', 'y', 'sqrt(x**2 + y**2)']):
+        plt.clf()
+        tmp = binned_displacement['disp {}'.format(coord)].reindex(binned_mIdx).unstack().T
+        plt.figure(i)
+        if interactive: sns.heatmap(abs(1000 * tmp), cmap='viridis')
+        else:
+            sns.heatmap(abs(1000 * tmp), vmin=v[coord][0], vmax=v[coord][1], cmap='viridis')
+            if out_frmt is None: out = input("Full path (without quotes) to output figure for coordinate {}: ".format(coord))
+            else:
+                if coord is 'x' or coord is 'y': out = out_frmt.format(coord=coord)
+                else: out = out_frmt.format(coord='mag')
+            plt.savefig(out, bbox_inches='tight')
+    return True
+
+def getMid(pair):
+    """ usage: mIdx_xybins.map(getMid) returns a multiindex of bin centers. """
+    def _getMid(interval): return (interval.right + interval.left) / 2
+    x, y = pair
+    return _getMid(x), _getMid(y)
+
+def vonMises(strain_df_entry):
+    exx, exy, exz, eyy, eyz, ezz = strain_df_entry
+    return np.sqrt(1/2.0*((exx -eyy)**2 + (eyy-ezz)**2 + (ezz-exx)**2) + 3*(exy**2 + eyz**2 + exz**2))
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'

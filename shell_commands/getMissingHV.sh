@@ -1,3 +1,7 @@
+# log on to storage server
+# launch cisco anyconnect to connect to harvard's network
+ssh zsolt@10.243.56.39
+
 # in log directory, this returns just the string (hv00010 for example) of files
 # that *do not* contain the search string 'particles:' The file name handling is cut to get 4th field
 # and then cut again to remove file extension

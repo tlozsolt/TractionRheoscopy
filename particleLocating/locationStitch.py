@@ -8,6 +8,7 @@ from scipy.spatial import cKDTree
 import numba
 from numba import prange
 import trackpy as tp
+from tqdm import tqdm
 import math
 
 
@@ -326,7 +327,9 @@ class ParticleStitch(dpl.dplHash):
 
     def stitchAll(self, tMin= None, tMax = None):
         hash_df = self.dpl.hash_df
-        if tMax is None and tMin is None: tMax = hash_df['t'].max() + 1
+        if tMax is None and tMin is None:
+            tMin = 0
+            tMax = hash_df['t'].max()
         for t in range(tMin, tMax+1):
             for mat in ['sed','gel']:
                 hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
@@ -336,6 +339,11 @@ class ParticleStitch(dpl.dplHash):
                 stitch.to_hdf(path +'/{}'.format(fName), str(t))
             print("stitched t={}".format(t))
         return True
+
+    def parStitchAll(self,tMin, tMax, n_jobs=16):
+        return Parallel(n_jobs=n_jobs)(delayed(self.stitchAll)(tMin=x, tMax=x) for x in tqdm(range(tMin,tMax+1)))
+
+
     #def splitNSave(self,
     #               df = self.locations,
     #               coordStr=('(um imageStack)', '(px, hash)' ),

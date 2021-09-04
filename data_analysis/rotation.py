@@ -29,6 +29,24 @@ def parseRotYaml(rotDict):
     else:
         raise ValueError("not all options are supported in parseRotYaml yet...")
 
+def rotationMatrix(theta_x, theta_y, theta_z):
+    """
+    Returns three rotation matrices that rotate a vector theta_i degree about coordinate i
+    """
+    r_x = np.array(((1, 0, 0),
+                    (0, np.cos(theta_x), -1 * np.sin(theta_x)),
+                    (0, np.sin(theta_x), np.cos(theta_x))))
+    r_y = np.array(((np.cos(theta_y), 0, np.sin(theta_y)),
+                    (0, 1, 0),
+                    (-1 * np.sin(theta_y), 0, np.cos(theta_y))))
+    r_z = np.array(((np.cos(theta_z), -1 * np.sin(theta_z), 0),
+                    (np.sin(theta_z), np.cos(theta_z), 0),
+                    (0, 0, 1)))
+    prod_zyx = np.matmul(r_z, np.matmul(r_y, r_x))
+    prod_xyz = np.matmul(r_x.T, np.matmul(r_y.T, r_z.T))
+    return {'prod_zyx (left)': prod_zyx, '(prod_zyx)T (right)': prod_xyz, 'r_x': r_x, 'r_y': r_y, 'r_z': r_z}
+
+
 def coordTransform(pos_df, coordStr_current, coordStr_target, z_offSet=0):
     if coordStr_current == '(um, imageStack)' and coordStr_target == '(um, rheo_sedHeight)':
         #z_offSet = kwargs['z_offSet']
@@ -90,9 +108,10 @@ def _rotate(strainList_np, signature_np, r):
 
         # loop over the components
         for comp in range(6):
-            x = signature_np[comp][0]
-            y = signature_np[comp][1]
+            x = int(signature_np[comp][0])
+            y = int(signature_np[comp][1])
             tmp[x, y] = strain_flat[comp]
+        # complete the strain matrix from just the upper triangle
         strain = tmp + tmp.T - np.diag(np.diag(tmp))
         # print(strain.shape)
 

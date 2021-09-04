@@ -1,7 +1,7 @@
 # traction rheoscopy metaData template
 filePaths:
   scratchDirectory_MBP: /Volumes/TFR/tfrGel10212018A_shearRun10292018e
-  scratchDirectory_IMAC: /Volumes/TFR/tfrGel10212018A_shearRun10292018e
+  scratchDirectory_IMAC: /Volumes/PROJECT/tfrGel10212018x/tfrGel10212018A_shearRun10292018e
   scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018e20181030_82115 AM_20181030_113149 AM
   scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018e20181030_82115 AM_20181030_113149 AM
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
@@ -9,7 +9,7 @@ filePaths:
 
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e
-  projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e
+  projectDirectory_IMAC: /Volumes/PROJECT/tfrGel10212018x/tfrGel10212018A_shearRun10292018e
   projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel10212018A/tfrGel10212018A_shearRun10292018e
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
@@ -138,7 +138,7 @@ imageParam:
   #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
   stackTime: 176 # time to acquire a stack in seconds
   stackInterval: 180 # time between successive stacks, note: stackInterval > stackTime
-  gelSedimentLocation: 222 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
+  gelSedimentLocation: 210 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
   interfaceRange: [165,209]
   shearPostLocation: 558 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
   gelSedimentLocation_fullStack: 0 # location of gel/sediment transition in full stack image, not imaging stack
@@ -182,7 +182,7 @@ hash:
     sed:
       xyz: [450,450,200]
       minOverlap: [50,50,50]
-      pxOverlap_w_gel: 70 # how much overlpa should sed chunks have with gel?
+      pxOverlap_w_gel: 90 # how much overlpa should sed chunks have with gel?
                           # This is height below gelSedimentLocation
                           # and defines the lower bound for hashing sed chunks
 preprocessing:

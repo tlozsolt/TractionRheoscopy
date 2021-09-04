@@ -611,11 +611,12 @@ class PostDecon_dask(dpl.dplHash):
         #df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
 
         # save input image  to visualize directory
-        #print("Saving input images to scratch visualize ")
-        #fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
-        #flatField.array2tif(np_postThresholdFilter,
-        #                    fName_locInput,
-        #                    metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
+        if computer == 'IMAC':
+            print("Saving input images to scratch visualize ")
+            fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
+            flatField.array2tif(np_postThresholdFilter,
+                                fName_locInput,
+                                metaData = yaml.dump(self.dpl.metaData, sort_keys=False))
 
         # save locations to csv
         print("Saving locations, both refined and centroid")
@@ -635,8 +636,9 @@ class PostDecon_dask(dpl.dplHash):
                         'log_locating': log_locating}
 
         # clean up files on scratch
-        print("Removing pxClassifier now that job is complete to save scratch space")
-        self.rmPxClassifier()
+        if computer == 'ODSY':
+            print("Removing pxClassifier now that job is complete to save scratch space")
+            self.rmPxClassifier()
 
         return df_loc, df_refine, np_postThresholdFilter, log_locating
 

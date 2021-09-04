@@ -137,6 +137,23 @@ def plotParticleCount(outliers, binHash, particleCount, hashDim=None, path=None,
         # what fileName?
         fName = fName_frmt.format(xyz=''.join([str(elt) for elt in xyz]), mat=mat)
         g.figure.savefig(path +'/{}'.format(fName))
+
+def plotParticle(key, qcDict, hv, path):
+    pc = qcDict[key]['particleCount']
+    binHash = qcDict[key]['binHash']
+    xyz = binHash.loc[hv].pop('xyzt')
+    data = pc.loc[binHash.drop('xyzt',axis=1).loc[hv].values]
+    data['time'] = np.arange(data.shape[0])
+    #return sns.lineplot(data=data, y='particle count', x='time', label = 'Particle count (x,y,z) = {}'.format(xyz))
+
+    g = sns.lineplot(data=data, y='particle count', x='time', label = 'Particle count (x,y,z) = {}'.format(xyz))
+
+    # what fileName?
+    fName = fName_frmt.format(xyz=''.join([str(elt) for elt in xyz]), mat=mat)
+    g.figure.savefig(path + '/{}'.format(fName))
+    return True
+
+
 #%%
 # compute derivative
 #data = particleCount.loc[binHash.drop('xyzt', axis=1).loc[89].values].to_numpy().squeeze()

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="893ce254-bb31-4d37-a833-52b4b2a47a7b" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/aws.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../jupyter_notebooks/.ipynb_checkpoints/stress_strain_glass_strainRamp_f-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../jupyter_notebooks/.ipynb_checkpoints/stress_strain_glass_strainRamp_f_preIlastik-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../jupyter_notebooks/stress_strain_glass_strainRamp_f.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../jupyter_notebooks/stress_strain_glass_strainRamp_f_preIlastik.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../particleLocating/stitchTrack_combined.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../shell_commands/postLocating_steps.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../shell_commands/tar_project.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../data_analysis/static.py" beforeDir="false" afterPath="$PROJECT_DIR$/../data_analysis/static.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../particleLocating/locationStitch.py" beforeDir="false" afterPath="$PROJECT_DIR$/../particleLocating/locationStitch.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../particleLocating/postLocating.py" beforeDir="false" afterPath="$PROJECT_DIR$/../particleLocating/postLocating.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1wgPjNkt0X5OB3klctvU9BwXQ8F" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="893ce254-bb31-4d37-a833-52b4b2a47a7b" name="Default Changelist" comment="" />
+      <created>1628877393052</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1628877393052</updated>
+      <workItem from="1628877394359" duration="381000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
