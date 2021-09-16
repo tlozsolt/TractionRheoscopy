@@ -10,7 +10,7 @@ filePaths:
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /
   projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_referenceStack_1
-  projectDirectory_ODSY: n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel10212018A/tfrGel10212018A_referenceStack_1
+  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel10212018A/tfrGel10212018A_referenceStack_1
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
   tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
@@ -88,7 +88,7 @@ filePaths:
   ilastik_IMAC: /Applications/ilastik-1.4.0b13-OSX.app/Contents/ilastik-release/run_ilastik.sh
 ################
 fileNamePrefix:
-  global: tfrGel10212018A_referenceStack_1
+  global: tfrGel10212018A_referenceStack_1_
   preprocessing: preProcess_
   decon: decon_
   postDecon: postDecon8Bit_
