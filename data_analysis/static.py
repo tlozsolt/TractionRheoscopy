@@ -962,6 +962,7 @@ def heatMap(disp_df, out_frmt = None, interactive = False):
         binned_displacement['disp x'] ** 2 + binned_displacement['disp y'] ** 2)
     binned_mIdx = binned_displacement.index.map(getMid)
     # plot the displacement in x and y in nanometers
+    # this should be separated into separate function.
     v = {'x': (0, 330), 'y': (0, 330), 'sqrt(x**2 + y**2)': (0, 330)}
     for i, coord in enumerate(['x', 'y', 'sqrt(x**2 + y**2)']):
         plt.clf()
@@ -976,6 +977,160 @@ def heatMap(disp_df, out_frmt = None, interactive = False):
                 else: out = out_frmt.format(coord='mag')
             plt.savefig(out, bbox_inches='tight')
     return True
+
+def plot_heatMap(disp_dict, **kwargs):
+    # from dict of disp df write the following figures:
+    # - displacement of x,y,z and magnitude for sed and gel
+    # -reisudal displacment of xyz between sed and gel on diverging cmap
+    # have the following parameters passed through a file:
+    #  - cmap along with bounds
+    #  - number of spatial bins
+    #  - figure context parameters
+    #  - output paths and naming conventions
+    #  - displacement scaling to nm along with figure labels (maybe this is over generlizing)
+    # Note, this function should serve as the template for how to write plotting functions that
+    # need to be applied across experiments.
+
+    # define some sub functions that will be used
+    #def getMid(pair):
+    #    """ usage: mIdx_xybins.map(getMid) returns a multiindex of bin centers. """
+    #    def _getMid(interval): return (interval.right + interval.left) / 2
+    #    x, y = pair
+    #    return _getMid(x), _getMid(y)
+    def bindf(disp_df, key, start, stop, n): return pd.cut(disp_df[key], pd.interval_range(start, stop, n))
+
+    def writeHeatmap(binned_disp, mat, out_frmt, vmin=None, vmax=None, cmap=None, center=None, **param):
+        #v = {'x': (0, 330), 'y': (0, 330), 'sqrt(x**2 + y**2)': (0, 330)}
+        binned_mIdx = binned_disp.index.map(getMid)
+        for i, coord in enumerate(['x', 'y', 'mag']):
+            plt.clf()
+            tmp = binned_disp['disp {}'.format(coord)].reindex(binned_mIdx).unstack().T
+            plt.figure(i)
+            if mat is 'sed' or mat is 'gel': sns.heatmap(abs(1000 * tmp), vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
+            else: sns.heatmap(1000 * tmp, vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
+            if coord is 'x' or coord is 'y': out = out_frmt.format(coord=coord)
+            else: out = out_frmt.format(coord='mag')
+            plt.savefig(out, bbox_inches='tight')
+        return True
+
+    # unpack some of the metaData (dont know how to do this from a file)
+    # for the moment, I will just create a hard coded dictionary that can be unpacked from yaml
+    start,stop,n = (0,235,10)
+    plot_param = {
+        'sed': {'cmap': 'viridis', 'vmin':{'x':0, 'y':0, 'mag': 0}, 'vmax': {'x': 330, 'y':330, 'mag': 330}},
+        'gel': {'cmap': 'viridis', 'vmin': {'x': 0, 'y': 0, 'mag': 0}, 'vmax': {'x': 330, 'y': 330, 'mag': 330}},
+        'residual': {'cmap': 'vlag', 'center': 0, 'vmin':{'x':-50, 'y':-50, 'mag':-50}, 'vmax':{'x':50, 'y':-50, 'mag':50} },
+        'count': {'discrete_palette': "Blues", 'title': "Number of particles per bin", 'sns_heatmap': {'vmin': 0, 'vmax':16, 'annot':True}}
+    }
+    figPath = './debug'
+    sns_context = {'rc':{'figure.figsize':(16,12)}, 'font_scale': 4, 'style':'paper'}
+
+    #set sns context, could also be loaded from file?
+    import seaborn as sns
+    from matplotlib import pyplot as plt
+    sns.set(rc=sns_context['rc'])
+    sns.set_context(sns_context['style'], font_scale=sns_context['font_scale'])
+
+    # now bin in x and y, followed by groupby t,xy
+    binned_dict = {}
+    for mat, disp_df in disp_dict.items():
+        #compute magnitude
+        disp_df['disp mag'] = np.sqrt( disp_df['disp x'] ** 2 + disp_df['disp y'] ** 2)
+        for coord in ['x', 'y']:
+            disp_df['{}bin'.format(coord)] = bindf(disp_df, '{} (um, imageStack)'.format(coord), start, stop, n)
+        binned_dict[mat] = disp_df.groupby(['frame', 'xbin', 'ybin']).mean()[['disp {}'.format(coord) for coord in ['x', 'y', 'z', 'mag']]]
+
+    #compute residual displacement across bins
+    binned_dict['residual'] = binned_dict['sed'] - binned_dict['gel']
+
+    #"""
+    for mat,binned_disp in binned_dict.items():
+        for frame, disp_t in binned_disp.groupby('frame'):
+           out_frmt = figPath + '/'+'_'.join([mat,'{coord}','t'+f'{frame:03}'+'.png'])
+           writeHeatmap(disp_t.droplevel('frame'),mat,out_frmt, **plot_param[mat])
+    #"""
+
+    # write single entry of count heatmap for gel
+    plt.clf()
+    _p = plot_param['count']
+    c, vmax =_p['discrete_palette'], _p['sns_heatmap']['vmax']
+    #vmin, vmax, annot = _p['vmin'], _p['vmax'], _p['annot']
+    tmp = disp_dict['gel'].xs(0, level='frame')
+    tmp_mIdx = tmp.groupby(['xbin', 'ybin']).count().index.map(getMid)
+
+    #plot
+    g = sns.heatmap(tmp.groupby(['xbin','ybin']).count().reindex(tmp_mIdx)['disp x'].unstack().T,
+                cmap=sns.mpl_palette(c, vmax),  **_p['sns_heatmap'])
+    #g.set_title(_p['title'])
+    # save
+    count_out = figPath + '/gel_particleCount.png'
+    plt.savefig(count_out, bbox_inches = 'tight')
+
+def plot_zbinDisp(disp_dict, **kwargs):
+    # TODO:
+    # -make params passed to fucntion
+    # -load sns and set context
+    # -change to iterating over groupby dict?
+    sed_clean = disp_dict['sed']
+    gel_clean = disp_dict['gel']
+
+    gelBins = 6
+    geltmp = gel_clean.join(da.computeDisplacement(gel_clean))
+    geltmp['bin bottom sed'] = pd.cut(geltmp['dist bottom sed'], gelBins)
+    geltmp['bin mid'] = geltmp['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
+
+    sedBins = 10
+    sedtmp = sed_clean.join(da.computeDisplacement(sed_clean))
+    sedtmp['bin bottom sed'] = pd.cut(sedtmp['dist bottom sed'], sedBins)
+    sedtmp['bin mid'] = sedtmp['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
+
+    tMax = 22
+    disp_max = 0.4 * 1000
+    key = 'disp x'
+
+    import seaborn as sns
+    from matplotlib import pyplot as plt
+    sns.set(rc=sns_context['rc'])
+    sns.set_context(sns_context['style'], font_scale=sns_context['font_scale'])
+
+    # make color palette magenta/cyan (or close to it)
+    # have sharp transition magenta/cyan at gel/sed bin transition
+    p = sns.diverging_palette(300, 185, n=20, s=100)
+    b, r = p[0:10], p[10:20]
+    b.reverse()
+    r.reverse()
+    _ = b + r
+    _.reverse()
+
+    for frame in range(tMax):
+        plt.clf()
+
+        s = sedtmp.xs(frame, level='frame')
+        # tmp10['bin mid'] = tmp10['bin bottom sed'].map(lambda x: round((x.left + x.right)/2,1))
+        s[key + ' (nm)'] = 1000 * s[key]
+
+        g = geltmp.xs(frame, level='frame')
+        # geltmp10['bin mid'] = geltmp10['bin bottom sed'].map(lambda x: round((x.left + x.right)/2,1))
+        g[key + ' (nm)'] = 1000 * g[key]
+
+        # concatenate sed and gel and reset index. Note, there is no way that sed and gel pareticles bins are mixed
+        # on pivot as gel bin centers are far enough apart and would have to otherwise be equal
+        # also bin was based on dist from sed_bottom interface, and they were binned separately.
+        tmp = pd.concat([s, g]).reset_index()
+
+        sns.boxplot(data=tmp.pivot(columns='bin mid', values=key + ' (nm)'), orient='h',
+                    order=sorted(tmp['bin mid'].unique(), reverse=True),
+                    showmeans=True,
+                    meanprops={'marker': 'o', 'markerfacecolor': 'white', 'markeredgecolor': 'black', 'markersize': 15},
+                    whis=(5, 95),
+                    palette=_[0:16],
+                    showfliers=False
+                    )
+        plt.xlim(-100, disp_max)
+        plt.xlabel('Displacement (nm)')
+        plt.ylabel('Height above sed/gel interface (6 um bins)')
+        plt.title('Average displacment in shear direction vs. height ')
+        plt.savefig('./debug/displacement_sedGel_merged_t{t:02}.png'.format(t=frame))
 
 def getMid(pair):
     """ usage: mIdx_xybins.map(getMid) returns a multiindex of bin centers. """
