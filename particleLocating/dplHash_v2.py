@@ -1726,7 +1726,7 @@ class dplHash:
         def exec_hash():
             if computer == 'ODSY':
                 output = self.metaData['filePaths']['loadPython_ODSY'] + '\n'
-                output = self.metaData['filePaths']['loadIlastik_ODSY'] + '\n'
+                output += self.metaData['filePaths']['loadIlastik_ODSY'] + '\n'
                 output += "source activate tractionRheoscopy\n"
             elif computer == 'MBP' or computer == 'IMAC':
                 output = ""
@@ -2146,6 +2146,7 @@ class dplHash:
         # header += "#SBATCH -e JobArray_locating_all.err\n"
         header += "#SBATCH -p " + str(self.metaData['ODSY_Resources']['queue']) + "\n"
         footer = "#SBATCH -n " + str(self.metaData['ODSY_Resources']['cores']) + "\n"
+        footer += "SBATCH -N 1 \n"
         footer += "#SBATCH -t " + str(self.metaData['ODSY_Resources']['time']) + "\n"
         footer += "#SBATCH --mem=" + str(self.metaData['ODSY_Resources']['mem']) + "\n"
         if self.metaData['ODSY_Resources']['queue'] == 'serial_requeue': footer += "#SBATCH --requeue\n"
