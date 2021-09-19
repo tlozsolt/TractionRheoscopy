@@ -927,11 +927,12 @@ class dplHash:
         outPath = self.getPath2File(hashValue, kwrd='flatField', computer=computer)
 
         # load stacks or slices depending on how the data was saved.
-        # pass the corect stackBool flag to zStack2Mem
+        # pass the correct stackBool flag to zStack2Mem
         stackBool = self.metaData['imageParam']['stackBool']
         rawStack = flatField.zStack2Mem(rawPath, stackBool=stackBool)
         darkStack = flatField.zStack2Mem(darkPath)
         masterDark = flatField.zProject(darkStack)
+        del darkStack
 
         # crop according to the yaml file and read off the crop parameters specific to hashValue from metaData
         if self.metaData['flatField']['crop2Hash'] == True:

@@ -504,7 +504,7 @@ class PostDecon_dask(dpl.dplHash):
         This will also automatically log the results, however the job control could be improved.
         """
         computer=self.computer
-        metaData = self.metaData['postDeconCombined']
+        #metaData = self.metaData['postDeconCombined']
 
         print("Warning, calling postDecon_dask from postDeconCombined.PostDecon_dask\n"
               "Job control over steps has not been implemented in any way apart from\n"
@@ -613,7 +613,7 @@ class PostDecon_dask(dpl.dplHash):
         #df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
 
         # save input image  to visualize directory
-        if computer == 'IMAC' or metaData['locInput']:
+        if computer == 'IMAC' or self.metaData['postDeconCombined']['locInput']:
             print("Saving input images to scratch visualize ")
             fName_locInput = self.dpl.getPath2File(self.hashValue,kwrd='visualize', computer=computer, extension='locInput.tif')
             flatField.array2tif(np_postThresholdFilter,
@@ -638,7 +638,7 @@ class PostDecon_dask(dpl.dplHash):
                         'log_locating': log_locating}
 
         # clean up files on scratch
-        if computer == 'ODSY' and metaData['cleanup']:
+        if computer == 'ODSY' and self.metaData['postDeconCombined']['cleanup']:
             print("Removing pxClassifier now that job is complete to save scratch space")
             self.rmPxClassifier()
 
