@@ -276,8 +276,10 @@ smartCrop:
 
 
 postDeconCombined:
-  bool: True
-  dask: True
+  bool: True # carry out this step?
+  dask: True # use dask?
+  locInput: False # output the tiff file used for particle locating?
+  cleanup: True # delete the classifier files? Note these are large enough to exceed scratch quotas
   steps: # ordered list of steps
     - smartCrop
     - threshold
