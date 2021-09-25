@@ -22,7 +22,7 @@ tfrGel09102018b:
         yDim: 2048 # ...and in in y
         zDim:  829 # number of z -slices
         timeSteps: 136 # total number of number of time steps
-        shearTime: [, ] # shear start and stop timesteps assuming zero indexing
+        shearTime: [NAN, NAN] # shear start and stop timesteps assuming zero indexing
         px2Micron: {'x': , 'y': , 'z': } # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
         #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
         stackTime:  # time to acquire a stack in seconds
@@ -60,7 +60,7 @@ tfrGel09102018b:
         yDim: 2048 # ...and in in y
         zDim:  829 # number of z -slices
         timeSteps: 136  # total number of number of time steps
-        shearTime: [, ] # shear start and stop timesteps assuming zero indexing
+        shearTime: [NAN , NAN ] # shear start and stop timesteps assuming zero indexing
         px2Micron: {'x': , 'y': , 'z': } # list of multiplicative factors, this should be changed to just report raw and handle any upscaling when/if that happens during the pipleine
         #px2Micron_raw: {'x': 0.230, 'y': 0.230, 'z': 0.15} # list of multiplicative factors to convert px to micron in xyz
         stackTime:   # time to acquire a stack in seconds
@@ -96,7 +96,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 12
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gelSedimentLocation:
           initial: 165
@@ -113,7 +113,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 12
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gelSedimentLocation:
           initial: 161
@@ -130,7 +130,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps:
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gelSedimentLocation:
           initial: 167
@@ -146,7 +146,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 29
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 173
         gelSedimentLocation:
           initial: 172
@@ -162,7 +162,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 55
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 176
         gelSedimentLocation:
           initial: 180
@@ -180,7 +180,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 81
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 178
         gelSedimentLocation:
           initial: 187
@@ -197,7 +197,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 895
         timeSteps: 107
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 178
         gelSedimentLocation:
           initial: 158
@@ -222,7 +222,7 @@ tfrGel09102018b:
         yDim: 2048
         zDim: 855
         timeSteps: 173
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 178
         gelSedimentLocation:
           initial: 126
@@ -241,6 +241,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018a20181029_71632 PM_20181029_82105 PM/
+        time:
+          last_mod: '30/10/2018 20:46:54'
+          start_fName: '29/10/2018 19:16:32'
+          stop_fName: '29/10/2018 20:21:05'
         fileName:
           initial: tfrGel10212018A_shearRun10292018a20181029_71632 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018a20181029_71632 PM_t0021_z0595.tif
@@ -248,7 +252,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 573
         gelSedimentLocation:
@@ -258,6 +262,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018b20181029_84902 PM_20181029_95335 PM/
+        time:
+          last_mod: '30/10/2018 21:07:18'
+          start_fName: '29/10/2018 20:49:02'
+          stop_fName: '29/10/2018 21:53:35'
         fileName:
           initial: tfrGel10212018A_shearRun10292018b20181029_84902 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018b20181029_84902 PM_t0021_z0595.tif
@@ -265,7 +273,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 573
         gelSedimentLocation:
@@ -275,6 +283,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018c20181029_101532 PM_20181029_112004 PM/
+        time:
+          last_mod: '30/10/2018 21:27:26'
+          start_fName: '29/10/2018 22:15:32'
+          stop_fName: '29/10/2018 23:20:04'
         fileName:
           initial: tfrGel10212018A_shearRun10292018c20181029_101532 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018c20181029_101532 PM_t0021_z0595.tif
@@ -282,7 +294,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps:
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 571
         gelSedimentLocation:
@@ -292,6 +304,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018d20181029_113914 PM_20181030_13137 AM/
+        time:
+          last_mod: '30/10/2018 21:47:37'
+          start_fName: '29/10/2018 23:39:14'
+          stop_fName: '30/10/2018 01:31:37'
         fileName:
           initial: tfrGel10212018A_shearRun10292018d20181029_113914 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018d20181029_113914 PM_t0037_z0595.tif
@@ -299,7 +315,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 38
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 571
         gelSedimentLocation:
@@ -309,6 +325,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018e20181030_82115 AM_20181030_113149 AM/
+        time:
+          last_mod: '30/10/2018 22:26:31'
+          start_fName: '30/10/2018 08:21:15'
+          stop_fName: '30/10/2018 11:31:49'
         fileName:
           initial: tfrGel10212018A_shearRun10292018e20181030_82115 AM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018e20181030_82115 AM_t0063_z0595.tif
@@ -316,7 +336,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 64
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 558
         gelSedimentLocation:
@@ -326,6 +346,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018f20181030_22333 PM_20181030_65210 PM/
+        time:
+          last_mod: '30/10/2018 23:43:31'
+          start_fName: '30/10/2018 14:23:33'
+          stop_fName: '30/10/2018 18:52:10'
         fileName:
           initial: tfrGel10212018A_shearRun10292018f20181030_22333 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018f20181030_22333 PM_t0089_z0595.tif
@@ -333,7 +357,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 90
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: 565
         gelSedimentLocation:
@@ -343,6 +367,10 @@ tfrGel10212018A:
         comments: >
           June 1 2020
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018g20181031_21800 AM_20181031_80438 AM/
+        time:
+          last_mod: '31/10/2018 12:37:07'
+          start_fName: '31/10/2018 02:18:00'
+          stop_fName: '31/10/2018 08:04:38'
         fileName:
           initial: tfrGel10212018A_shearRun10292018g20181031_21800 AM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018g20181031_21800 AM_t0115_z0595.tif
@@ -350,7 +378,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 116
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: [567, 558]
         gelSedimentLocation:
@@ -362,6 +390,10 @@ tfrGel10212018A:
           Grid is clearly trending down to yield smaller shear gap. This is likely due to insufficient locking
           of the shearpost
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018h20181031_83025 PM_20181101_45307 AM/
+        time:
+          last_mod: '01/11/2018 12:47:05'
+          start_fName: '31/10/2018 20:23:25'
+          stop_fName: '01/11/2018 04:53:07'
         fileName:
           initial: tfrGel10212018A_shearRun10292018h20181031_83025 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018h20181031_83025 PM_t0167_z0596.tif
@@ -369,7 +401,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 596
         timeSteps: 168
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: [543, 538]
         gelSedimentLocation:
@@ -380,6 +412,11 @@ tfrGel10212018A:
           June 1 2020
           Note that the z-stacks got a lot smaller. Presumably because the grid is sinking.
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018i_20181101_64334 PM_20181102_74801 AM/
+        #time: 'DD/MM/YYYY HH:MM:SS'
+        time:
+          last_mod: '02/11/2018 11:23:56'
+          start_fName: '01/11/2018 18:43:34'
+          stop_fName: '02/11/2018 07:48:01'
         fileName:
           initial: tfrGel10212018A_shearRun10292018i_20181101_64334 PM_t0000_z0000.tif
           final: tfrGel10212018A_shearRun10292018i_20181101_64334 PM_t0261_z0474.tif
@@ -387,7 +424,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 475
         timeSteps: 262
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: [469, 456]
         gelSedimentLocation:
@@ -400,6 +437,10 @@ tfrGel10212018A:
           Grid is not in field of view.
           This is a likely a re-do of (i) during which the piezo may have crashed(?) Not sure have to check
           the piezo file.
+        time:
+          last_mod: '05/11/2018 23:00:57'
+          start_fName: '04/11/2018 21:46:13'
+          stop_fName: '05/11/2018 10:50:51'
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018j20181104_94613 PM_20181105_105051 AM/
         fileName:
           initial: tfrGel10212018A_shearRun10292018j20181104_94613 PM_t0000_z0000
@@ -408,7 +449,7 @@ tfrGel10212018A:
         yDim: 2048
         zDim: 548
         timeSteps: 262
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 180
         gridLocation: a few microns outside field of view
         gelSedimentLocation:
@@ -416,7 +457,10 @@ tfrGel10212018A:
           final: [98, 114]
     referenceStacks:
       preShearFullStack:
-        time: '31/10/2018 12:30:41 PM'
+        time:
+          last_mod: '31/10/2018 12:30:41 PM'
+          txtFile_start: '29/10/2018 18:52:33'
+          txtFile_saved: '29/10/2018 18:56:56'
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack_20181031_122914 PM/
         gelSedimentLocation_fullStack: [944, 986]
         comments: >
@@ -425,10 +469,20 @@ tfrGel10212018A:
           point and carried out a mark and find. The notes during shear should include this along with
           my notes during the experiment.
       preShearFullStack2:
-        time: '31/10/2018 8:21:47 PM'
+        time:
+          last_mod: '31/10/2018 8:21:47 PM'
+          txtFile_start: '31/10/2018 20:12:2018'
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack2_20181031_82119 PM/
         gelSedimentLocation_fullStack: [931, 968]
-        comments:  preSheafFullStack and preShearFullStack2 are at subtly different locations as evidenced by the gel tracer pattern
+        comments: >
+          preSheafFullStack and preShearFullStack2 are at subtly different locations as evidenced by the gel tracer pattern
+
+          Immersion fluid was replaced after shearRuns a-g. The xy position was marked on the stage, and I noted the z-position on the turret.
+          I moved the piezo down to 100um and noted the position on the turret as 196um (aribtrary zero). I then moved the objective down and
+          sample out of the way to clean the objective and the sample underside with lens paper. The object was also wiped with water and dried.
+          I replaced the immersion oil, returned to the saved xy position, found the start of the stack and adjusted the collar.
+          The z-position on the turret was 197 um so right on target. A full z-stack was recorded..namely this file.
+          The imaging stacks will remain the same in z: 214-303.25
       preShearFullStack3:
         time: '6/11/2018 10:28:37 AM'
         path: /mnt/serverdata/zsolt/zsolt/tfrGel10212018x/tfrGel10212018x/strainRamp/tfrGel10212018A_shearRun10292018_preShearFullStack3_20181106_102649 AM/
@@ -462,7 +516,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 841
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 250
         gridLocation: 826
         gelSedimentLocation:
@@ -480,7 +534,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 841
         timeSteps: 23
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 250
         gridLocation: 826
         gelSedimentLocation:
@@ -499,7 +553,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 841
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: 826
         gelSedimentLocation:
@@ -522,7 +576,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 844
         timeSteps: 24
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation:
         gelSedimentLocation:
@@ -540,7 +594,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 844
         timeSteps: 34
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: 831
         gelSedimentLocation:
@@ -558,7 +612,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 844
         timeSteps: 64
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: 820
         gelSedimentLocation:
@@ -576,7 +630,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 844
         timeSteps: 114
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [824, 834] # [initial time, final time] spatially flat throughout
         gelSedimentLocation:
@@ -596,7 +650,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 903
         timeSteps: 114
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [883, 890]
         gelSedimentLocation:
@@ -614,7 +668,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 903
         timeSteps: 166
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [875, 894]
         gelSedimentLocation:
@@ -634,7 +688,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 904
         timeSteps: 216
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: 880
         gelSedimentLocation:
@@ -652,7 +706,7 @@ tfrGel09052019x:
         yDim: 2048
         zDim: 904
         timeSteps: 318
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: 884
         gelSedimentLocation:
@@ -744,7 +798,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [781, 784]
         gelSedimentLocation:
@@ -762,7 +816,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 22
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval:
         gridLocation: [790, 792]
         gelSedimentLocation:
@@ -780,7 +834,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 30
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [793, 799]
         gelSedimentLocation:
@@ -798,7 +852,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 56
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [794, 796]
         gelSedimentLocation:
@@ -816,7 +870,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 100
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [799, 799]
         gelSedimentLocation:
@@ -835,7 +889,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 835
         timeSteps: 144
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [774,794]
         gelSedimentLocation:
@@ -853,7 +907,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 769
         timeSteps: 186
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval:
         gridLocation: [716, 697]
         gelSedimentLocation:
@@ -871,7 +925,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 837
         timeSteps: 274
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [791, 787]
         gelSedimentLocation:
@@ -889,7 +943,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 838
         timeSteps: 500
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 200
         gridLocation: [782, 782]
         gelSedimentLocation:
@@ -913,7 +967,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 870
         timeSteps: 315
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 150
         gridLocation: [836, 810 ]
         gelSedimentLocation:
@@ -929,7 +983,7 @@ tfrGel09052019x:
         yDim: 1024
         zDim: 870
         timeSteps: 96
-        shearTime: [ , ]
+        shearTime: [NAN, NAN]
         stackInterval: 150
         gridLocation: [811, 817]
         gelSedimentLocation:
