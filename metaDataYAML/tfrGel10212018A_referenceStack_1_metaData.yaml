@@ -274,7 +274,6 @@ smartCrop:
     minValue: 2000 # smallest value of gradient to ensure that you have found a true peak
     maxDev: 45 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
 
-
 postDeconCombined:
   cleanup: False # delete intermediate files?
   locInput: True # save loc input files?

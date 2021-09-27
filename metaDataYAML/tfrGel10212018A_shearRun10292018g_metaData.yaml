@@ -275,6 +275,8 @@ smartCrop:
     maxDev: 45 # sedGel position found using this method must be within maxDev from value listed in imageParam: gelSedimentLocation
 
 postDeconCombined:
+  cleanup: True
+  locInput: False
   bool: True
   dask: True
   steps: # ordered list of steps
