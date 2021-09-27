@@ -342,7 +342,8 @@ def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
         out['y (um, shearCoord perp)'] = 0
         out['e_para'] = 0
         out['e_perp'] = 0
-    out['z (um, below gel)'] = df.loc[0,'z (um, below gel)']
+    #try: out['z (um, below gel)'] = df.loc[0,'z (um, below gel)']
+    #except KeyError('key \'(z (um, below gel)\' was not found'): pass
     out = out.stack().rename('Ref Pos').to_frame()
 
     def rotate(rotMat, p, paraOrPerp='para'):
@@ -356,7 +357,7 @@ def gelStrain(df,h_offset, R = None, pos_keys=None, frame=None):
         displacement['e_xz'] = displacement[pos_keys['x']]/(ref_config[pos_keys['z']] + h_offset)
         displacement['e_yz'] = displacement[pos_keys['y']]/(ref_config[pos_keys['z']] + h_offset)
         displacement['e_zz'] = displacement[pos_keys['z']]/(ref_config[pos_keys['z']] + h_offset)
-        displacement['z (um, below gel)'] = df.loc[t, 'z (um, below gel)']
+        #displacement['z (um, below gel)'] = df.loc[t, 'z (um, below gel)']
 
         if R is not None:
             # rotation matrix was given, so rotate and name perp and para
@@ -816,14 +817,21 @@ def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
         return stitched[stitched['keepBool' == True]].loc[_idx]
     else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
 
-def loadStitched(time_list, mat, path = None, fName_frmt=None, params = None):
+def loadStitched(time_list, path = None, fName_frmt=None, posKeys= None, colKeys = None):
+    """
+    This returns a generator (note the use of yield) and so should be called inside a for loop
+    >> for data in loadStitched([1,2,3], 'gel'): print(data)
+    """
 
     #if path is None: path = '/Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018a/locations'
     #if fName_frmt is None: fName_frmt = 'tfrGel09102018b_shearRun09232018a_stitched_{}'.format(mat)+'_t{:03}.h5'
-    if path is None: input("input path ot locations (eg \'/Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018a/locations\'")
-    if fName_frmt is None: input("what is the fName_frmt (eg \''tfrGel09102018b_shearRun09232018a_stitched_{}'.format(mat)+'_t{:03}.h5'\'")
+    if path is None: path = input("input path ot locations (eg \'/Users/zsolt/Colloid/DATA/tfrGel09102018b/shearRun09232018a/locations\'")
+    if fName_frmt is None: fName_frmt = input("what is the fName_frmt (eg \''/tfrGel09102018b_shearRun09232018a_stitched_{}'.format(mat)+'_t{:03}.h5'\'")
 
-    if params is None:
+    # TODO: There is bug here for loading gel columns as when I located gel, I didnt separate pxClassifer channels into
+    #       core/shell suffixes -> use different posKeys or print a warning
+    #       in retrospcet its probably best to specific which cols to drop (if any) as opposed to specifying which to keep.
+    if posKeys is None:
         posKeys = ['{} (um, imageStack)'.format(x) for x in ['x','y','z']]
         posKeys += ['{}_std'.format(x) for x in ['x','y','z']]
         posKeys += ['size_{}'.format(x) for x in ['x','y','z']]
@@ -834,13 +842,19 @@ def loadStitched(time_list, mat, path = None, fName_frmt=None, params = None):
                      'sed_Background_core', 'sed_Background_shell',
                      'nonfluorescent_chunk_core', 'nonfluorescent_chunk_shell',
                      'gel_Background_core', 'gel_Background_shell']
-        col_keys = ['frame' ]
+
+    if colKeys is None: colKeys = ['frame']
+    #else: posKeys, colKeys = params['posKeys'], params['col_keys']
 
     for t in time_list:
-        print('Stitched time {}'.format(t))
-        fName = path +'/'+ fName_frmt.format(t)
+        #print('Stitched time {}'.format(t))
+        fName = path + fName_frmt.format(t)
         data = pd.read_hdf(fName,key='{}'.format(t))
-        yield data[data['keepBool'] == True][posKeys + col_keys]
+        #yield data[data['keepBool'] == True][posKeys + colKeys]
+        # what if we just dont specfiy columns at all? Will it just give me all the columns?
+        # YES...this combined with on disk queries gives new best practice:
+        # loadStitched all columns and then specify index and columns during query in jupyter nb
+        yield data[data['keepBool'] == True]
 
 def stitched_h5(stitched_outPath, max_t, param_dict):
     path = param_dict['path']
@@ -916,7 +930,7 @@ def sliceTraj(pos_df, idx):
         out[name] = unstacked[name].T.loc[idx]
     return out
 
-def computeDisplacement(pos_df, coordStr='(um, imageStack)'):
+def computeDisplacement(pos_df, pos_keys=None, coordStr='(um, imageStack)'):
     """
     compute the dipslacment of every particle relative to the first frame
     will fill in nan for particles that are either not in the first frame
@@ -927,12 +941,13 @@ def computeDisplacement(pos_df, coordStr='(um, imageStack)'):
     # something with pad and roll to compute displacement in moving window
     # >> https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rolling.html
     xyz=['x','y','z']
-    pos_keys = ['{} {}'.format(coord,coordStr) for coord in xyz]
+    if pos_keys is None: pos_keys = ['{} {}'.format(coord,coordStr) for coord in xyz]
     unstacked = pos_df[pos_keys].unstack()
 
     out = {}
-    for coord in xyz:
-        key,pos = ('disp {}'.format(coord), '{} {}'.format(coord,coordStr))
+    #for coord in xyz:
+    for key,pos in zip(['disp {}'.format(coord) for coord in xyz], pos_keys):
+        #key,pos = ('disp {}'.format(coord), '{} {}'.format(coord,coordStr))
         out[key] = (unstacked[pos] - unstacked[pos].loc[0]).stack()
     return pd.DataFrame(out)
 
@@ -1141,6 +1156,130 @@ def getMid(pair):
 def vonMises(strain_df_entry):
     exx, exy, exz, eyy, eyz, ezz = strain_df_entry
     return np.sqrt(1/2.0*((exx -eyy)**2 + (eyy-ezz)**2 + (ezz-exx)**2) + 3*(exy**2 + eyz**2 + exz**2))
+
+def stitchGelGlobal():
+    """
+    Stitch and track gel tracers across experiments, including reference stacks (although this needs to be coded)
+
+    Downstream of this I will need to deal with drift across experiments. In particular, if there is some drift
+    between steps, I should separate that from strain. This could be as simple as find the best rigid body trasnslation
+    between final frame of step upstream from first frame of current step (ie af and b0), and treating any
+    reference mapping as rigid body translation between first frame of step after reference and reference.
+    First frame of shear step should always be mapped back to reference to get:
+        - absolute positional offset (rigid body translation)
+        - preStress, any deviation that is not rigid body translation.
+        - maybe Ovito can do this by treating the entire imageStack as unit cell?
+        - Is this radically different than applying F+L to all the particles in the gel? Probably not imo
+    -Zsolt Sept 21, 2021
+
+    ----Testing-----
+        + running this as a test on steps = ['a', 'b'] for experiment tfrGel10292018A_shearRun10292018
+
+    with tp.PandasHDFStoreBig(global_stitch) as s:
+        tmpa0 = s.get(0)
+        tmpaf = s.get(21)
+        tmpb0 = s.get(22)
+        tmpbf = s.get(43)
+
+    pd.Index(tmpa0['particle].values) -> 3994 particles at initial time
+    pd.Index(tmpa0['particle'].values).intersection(pd.Index(tmpaf['particle'].values)) -> 3302 trajectories
+    pd.Index(tmpb0['particle'].values).intersection(pd.Index(tmpaf['particle'].values)) -> 3840 traj
+    pd.Index(tmpa0['particle'].values).intersection(pd.Index(tmpbf['particle'].values)) -> 3123 trajectories
+    """
+
+    # TODO: add these as kwrd parameters that can be passed as dictionary
+    global_stitch = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10292018A_gel_global.h5'
+    max_disp = 2  # probably need a large max displacement as the sample may drift betwewen steps.
+    metaPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018{step}/tfrGel10212018A_shearRun10292018{step}_metaData.yaml'
+
+
+    #premable
+    from particleLocating import dplHash_v2 as dpl
+    mIdx_tuples = []
+    tMax_list = []
+    # create the single large stitched h5 file to mimic locating all the gel regions all at once, across experiments
+    # one file to rule them all, also not the force overwrite by calling with 'w' flag
+    with tp.PandasHDFStoreBig(global_stitch, 'w') as s:
+        #for step in ['ref','a']: # for the moment skip ref as that hasnt been stitched, nor has directory structure been determined.
+        for step in ['ref', 'a', 'b', 'c', 'd', 'e', 'f']:  # all the steps, in order, read from yaml in future
+            print('Starting step {}'.format(step))
+
+            # open correspodning yaml file to find out time steps
+            _ = dpl.dplHash(metaPath.format(step=step))
+            metaData, hash_df = _.metaData, _.hash_df  # not sure if I need all the metaData or just the hash_df
+            del _
+
+            # open corresponding stitched file
+            _ = {'fName_frmt': '/tfrGel10212018A_shearRun10292018{}'.format(step) + '_stitched_gel_t{:03}.h5',
+                 'path': '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018{}/locations'.format(
+                     step)}
+            tMax = hash_df['t'].max() + 1
+            offset = sum(tMax_list)  # note the edge case sum([]) = 0 works by default
+            # TODO: add custom columns to loadStitched call trough dictionary expansion
+            for frame, data in enumerate(loadStitched(range(tMax), **_)):
+                data['frame_local'] = data['frame']
+                data['frame'] = data[ 'frame'] + offset  # increment to prevent tp from overwriting the same frame number at different steps
+                data['step'] = step
+                if step =='ref':
+                    data['z (um, refStack)'] = data['z (um, imageStack)']
+                    data['z (um, imageStack)'] = data['z (um, refStack)'] - (143-29)
+                else:
+                    data['z (um, refStack)'] = data['z (um, imageStack)'] + (143-29)
+                data['step'] = step
+                s.put(data)
+                mIdx_tuples.append((step, frame))
+            tMax_list.append(tMax)  # increment now, after looping. Also, I explicitly checked off by one errors here.
+
+    stitch_param = {'neighbor_strategy': 'KDTree',
+                    'pos_columns': ['{} (um, imageStack)'.format(x) for x in ['x', 'y', 'z']],
+                    't_column': 'frame', 'adaptive_stop': 0.1, 'adaptive_step': 0.95}
+    with tp.PandasHDFStoreBig(global_stitch) as s:  # now track
+        for linked in tp.link_df_iter(s, max_disp, **stitch_param): s.put(linked)
+
+    return mIdx_tuples, global_stitch
+
+def query_globalGel(global_stitch: str, mIdx_query: set, mIdx, colKeys: list):
+    """
+    Params
+    ------
+    global_stitch: str, path to globally stitched (and tracked) hdf file
+    mIdx_query: set of tuples (step,frame) to query
+       >> {('ref',0), ('f', 38)}
+    mIdx: pandas multiIndex object. Usuall just pd.MultiIndex.from_tuples(mIdx_tuples)
+          which is the output of stitchedGelGlobal
+    colKeys: list of string corresponding to the columns to return.
+             if colKeys is None, this will return all columns
+
+    returns
+    -------
+     dataFrame of queried (step, frame_local) from a globally tracked database at global_stitch
+     with multi Index of (step, frame_local, particle) and all columns specified in colKeys
+     This returned object stays in memory, but only the queried keys are loaded into memory.
+
+    Usage
+
+     ---- get mIdx_query (example of start and stop of every step ref,a-f)----
+    steps = ['ref', 'a', 'b', 'c', 'd', 'e', 'f']
+    mIdx_df = pd.DataFrame(mIdx_tuples,columns=['step', 'frame_local'])
+    mIdx = pd.MultiIndex.from_tuples(mIdx_tuples)
+
+    _ = [mIdx_df[mIdx_df['step'] == step].shape[0] - 1 for step in steps]
+    mIdx_query = set(
+        [elt for elt in zip(steps, [mIdx_df[mIdx_df['step'] == step].shape[0] - 1 for step in steps])] + [(step, 0) for step in
+
+    Zsolt Sept 24 2021
+    """
+    import trackpy as tp
+    import pandas as pd
+
+    l = [mIdx.get_loc(key) for key in mIdx_query]
+    tmp = {}
+    with tp.PandasHDFStoreBig(global_stitch, 'r') as steps:
+        for frame in l:
+            # tmp[frame] = s.get(frame).set_index(['step','frame_local','particle'])[['x (um, imageStack)', 'y (um, imageStack)']]
+            if colKeys is not None: tmp[frame] = steps.get(frame).set_index(['step', 'frame_local', 'particle'])[colKeys]
+            else: tmp[frame] = steps.get(frame).set_index(['step', 'frame_local', 'particle'])
+    return pd.concat([tmp[frame] for frame in l]).sort_index()
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'

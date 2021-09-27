@@ -33,12 +33,38 @@ Aug 10, 2021
 #pathStem_frmt = '/Volumes/PROJECT/tfrGel10212018x/{}'
 pathStem_frmt = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/{}'
 #steps_fName = ['tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['a','b','c','d','e','f']]
-steps_fName = ['tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['e','f']]
+steps_fName = ['/tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['ref']]
 
 # what is the max displacement in microns
-max_disp_dict = {'gel': 1.5, 'sed': 1.3}
+max_disp_dict = {'gel': 1.5, 'sed': 1.1}
 
-pipeline = {'qc':True, 'stitch':False, 'track': True, 'locHDF':True, 'xyz': False}
+pipeline = {'qc':False, 'stitch':True, 'track': True, 'locHDF':True, 'xyz': False}
+
+posKeys_dict = {'sed': [ 'z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',
+                        'x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)',
+                        'x_std', 'y_std', 'z_std', 'cost', 'totalError', 'size', 'n_iteration',
+                        #'size_x', 'size_y', 'size_z', 'disc_size', # not varied, constant for sed
+                        'mass', 'raw_mass', 'signal', 'signal_std', 'background', 'background_std',
+                        'sed_Colloid_core', 'sed_Colloid_shell',
+                        'fluorescent_chunk_core', 'fluorescent_chunk_shell',
+                        'gel_Tracer_core', 'gel_Tracer_shell',
+                        'sed_Background_core', 'sed_Background_shell',
+                        'nonfluorescent_chunk_core', 'nonfluorescent_chunk_shell',
+                        'gel_Background_core', 'gel_Background_shell'],
+                'gel': ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',
+                        'mass', 'raw_mass', 'n_iteration',
+                        'disc_size', 'size_x', 'size_y', 'size_z',
+                        'size_z_std', 'size_y_std', 'size_x_std', 'disc_size_std',
+                        'background', 'background_std',
+                        'signal', 'signal_std',
+                        'z_std', 'y_std', 'x_std', 'cost',
+                        'x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)',
+                        'totalError', 'keepBool', 'ep_z', 'ep_y', 'ep_x',
+                        'gel_Background', 'gel_Tracer',
+                        'sed_Colloid', 'sed_Background',
+                        'fluorescent_chunk', 'nonfluorescent_chunk']}
+
+col_keys_dict = {'sed':['frame'], 'gel':['frame']}
 
 for step in steps_fName:
 
@@ -68,12 +94,14 @@ for step in steps_fName:
     # writes an h5 file for each time step and sed and gel separately (but all in one call)
     # path is in metaData yaml file in /PROJECT/locations (I think)
     if pipeline['stitch']:
+        # this is parallel over frames, with no parallelization within a frame.
         inst = ls.ParticleStitch(meta)
         inst.parStitchAll(0,tMax, n_jobs=12)
 
-    for mat in ['sed', 'gel']:
+    for mat in ['gel', 'sed']:
         max_disp = max_disp_dict[mat]
-        stitched = path+'/{}_stitched_t0_t{:03}_maxDisp_{}.h5'.format(mat, tMax, max_disp)
+        stitched = path+'/{}_stitched.h5'.format(mat)
+        params = {'posKeys': posKeys_dict[mat], 'col_keys': col_keys_dict[mat]}
 
         # 2) track from the output of each stitched time steps, simulate the output you would get
         # from funning trackpy on the all the time steps (ie one big h5 file)
@@ -85,8 +113,13 @@ for step in steps_fName:
             with tp.PandasHDFStoreBig(stitched) as s:
                 print("Preprocessing tracking: making large h5 database of all stitched times")
                 print(stitched)
+                # for one time point, this should be identical to stitched.h5
                 stitched_fName_frmt = step + '_stitched_{}'.format(mat)+'_t{:03}.h5'
-                for data in loadStitched(range(tMax+1),mat,path=path+'/locations', fName_frmt=stitched_fName_frmt): s.put(data)
+                for data in loadStitched(range(tMax+1),
+                                         path=path+'/locations',
+                                         fName_frmt=stitched_fName_frmt,
+                                         params=params):
+                    s.put(data)
 
             # track the particles keeping all the location fields, and maybe list these location field in the metaData file?
             # run tracking using trackpy link on stitched hdf5 file as input
