@@ -10,7 +10,7 @@ filePaths:
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018g
   projectDirectory_IMAC: /Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018g
-  projectDirectory_ODSY: /n/home04/jzterdik/DATA/tfrGel10212018A/tfrGel10212018A_shearRun10292018g
+  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel10212018A/tfrGel10212018A_shearRun10292018g
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
   tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
