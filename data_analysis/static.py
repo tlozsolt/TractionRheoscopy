@@ -1281,6 +1281,15 @@ def query_globalGel(global_stitch: str, mIdx_query: set, mIdx, colKeys: list):
             else: tmp[frame] = steps.get(frame).set_index(['step', 'frame_local', 'particle'])
     return pd.concat([tmp[frame] for frame in l]).sort_index()
 
+def globalStressTime():
+    """
+    1.) set up multiIndex and load tracked data with cont indexing
+    2.) compute displacements
+    3.) compute finer shifts to match a(t=0) with ref
+    4.) Update reference configuration
+    5.) Compute stress
+    6.) Plot stress vs. time
+    """
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
     hdf_fName = 'tfrGel10212018A_shearRun10292018f_sed_stitched.h5'

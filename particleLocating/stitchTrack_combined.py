@@ -33,12 +33,12 @@ Aug 10, 2021
 #pathStem_frmt = '/Volumes/PROJECT/tfrGel10212018x/{}'
 pathStem_frmt = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/{}'
 #steps_fName = ['tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['a','b','c','d','e','f']]
-steps_fName = ['/tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['ref']]
+steps_fName = ['/tfrGel10212018A_shearRun10292018{}'.format(x) for x in ['g']]
 
 # what is the max displacement in microns
 max_disp_dict = {'gel': 1.5, 'sed': 1.1}
 
-pipeline = {'qc':False, 'stitch':True, 'track': True, 'locHDF':True, 'xyz': False}
+pipeline = {'qc':False, 'stitch':False, 'track': True, 'locHDF':True, 'xyz': False}
 
 posKeys_dict = {'sed': [ 'z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',
                         'x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)',
@@ -98,7 +98,8 @@ for step in steps_fName:
         inst = ls.ParticleStitch(meta)
         inst.parStitchAll(0,tMax, n_jobs=12)
 
-    for mat in ['gel', 'sed']:
+    for mat in ['sed']:
+    #for mat in ['gel', 'sed']:
         max_disp = max_disp_dict[mat]
         stitched = path+'/{}_stitched.h5'.format(mat)
         params = {'posKeys': posKeys_dict[mat], 'col_keys': col_keys_dict[mat]}
@@ -118,7 +119,7 @@ for step in steps_fName:
                 for data in loadStitched(range(tMax+1),
                                          path=path+'/locations',
                                          fName_frmt=stitched_fName_frmt,
-                                         params=params):
+                                         posKeys=params['posKeys'], colKeys=params['col_keys']):
                     s.put(data)
 
             # track the particles keeping all the location fields, and maybe list these location field in the metaData file?

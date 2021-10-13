@@ -197,6 +197,10 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         loc = locateFunc(imgArray).dropna(subset=['z']) # remove all the rows that have NAN particle positions
         loc['n_iteration'] = iterCount # add a new column to track what iteration the particle was located on.
         print("{} particles located!".format(loc.shape))
+
+        # test if you have no additional particles, and iteration is at least 1, then break
+        # otherwise, keep going either to locate more particles to initialize empty dataFrames for the
+        # rare cases in which no particles are located, but you still need to write a log file.
         if loc.shape[0] == 0: break
 
         # now refine the positions...why should I refine within iterative locating?
