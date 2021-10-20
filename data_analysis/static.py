@@ -1283,6 +1283,10 @@ def query_globalGel(global_stitch: str, mIdx_query: set, mIdx, colKeys: list):
 
 def globalStressTime():
     """
+    ToDo:
+       - add in steps from ref/scratch where the following steps were solved.
+       - Maybe this should be a separate script?
+
     1.) set up multiIndex and load tracked data with cont indexing
     2.) compute displacements
     3.) compute finer shifts to match a(t=0) with ref
@@ -1290,6 +1294,84 @@ def globalStressTime():
     5.) Compute stress
     6.) Plot stress vs. time
     """
+    return True
+
+def query_pyTables(path:str, frames:list):
+    """
+    lazy loading of pyTables across a list of frame queries.
+       >> for frame in query_pyTables(gel_pyTables,range(3)): print(frame)
+    """
+    with tp.PandasHDFStoreBig(path) as s:
+        for frame in frames:
+            yield s.get(frame)
+
+def queryPairs_pyTables(path: str, framePairs: list, augment: bool = False):
+    """
+    given a list of pairs of frames, returns a dataFrame with a multiIndex
+    of just those pairs. This should be sufficient to, for example, compute the
+    strain across the same list of pairs but everything is loaded lazily.
+
+    Ideally (this code has not be tested yet):
+    # given list of pairs of time points
+    framePairs = [(0,1),(0,3), (3,5)]
+
+    # save the index
+    idx_df = pd.DataFrame(framePairs, columns=['ref','cur']
+    idx_df.to_csv(path+'.idx')
+
+    # load one pair lazily
+    for n, queryPair in enumerate(queryPairs_pytables(path, framePairs,augment=True)):
+        # compute the strain across that pair
+        ref,cur, strain_df = queryPair
+        strain_df = localStrain(pair_df,framePairs[n][0], framePairs[n][1])
+
+        # save the output a pyTables indexed by the order in which it was called
+        strain_table.put(strain_df,n)
+        idx_df = idx_df.append({'frame':n, 'ref':ref, 'cur':cur}, ignore_index=True)
+
+
+    # append the result to a pyTables dataFrame that can likewise be queried lazily.
+    # This is all done with peak memory corresponding to a single strain computation
+    # across two time points.
+    """
+    with tp.PandasHDFStoreBig(path) as s:
+        for ref, cur in framePairs:
+            # query to get the pair
+            ref_df = s.get(ref)
+            cur_df = s.get(cur)
+
+            # format the data into a multiIndex with pairs of frames
+            cur_df = cur_df.reset_index().set_index(['frame', 'particle'])
+            ref_df = ref_df.reset_index().set_index(['frame', 'particle'])
+
+            # concat and yield the result
+            if augment: yield ref, cur, pd.concat([ref_df, cur_df])
+            else: yield pd.concat([ref_df, cur_df])
+def makeStrain_pyTables(paths: dict, framePairs: list, params: dict, **kwargs):
+    """
+    untested as of oct 20 2021
+    I think this should work though, and lazy loading
+    Ideally this would work with parallel proocessing..with some kind of map function.
+    Although I am not sure this would work at all as it would require possibly mulitple simultaneous access
+    to the pandas store either to read pos_df or place to strain_df
+    In principle the placing is independent as I dont really care what order the strain are placed as long
+    as I can index back into (ref,cur) by cross referencing idx_df
+    """
+
+    idx_df = pd.DataFrame(None, columns=['frame', 'ref', 'cur'])
+    with tp.PandasHDFStoreBig(paths['strain_df'],'a') as s:
+        for n, queryPairs in enumerate(queryPairs_pyTables(paths['locations'], framePairs,augment=True)):
+            ref,cur, pos_df = queryPairs
+            strain_df = localStrain(pos_df,ref,cur, **params['strain'])
+            idx_df = idx_df.append({'frame': n, 'ref':ref, 'cur':cur}, ignore_index=True)
+            strain_df['frame'] = n
+            strain_df['ref'] = ref
+            strain_df['cur'] = cur
+            s.put(strain_df)
+    idx_df.to_csv(paths['index'], index=False)
+    return (paths['strain_df'],paths['index'])
+
+
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
     hdf_fName = 'tfrGel10212018A_shearRun10292018f_sed_stitched.h5'

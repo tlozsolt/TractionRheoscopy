@@ -57,5 +57,15 @@ sed_bottom_idx = da.readOvitoIdx(path+'/ovito/sed_complete_bottom_surface.xyz')
 sed_fits = da.fitSurface(sed_pos, sed_bottom_idx,coordStr='(um, imageStack)')
 
 #%%
-# clean it up
+# clean it up by removing sed (gel) paricles below (above) interface
+
+# convert to rheoSed right handed and centered coordinate system,
+#   For gel this will include, by default, z (um, rheoSed height) as absolute
+#   height above coverslip, and z(um, rheoSed depth) as depth below sed/gel interface.
+#   While for sed, z(um, rheoSed height) is height above interface and z(um, rheoSed depth) is either
+#   not included or is depth from shear post.
+
+#%%
+# save the output to pyTables, as in trackpy and queried with expt and zero-padded frame number
+# ...eg ref2_t000, a_t003 and b_t161 if '_' are allowed
 
