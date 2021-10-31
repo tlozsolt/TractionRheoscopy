@@ -1,0 +1,82 @@
+name: 'short_name_of_step'
+nameLong: 'tfrGel10212018A_shearRun10292018a' # long name used in dpl locating
+
+paths:
+  stem: './'
+  sed: './relative/path/to/sed/h5/file'
+  gel: './relative/path/to/gel/h5/file'
+  locationCSV_frmt: 'relative/path/to/sym/link/locations/tfrGel10212019A_shearRun10292018b_mat{}_hv{:05}_lsqRefine.csv'
+  dplMetaData: '/relative/path/to/metaDatayaml/file/used/for/locating.yaml'
+
+frames: 22 # nubmer of frames for this step
+dimensions:
+  x (um): 235
+  y (um): 235
+
+stitchTrack:
+  pipeline:
+    qc: True
+    stitch: True
+    track: True
+  stitch: {}
+  qc: {}
+  track: {}
+  linking:
+    max_disp: {'gel': 1.4, 'sed':1.0}
+    param:
+      neighbor_strategy: 'KDTree'
+      pos_columns : ['z (um, imageStack)', 'y (um, imageStack)', 'x (um, imageStack)']
+      t_column: 'frame'
+      adaptive_stop: 0.1
+      adaptive_step: 0.95
+
+cleaning:
+
+  paths:
+    sed_interface_idx: './ovito/sed_complete_bottom_surface.xyz'
+    ref_sed_interface_idx: '../tfrGel10212018A_shearRun10292018ref/ovito/sed_complete_bottom_surface.xyz'
+
+  fitSurface:
+    mat: 'sed'
+    coordStr: '(um, imageStack)'
+    add2Inst: False
+    save2HDF: True
+    forceRecompute: False
+
+  fitReference:
+    coordStr: '(um, imageStack)'
+    add2Inst: True
+
+  cleanSedGel:
+    pos_keys: ['x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)']
+    dist_key: 'dist from sed_gel interface (um, imageStack)'
+    keepBool_str: 'cleanSedGel_keepBool'
+    garbage:  {'sed_sed': -1, 'sed_gel': -1.5, 'gel_gel' : nan, 'gel_sed': nan  }
+    description: |
+      garbage key is parameters used to split particle locations into clean and garbage.
+      if sediment particles are less than sed_sed distance below (meaning more negative) than cut off,
+      you are clearly in the gel. The terminology is fitPlane_material so sed_gel is sedimentFitPlane and gel material
+      I probably wont used gel_* for anything as the fits are expected to be worse that sediment fits.
+
+  xyzClean:
+    fNameFlag: ''
+    keySet : ['locations_rheoSedHeight', 'uncertainty']
+    extraCols : ['dist from sed_gel interface (um, imageStack)']
+    keepBool_str: 'cleanSedGel_keepBool'
+    forceWrite: True
+
+  ovito_interfaceFit:
+    description: |
+      Find the interface by fitting planes to particle ids output from ovito
+      fitSurface function uses the particle ids manually found using the following parameters
+      in ovito. The particles ids as stored in [paths][sed_interface_idx] as output from ovito
+    ovito_param:
+        x: 0.00626804
+        y: -0.0175754
+        z: 0.999826
+        distance: 29
+        slab_width: 1
+        coordStr: '(um, imageStack)'
+
+
+

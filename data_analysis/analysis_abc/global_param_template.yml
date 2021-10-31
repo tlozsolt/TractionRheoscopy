@@ -1,0 +1,83 @@
+experiment:
+  dimensions:
+    x (um): 235
+    y (um): 235
+  steps:
+    -'ref': './relative/path/to/ref/h5'
+    -a : './rel/path/a/'
+    -b : './rel/path/b/'
+    -c : './rel/path/c/'
+    -d : './rel/path/d/'
+    -e : './rel/path/e/'
+    -f : './rel/path/f/'
+    -g : './rel/path/g/'
+    -ref2 : './rel/path/ref2/'
+
+plotStyle:
+  context: 'paper'
+  figsize: [16,9]
+  font_scale: 4
+
+keySets:
+  sed:
+    hash: ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue']
+    ilastik: ['sed_Colloid_core', 'sed_Colloid_shell',
+              'fluorescent_chunk_core', 'fluorescent_chunk_shell',
+              'gel_Tracer_core', 'gel_Tracer_shell',
+              'sed_Background_core', 'sed_Background_shell',
+              'nonfluorescent_chunk_core', 'nonfluorescent_chunk_shell',
+              'gel_Background_core', 'gel_Background_shell']
+    locations_imageStack: ['x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)']
+    locations_rheoSedHeight: ['x (um, rheo_sedHeight)', 'y (um, rheo_sedHeight)', 'z (um, rheo_sedHeight)']
+    uncertainty: ['z_std', 'y_std', 'x_std',  'totalError']
+    diagnostics: ['size', 'n_iteration', 'mass', 'raw_mass',
+                   'signal', 'signal_std',
+                   'background', 'background_std']
+
+  gel:
+    hash: ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue']
+    ilastik: [ 'gel_Background', 'gel_Tracer',
+               'sed_Colloid', 'sed_Background',
+               'fluorescent_chunk', 'nonfluorescent_chunk']
+    locations_imageStack: [ 'x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)']
+    locations_rheoSedHeight: ['x (um, rheo_sedHeight)', 'y (um, rheo_sedHeight)', 'z (um, rheo_sedHeight)']
+    uncertainty: [ 'z_std', 'y_std', 'x_std', 'totalError']
+    diagnostics: [ 'mass', 'raw_mass', 'n_iteration',
+                   'keepBool', 'ep_z', 'ep_y', 'ep_x',
+                   'disc_size', 'disc_size_std',
+                   'size_z', 'size_z_std',
+                   'size_y', 'size_y_std',
+                   'size_x', 'size_x_std',
+                   'background', 'background_std',
+                   'signal', 'signal_std']
+  description:
+    z (px, hash): |
+      z position of particle within hashed chunk in units of pixels
+      with subpixel correction using nonlinear least squares fit or
+      sub pixel centroid fitting routine depending the file loaded
+    y (px, hash): |
+      analogous to z (px, hash) but y coordinate.
+      Note px to micron may be different in x,y,z and this difference
+      is not reflected in the position when stated in units of pixels
+    x (px, hash): |
+      analogous to z (px, hash) but x coordinate.
+      Note px to micron may be different in x,y,z and this difference
+      is not reflected in the position when stated in units of pixels
+    hashValue: |
+      The hashValue that was used to locate this specific particle.
+      Querying hash_df in a dpl instance with this hashValue will
+      return the xyzt bounds of the hashed chunk. This hashVlaue is
+      passed to SLURM job array to specify what part of the xyzt
+      confocal time series to run locating on. Typical hashDimensions
+      are (250,450,450) in (z,y,x) in pixels although this varies
+      and you should check the locating metaData for more info
+    gel_Background: |
+      Integrated pixel probability for a random forest classifier (ilastik)
+      with  channel name given by the key. The integration is center on the
+      refined position of the particle, and intergrates whole pixels
+      upto a fixed particle size. If the key is *_core or *_shell then
+      the integration was carried out to a volume that included just the
+      core (~800 nm diameter) or the nonfluorescent shell.
+      This key should be used to diagnose the quality of the image and help
+      retain some information of the underlying fluorescence image during
+      data analysis of the particle locations.

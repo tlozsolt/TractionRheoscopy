@@ -1,8 +1,8 @@
 from particleLocating import postLocating as pl
 from particleLocating import locationStitch as ls
-from data_analysis import static as da
 from particleLocating import dplHash_v2 as dpl
 import trackpy as tp
+from data_analysis import static as da
 import pandas as pd
 import os
 from data_analysis.static import loadStitched, stitched_h5

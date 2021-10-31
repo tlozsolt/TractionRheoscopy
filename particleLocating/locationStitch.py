@@ -28,6 +28,10 @@ class ParticleStitch(dpl.dplHash):
     def csv2DataFrame(path, hv, mat, frame, sep=' '):
         """
         Read the csv file to a dataFrame and populate some additional columns
+
+        Will add default behavior to just skip if path doesn't exist. Will return empty dataFrame
+        which could be added to concat in addHashValue
+        Zsolt, Oct 28 2021
         """
         df = pd.read_csv(path, sep=sep)
         df['hashValue'] = int(hv)
@@ -243,6 +247,7 @@ class ParticleStitch(dpl.dplHash):
         pairs = np.array(sorted(tree.query_pairs(cutoff)))
 
         # compute total Error for every particle (accelerated by numba)
+        # will fail for empty dataFrames
         df_partial['totalError'] = ParticleStitch.computeError(df_partial, px2Micron=px2Micron)
 
         # call minError_flagDouble (numba wrapped in python)
@@ -325,7 +330,7 @@ class ParticleStitch(dpl.dplHash):
             s.put(df)
         return stem+'/{}'.format(fName)
 
-    def stitchAll(self, tMin= None, tMax = None):
+    def stitchAll(self, tMin= None, tMax = None, cutOff=0.25):
         hash_df = self.dpl.hash_df
         if tMax is None and tMin is None:
             tMin = 0
@@ -333,7 +338,7 @@ class ParticleStitch(dpl.dplHash):
         for t in range(tMin, tMax+1):
             for mat in ['sed','gel']:
                 hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
-                stitch = self.stitch(hvList)
+                stitch = self.stitch(hvList, cutOff=cutOff)
                 path = self.dpl.getPath2File(0,kwrd='locations', computer=self.computer, pathOnlyBool=True)
                 fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_{}'.format(mat)+'_t{:03d}.h5'.format(t)
                 stitch.to_hdf(path +'/{}'.format(fName), str(t))

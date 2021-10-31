@@ -4,6 +4,7 @@ import numba
 import dask.dataframe as ddf
 from scipy.spatial import cKDTree
 import numpy as np
+import os
 
 import matplotlib as mpl
 import matplotlib.cm as cm
@@ -192,8 +193,12 @@ def fitSurface(pos_df, idx, coordStr = '(um, imageStack)'):
 
 def readOvitoIdx(path):
     'parses an xyz file with a single column of particle ids and returns a pandas index object'
-    tmp = pd.read_csv(path, sep='\n').drop(0).set_axis(['particle id'], axis=1)
-    return pd.Index(np.array(tmp['particle id']).astype(np.int))
+    if not os.path.exists(path):
+        print('No ovito idx file found at path {}. Returning None'.format(path))
+        return None
+    else:
+        tmp = pd.read_csv(path, sep='\n').drop(0).set_axis(['particle id'], axis=1)
+        return pd.Index(np.array(tmp['particle id']).astype(np.int))
 
 @deprecated(version='pre-Pandas', reason='This function assumes a dictionary of fit parameters as opposed to DataFrame.\n '
                                           'Use pt2Plane and distFromPlane_df instead')
@@ -738,7 +743,7 @@ def df2xyz(df, fPath,fName, mode='w'):
     fPath_frmt = fPath+'{}'
     with open(fPath_frmt.format(fName),mode) as f:
         f.write(str(df.shape[0]))
-        f.write('\n#particleID ')
+        f.write('\n ')
         df.to_csv(f,mode=mode, sep=' ', na_rep='NAN')
     return fPath_frmt.format(fName)
 
@@ -850,11 +855,13 @@ def loadStitched(time_list, path = None, fName_frmt=None, posKeys= None, colKeys
         #print('Stitched time {}'.format(t))
         fName = path + fName_frmt.format(t)
         data = pd.read_hdf(fName,key='{}'.format(t))
-        #yield data[data['keepBool'] == True][posKeys + colKeys]
         # what if we just dont specfiy columns at all? Will it just give me all the columns?
         # YES...this combined with on disk queries gives new best practice:
         # loadStitched all columns and then specify index and columns during query in jupyter nb
-        yield data[data['keepBool'] == True]
+        #yield data[data['keepBool'] == True]
+
+        # but some of the columns are empty and all nan so...
+        yield data[data['keepBool'] == True][posKeys + colKeys]
 
 def stitched_h5(stitched_outPath, max_t, param_dict):
     path = param_dict['path']
@@ -1296,13 +1303,18 @@ def globalStressTime():
     """
     return True
 
-def query_pyTables(path:str, frames:list):
+def query_pyTables(path:str, frames:list = []) -> pd.DataFrame:
     """
     lazy loading of pyTables across a list of frame queries.
        >> for frame in query_pyTables(gel_pyTables,range(3)): print(frame)
+    There should be some simple mechanism to get a default behavior to loop through
+    all frames...keep running s.get until it errors, for example.
+    Maybe if frames is an empty list, then write a while loop and catch the error with s.get(frame,-1)
+    Easy, tp.PandasHDFStoreBig has an attribute of max_frame
     """
     with tp.PandasHDFStoreBig(path) as s:
-        for frame in frames:
+        if frames == []: frames = list(range(s.max_frame + 1))
+        for frame in frames: # cycle through and yield the result
             yield s.get(frame)
 
 def queryPairs_pyTables(path: str, framePairs: list, augment: bool = False):
@@ -1347,20 +1359,18 @@ def queryPairs_pyTables(path: str, framePairs: list, augment: bool = False):
             # concat and yield the result
             if augment: yield ref, cur, pd.concat([ref_df, cur_df])
             else: yield pd.concat([ref_df, cur_df])
+
 def makeStrain_pyTables(paths: dict, framePairs: list, params: dict, **kwargs):
     """
-    untested as of oct 20 2021
-    I think this should work though, and lazy loading
     Ideally this would work with parallel proocessing..with some kind of map function.
     Although I am not sure this would work at all as it would require possibly mulitple simultaneous access
     to the pandas store either to read pos_df or place to strain_df
     In principle the placing is independent as I dont really care what order the strain are placed as long
     as I can index back into (ref,cur) by cross referencing idx_df
     """
-
     idx_df = pd.DataFrame(None, columns=['frame', 'ref', 'cur'])
-    with tp.PandasHDFStoreBig(paths['strain_df'],'a') as s:
-        for n, queryPairs in enumerate(queryPairs_pyTables(paths['locations'], framePairs,augment=True)):
+    with tp.PandasHDFStoreBig(paths['strain_df'],'a') as s: # open the output file
+        for n, queryPairs in enumerate(queryPairs_pyTables(paths['locations'], framePairs,augment=True)): # loop over the generator that carries out lazy loading of pairs
             ref,cur, pos_df = queryPairs
             strain_df = localStrain(pos_df,ref,cur, **params['strain'])
             idx_df = idx_df.append({'frame': n, 'ref':ref, 'cur':cur}, ignore_index=True)
@@ -1370,7 +1380,6 @@ def makeStrain_pyTables(paths: dict, framePairs: list, params: dict, **kwargs):
             s.put(strain_df)
     idx_df.to_csv(paths['index'], index=False)
     return (paths['strain_df'],paths['index'])
-
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
