@@ -21,6 +21,7 @@ class Analysis(ABC):
         self.keySets = self.globalParam['keySets']
         self.exptStepList = self.globalParam['experiment']['steps']
         self.dim = self.globalParam['experiment']['dimensions']
+        self.dtypes = self.globalParam['locatingOutput']['dtypes']
 
         # some useful attributes specific to a step
         # paths are **always** given under steps until I write a function to concatenate or form a union of paths

@@ -822,7 +822,25 @@ def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
         return stitched[stitched['keepBool' == True]].loc[_idx]
     else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
 
-def loadStitched(time_list, path = None, fName_frmt=None, posKeys= None, colKeys = None):
+def insersectDict(parent: dict, child: dict) -> dict:
+    """
+    Return  sub dictionary of parent with keys common to child
+    Useful for coercing dtype is parent is master list of dtypes read form
+    param file and child is dictionary of dtypes from pandas dataframe
+
+    example
+    parent = {'a':'int64', 'b':'float64', 'c':'bool', 'e': 'float64}
+    child = {'a': 'object', 'b':'float64', 'c':'bool', 'd': 'float64'}
+    output ->  {'a': 'int64', 'b': 'float64', 'c': 'bool'}
+    """
+    return {x: parent[x] for x in set(parent.keys()).intersection(child.keys())}
+
+def loadStitched(time_list,
+                 path = None,
+                 fName_frmt=None,
+                 posKeys= None,
+                 colKeys = None,
+                 dtype_dict = None):
     """
     This returns a generator (note the use of yield) and so should be called inside a for loop
     >> for data in loadStitched([1,2,3], 'gel'): print(data)
@@ -859,6 +877,10 @@ def loadStitched(time_list, path = None, fName_frmt=None, posKeys= None, colKeys
         # YES...this combined with on disk queries gives new best practice:
         # loadStitched all columns and then specify index and columns during query in jupyter nb
         #yield data[data['keepBool'] == True]
+
+        # add option to coerce datatypes
+        if dtype_dict is not None:
+            data = data.astype(dtype_dict)
 
         # but some of the columns are empty and all nan so...
         yield data[data['keepBool'] == True][posKeys + colKeys]

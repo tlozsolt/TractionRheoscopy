@@ -32,6 +32,17 @@ class ParticleStitch(dpl.dplHash):
         Will add default behavior to just skip if path doesn't exist. Will return empty dataFrame
         which could be added to concat in addHashValue
         Zsolt, Oct 28 2021
+
+        Will add default behavior to typecast empty csv files. from global param file.
+        add dtype dict keyword parameter
+        >> dict(allKeys.dtypes[set([x for x in subset.dtypes.keys()]).intersection(allKeys)])
+        will return a dictionary that can be passed to dtype recasting in pandas.
+        Zsolt Oct 31 2021
+
+        I decided not to implement either fo the two changes listed above as it is easier, for the moment
+        to just coerce to the correct dtype just prior to the point where writing object dtypes to pyTables is
+        problematic.
+        Oct 31 2021
         """
         df = pd.read_csv(path, sep=sep)
         df['hashValue'] = int(hv)

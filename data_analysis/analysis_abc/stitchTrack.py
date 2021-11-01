@@ -111,7 +111,10 @@ class StitchTrack(Analysis):
                                         fName_frmt=stitched_fName_frmt,
                                         posKeys=self.posKeys_dict[mat],
                                         colKeys=['frame'])):
-                print(frame)
+                #print(frame)
+                # get a dictionary of dtypes for keys common to data and self.dtypes
+                dtype_dict = da.insersectDict(self.dtypes, dict(data.dtypes))
+                data = data.astype(dtype_dict)
                 s.put(data)
 
         if verbose: print('Starting tracking')
