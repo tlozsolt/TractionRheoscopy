@@ -7,7 +7,7 @@ from functools import partial
 import numpy as np
 import pandas as pd
 from particleLocating import locating as tp_locating
-from particleLocaint import threshold
+from particleLocating import threshold
 from scipy import ndimage
 
 

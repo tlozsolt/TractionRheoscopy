@@ -1,7 +1,6 @@
 import pandas as pd
 import trackpy as tp
 import numba
-import dask.dataframe as ddf
 from scipy.spatial import cKDTree
 import numpy as np
 import os
@@ -533,7 +532,7 @@ def computeLocalStrain(refPos, curPos, nnbArray):
               refPos[4] and curPos[4]
     """
     # for every particle (or row in refPos)
-    out = np.zeros((nnbArray.shape[0],10))
+    out = np.zeros((nnbArray.shape[0],11))
     for n in range(len(nnbArray)):
         nnbList = nnbArray[n]
         # get the coordinates of central particle
@@ -604,8 +603,14 @@ def computeLocalStrain(refPos, curPos, nnbArray):
                               epsilon_skew[0,2],
                               epsilon_skew[1,2]])
 
+        # compute von Mises strain
+        vM = np.sqrt(1/2*(  (epsilon_sym[0,0] - epsilon_sym[1,1])**2
+                          + (epsilon_sym[1,1] - epsilon_sym[2,2])**2
+                          + (epsilon_sym[2,2] - epsilon_sym[1,1])**2)
+                     + 3*(epsilon_sym[0,1]**2 + epsilon_sym[1,2]**2 + epsilon_sym[0,2]**2))
+
         # add results to output array
-        out[n,:] = np.concatenate((np.array([D2_min]), sym_flat, skew_flat))
+        out[n,:] = np.concatenate((np.array([D2_min, vM]), sym_flat, skew_flat))
     return out
 
 def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
@@ -1402,6 +1407,37 @@ def makeStrain_pyTables(paths: dict, framePairs: list, params: dict, **kwargs):
             s.put(strain_df)
     idx_df.to_csv(paths['index'], index=False)
     return (paths['strain_df'],paths['index'])
+
+def tukey(df: pd.DataFrame, col: list, k: float = 1.5):
+    """
+    apply tukey to every str in col
+    Note taht for default of k=1.5 applied to nnb_count gives min coordination of 9.
+    For k ~2.2, you get min nnb count of 4. With taht said, applying tukey to nnb is
+    not the best way as I have good reason to discard all particles with fewer than
+    4 nnb on that ground that the algo doesnt work.
+    """
+
+    def _tukey(df: pd.DataFrame, col: str, k: float = 1.5):
+        """
+        Compute a tukey fence on dataFrame df on columns in colList
+        Return the dataframe with only values that lie within the tukey fence
+        Also return a fraction of the data that falls within the fence
+        """
+        stats = df[col].describe()
+        q1, q3 = stats['25%'], stats['75%']
+        delta = k * (q3 - q1)
+
+        return df[(df[col] > (q1 - k * delta)) & (df[col] < (q3 + k * delta))]
+
+    # quick type check to add functionality for calling with string for
+    if type(col) == str: return tukey(df,[col], k)
+    else:
+        colKey = col.pop()
+        if len(col) == 0:
+            return _tukey(df, colKey, k)
+        else:
+            df = tukey(df, colKey, k)
+            return tukey(df, col, k)
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'

@@ -1,17 +1,26 @@
 name: 'short_name_of_step'
 nameLong: 'tfrGel10212018A_shearRun10292018a' # long name used in dpl locating
-
-paths:
-  stem: './'
-  sed: './relative/path/to/sed/h5/file'
-  gel: './relative/path/to/gel/h5/file'
-  locationCSV_frmt: 'relative/path/to/sym/link/locations/tfrGel10212019A_shearRun10292018b_mat{}_hv{:05}_lsqRefine.csv'
-  dplMetaData: '/relative/path/to/metaDatayaml/file/used/for/locating.yaml'
-
 frames: 22 # nubmer of frames for this step
 dimensions:
   x (um): 235
   y (um): 235
+
+paths:
+  stem: './'
+  sed: './sed_stitched.h5'
+  gel: './gel_stitched.h5'
+  reference_sed_pos: '../tfrGel10212018A_shearRun10292018ref/sed_stitched.h5'
+  reference_gel_pos: '../tfrGel10212018A_shearRun10292018ref/gel_stitched.h5'
+  sed_interface_idx: './ovito/sed_complete_bottom_surface.xyz'
+  reference_sed_interface_idx: '../tfrGel10212018A_shearRun10292018ref/ovito/sed_complete_bottom_surface.xyz'
+  interfaceFits: './sed_gel_interfaceFits.h5'
+  dplMetaData: './tfrGel10212018A_shearRun10292018g_metaData.yaml'
+  locationCSV: './locations/tfrGel10212018A_shearRun10292018g_locations_hv{:05}_{}_trackPy_lsqRefine.csv'
+  figPath: './plots/'
+  strainDataDir: './strainData/'
+  topIdx:
+    init: './ovito/sed_t000_topSurface.xyz'
+    final: './ovito/sed_t115_topSurface.xyz'
 
 stitchTrack:
   pipeline:
@@ -31,22 +40,15 @@ stitchTrack:
       adaptive_step: 0.95
 
 cleaning:
-
-  paths:
-    sed_interface_idx: './ovito/sed_complete_bottom_surface.xyz'
-    ref_sed_interface_idx: '../tfrGel10212018A_shearRun10292018ref/ovito/sed_complete_bottom_surface.xyz'
-
   fitSurface:
     mat: 'sed'
     coordStr: '(um, imageStack)'
     add2Inst: False
     save2HDF: True
     forceRecompute: False
-
   fitReference:
     coordStr: '(um, imageStack)'
     add2Inst: True
-
   cleanSedGel:
     pos_keys: ['x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)']
     dist_key: 'dist from sed_gel interface (um, imageStack)'
@@ -57,7 +59,6 @@ cleaning:
       if sediment particles are less than sed_sed distance below (meaning more negative) than cut off,
       you are clearly in the gel. The terminology is fitPlane_material so sed_gel is sedimentFitPlane and gel material
       I probably wont used gel_* for anything as the fits are expected to be worse that sediment fits.
-
   xyzClean:
     fNameFlag: ''
     keySet : ['locations_rheoSedHeight', 'uncertainty']
@@ -77,6 +78,24 @@ cleaning:
         distance: 29
         slab_width: 1
         coordStr: '(um, imageStack)'
+
+strain:
+  verbose: False
+  posCoordinateSystem:
+    posKey_frmt: '{coord} ({units}, {coordSys})'
+    coordTuple: ['z','y','x']
+    units: 'um'
+    coordSys: 'rheo_sedHeight'
+  strainTypes: ['atomicStrainOvito','falkLanger','boundary']
+  key_frmt: 'ref{ref:03}/cur{cur:03}/{strainType}' # for saving to hdf
+  posKeySet: ['locations_rheoSedHeight']
+  keepBool: 'cleanSedGel_keepBool'
+
+  falkLanger:
+    nnb_cutoff: 2.2
+    verbose: False
+  boundary:
+    gapMethod: 'min'
 
 
 

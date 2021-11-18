@@ -87,6 +87,18 @@ class Cleaning(Analysis):
                 'step': self.stepParam,
                 'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
 
+    def posDict(self,
+                posKey_frmt: str= '{coord} ({units}, {coordSys})',
+                coordTuple: tuple=('z','y','x'),
+                units: str= 'um',
+                coordSys: str = 'rheo_sedHeight'): pass
+
+    def posList(self,
+                posKey_frmt: str= '{coord} ({units}, {coordSys})',
+                coordTuple: tuple=('z','y','x'),
+                units: str= 'um',
+                coordSys: str = 'rheo_sedHeight'): pass
+
     def fitSurface(self,
                    mat: str = 'sed',
                    coordStr: str = '(um, imageStack)',

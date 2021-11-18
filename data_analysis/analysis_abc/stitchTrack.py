@@ -36,6 +36,7 @@ class StitchTrack(Analysis):
 
         # add additional attributes that I will need here
         self.dpl_metaData = self.stepParam['paths']['dplMetaData']
+        self.dpl_log = self.stepParam['paths']['dpl_log']
         self.max_disp = self.stepParam['stitchTrack']['linking']['max_disp']
         self.locationCSV_frmt = self.stepParam['paths']['locationCSV']
 
@@ -43,10 +44,30 @@ class StitchTrack(Analysis):
         self.dpl = dpl.dplHash(self.dpl_metaData)
         self.hash_df = self.dpl.hash_df
 
-    def sed(self, frame): super().sed(frame)
-    def gel(self, frame): super().gel(frame)
+    def sed(self, frame): return super().sed(frame)
+    def gel(self, frame): return super().gel(frame)
     def setPlotStyle(self): pass
     def log(self): super().log()
+
+    def posDict(self,
+                posKey_frmt: str = '{coord} ({units}, {coordSys})',
+                coordTuple: tuple = ('z', 'y', 'x'),
+                units: str = 'um',
+                coordSys: str = 'rheo_sedHeight'):
+        return super().posDict(posKey_frmt=posKey_frmt,
+                        coordTuple=coordTuple,
+                        units=units,
+                        coordSys=coordSys)
+
+    def posList(self,
+                posKey_frmt: str = '{coord} ({units}, {coordSys})',
+                coordTuple: tuple = ('z', 'y', 'x'),
+                units: str = 'um',
+                coordSys: str = 'rheo_sedHeight'):
+        return super().posList(posKey_frmt=posKey_frmt,
+                        coordTuple=coordTuple,
+                        units=units,
+                        coordSys=coordSys)
 
     def qc(self):
         """
@@ -55,13 +76,15 @@ class StitchTrack(Analysis):
         problems during particle locating at the coarsest level...if particle counts dropped dramitically
         there was likely an error with thresholding the images before particle locating
         """
-        dplMetaPath = self.paths['stem'] + self.paths['dplMetaData']
-        log = self.paths['stem'] + '/log'
+        #dplMetaPath = self.paths['stem'] + self.paths['dplMetaData']
+        dplMetaPath = self.dpl_metaData
+        #log = self.paths['stem'] + '/log'
+        log = self.paths['dpl_log']
 
         outliers, binHash, particleCount = pl.test(log, dplMetaPath)
         qcDict = {'outliers': outliers, 'binHash': binHash, 'particleCount': particleCount}
         with open(self.paths['stem'] + '/dpl_quality_control.pkl', 'wb') as f:
-            pkl.dumps(qcDict, f)
+            pkl.dump(qcDict, f)
         #tmp = pd.DataFrame(qcDict)
         #tmp.to_hdf(self.paths['stem'] + '/dpl_quality_control.h5', 'qcDict')
 

@@ -14,6 +14,9 @@ Completely untested as of Oct 26 2021
 class Analysis(ABC):
 
     def __init__(self, globalParamFile, stepParamFile):
+
+        self.abcParam = dict(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
+
         with open(globalParamFile, 'r') as f: self.globalParam = yaml.load(f,Loader=yaml.SafeLoader)
         with open(stepParamFile, 'r') as f: self.stepParam = yaml.load(f,Loader=yaml.SafeLoader)
 
@@ -21,7 +24,12 @@ class Analysis(ABC):
         self.keySets = self.globalParam['keySets']
         self.exptStepList = self.globalParam['experiment']['steps']
         self.dim = self.globalParam['experiment']['dimensions']
+        self.rheo = {'gelModulus' : self.globalParam['experiment']['gelModulus'],
+                     'gelThickness':  self.globalParam['experiment']['gelThickness']}
         self.dtypes = self.globalParam['locatingOutput']['dtypes']
+
+        #legacy
+        self.zyx = ['z','y','x']
 
         # some useful attributes specific to a step
         # paths are **always** given under steps until I write a function to concatenate or form a union of paths
@@ -114,6 +122,29 @@ class Analysis(ABC):
 
         sns.set(rc={'figure.figsize': figsize})
         sns.set_context(context,font_scale=font_scale)
+
+    @abstractmethod
+    def posDict(self,
+                posKey_frmt: str= '{coord} ({units}, {coordSys})',
+                coordTuple: tuple=('z','y','x'),
+                units: str= 'um',
+                coordSys: str = 'rheo_sedHeight'):
+        """
+        Create a dictionary of key value from standard position format 'coord (units, coordSys)'
+        """
+        return {'{}'.format(coord=coord):
+                    posKey_frmt.format(coord=coord, units=units, coordSys=coordSys) for coord in coordTuple}
+
+    @abstractmethod
+    def posList(self,
+                posKey_frmt: str= '{coord} ({units}, {coordSys})',
+                coordTuple: tuple=('z','y','x'),
+                units: str= 'um',
+                coordSys: str = 'rheo_sedHeight'):
+        """
+        Create a dictionary of key value from standard position format 'coord (units, coordSys)'
+        """
+        return [posKey_frmt.format(coord=coord, units=units, coordSys=coordSys) for coord in coordTuple]
 
     @abstractmethod
     def log(self):
