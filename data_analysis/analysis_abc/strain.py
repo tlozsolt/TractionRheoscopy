@@ -604,8 +604,6 @@ class Strain(Analysis):
         tmp = pd.concat([s, g]).reset_index()
         return tmp
 
-
-
     def plots(self):
         """
         Makes the following plots read from yaml plot file that has paths to saved datasets that are passed to seaborn

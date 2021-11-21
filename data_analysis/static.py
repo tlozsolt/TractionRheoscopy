@@ -1410,9 +1410,9 @@ def makeStrain_pyTables(paths: dict, framePairs: list, params: dict, **kwargs):
 
 def tukey(df: pd.DataFrame, col: list, k: float = 1.5):
     """
-    apply tukey to every str in col
-    Note taht for default of k=1.5 applied to nnb_count gives min coordination of 9.
-    For k ~2.2, you get min nnb count of 4. With taht said, applying tukey to nnb is
+    apply tukey fecnes with parameter k to every column in df specified by str in col list
+    Note that for default of k=1.5 applied to nnb_count gives min coordination of 9.
+    For k ~2.2, you get min nnb count of 4. With that said, applying tukey to nnb is
     not the best way as I have good reason to discard all particles with fewer than
     4 nnb on that ground that the algo doesnt work.
     """
