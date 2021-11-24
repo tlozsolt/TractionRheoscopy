@@ -1262,7 +1262,7 @@ def stitchGelGlobal():
                 data['step'] = step
                 s.put(data)
                 mIdx_tuples.append((step, frame))
-            tMax_list.append(tMax)  # increment now, after looping. Also, I explicitly checked off by one errors here.
+            tMax_list.append(tMax)  # increment now, after looping. Also, I explicitly checked off-by-one errors here.
 
     stitch_param = {'neighbor_strategy': 'KDTree',
                     'pos_columns': ['{} (um, imageStack)'.format(x) for x in ['x', 'y', 'z']],

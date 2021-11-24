@@ -1,19 +1,40 @@
 experiment:
   gelModulus: 1600 # low freq plateau modulus in units of mPa
-  gelThickness: 170 # thickness in microns measured between ref and stepa
+  gelThickness: 145 # thickness in microns measured between ref and stepa
   dimensions:
     x (um): 235
     y (um): 235
+
   steps:
-    -'ref': './relative/path/to/ref/h5'
-    -a : './rel/path/a/'
-    -b : './rel/path/b/'
-    -c : './rel/path/c/'
-    -d : './rel/path/d/'
-    -e : './rel/path/e/'
-    -f : './rel/path/f/'
-    -g : './rel/path/g/'
-    -ref2 : './rel/path/ref2/'
+    - 'ref': '../tfrGel10212018A_shearRun10292018ref/'
+    - a : '../tfrGel10212018A_shearRun10292018a/'
+    - b : '../tfrGel10212018A_shearRun10292018b/'
+    - c : '../tfrGel10212018A_shearRun10292018c/'
+    - d : '../tfrGel10212018A_shearRun10292018d/'
+    - e : '../tfrGel10212018A_shearRun10292018e/'
+    - f : '../tfrGel10212018A_shearRun10292018f/'
+    - g : '../tfrGel10212018A_shearRun10292018g/'
+
+  gelGlobal:
+    path: './gel_global.h5' # relative path to h5 output of gel tracking
+    mIdx: './gel_global_mIdx.h5' # relative path to h5 output of global gel multiindex
+    max_disp: 2 # maximum displacement in microns
+    metaPath_frmt: './tfrGel10212018A_shearRun10292018{step}/tfrGel10212018A_shearRun10292018{step}_metaData.yaml'
+    fName_frmtStep_prefix: '/tfrGel10212018A_shearRun10292018{}'
+    fName_frmtTime_suffix: '_stitched_gel_t{:03}.h5'
+    ref2ImageZ:
+      ref: 143
+      image: 29
+      description: 'approximate equivalent position in imaging coordinate in reference and image stack'
+    stitch_param:
+      neighbor_strategy: 'KDTree'
+      pos_columns:
+        - 'x (um, imageStack)'
+        - 'y (um, imageStack)'
+        - 'z (um, imageStack)'
+      t_column: 'frame'
+      adaptive_stop: 0.1
+      adaptive_step: 0.95
 
 plotStyle:
   context: 'paper'
@@ -56,95 +77,95 @@ keySets:
                    'signal', 'signal_std']
     interface: ['dist from sed_gel interface (um, imageStack)']
     keepBool: ['cleanSedGel_keepBool']
-dtypes:
-  index                      : 'int64'
-  frame                      : 'int64'
-  z                          : 'int64'
-  y                          : 'int64'
-  x                          : 'int64'
-  ecc                        : 'float64'
-  cluster                    : 'int64'
-  cluster_size               : 'int64'
-  z (px, hash)               : 'float64'
-  y (px, hash)               : 'float64'
-  x (px, hash)               : 'float64'
-  hashValue                  : 'int64'
-  mass                       : 'float64'
-  raw_mass                   : 'float64'
-  n_iteration                : 'int64'
-  disc_size                  : 'float64'
-  size_x                     : 'float64'
-  size_y                     : 'float64'
-  size_z                     : 'float64'
-  size_z_std                 : 'float64'
-  size_y_std                 : 'float64'
-  size_x_std                 : 'float64'
-  disc_size_std              : 'float64'
-  background                 : 'float64'
-  background_std             : 'float64'
-  signal                     : 'float64'
-  signal_std                 : 'float64'
-  z_std                      : 'float64'
-  y_std                      : 'float64'
-  x_std                      : 'float64'
-  cost                       : 'float64'
-  x (um, imageStack)         : 'float64'
-  y (um, imageStack)         : 'float64'
-  z (um, imageStack)         : 'float64'
-  totalError                 : 'float64'
-  keepBool                   : 'bool'
-  ep_z                       : 'float64'
-  ep_y                       : 'float64'
-  ep_x                       : 'float64'
-  gel_Background             : 'float64'
-  gel_Tracer                 : 'float64'
-  sed_Colloid                : 'float64'
-  sed_Background             : 'float64'
-  fluorescent_chunk          : 'float64'
-  nonfluorescent_chunk       : 'float64'
-  gel_Background_core        : 'float64'
-  gel_Tracer_core            : 'float64'
-  sed_Colloid_core           : 'float64'
-  sed_Background_core        : 'float64'
-  fluorescent_chunk_core     : 'float64'
-  nonfluorescent_chunk_core  : 'float64'
-  gel_Background_shell       : 'float64'
-  gel_Tracer_shell           : 'float64'
-  sed_Colloid_shell          : 'float64'
-  sed_Background_shell       : 'float64'
-  fluorescent_chunk_shell    : 'float64'
-  nonfluorescent_chunk_shell : 'float64'
 
+locatingOutput:
+  dtypes:
+    index                      : 'int64'
+    frame                      : 'int64'
+    z                          : 'int64'
+    y                          : 'int64'
+    x                          : 'int64'
+    ecc                        : 'float64'
+    cluster                    : 'int64'
+    cluster_size               : 'int64'
+    z (px, hash)               : 'float64'
+    y (px, hash)               : 'float64'
+    x (px, hash)               : 'float64'
+    hashValue                  : 'int64'
+    mass                       : 'float64'
+    raw_mass                   : 'float64'
+    n_iteration                : 'int64'
+    disc_size                  : 'float64'
+    size_x                     : 'float64'
+    size_y                     : 'float64'
+    size_z                     : 'float64'
+    size_z_std                 : 'float64'
+    size_y_std                 : 'float64'
+    size_x_std                 : 'float64'
+    disc_size_std              : 'float64'
+    background                 : 'float64'
+    background_std             : 'float64'
+    signal                     : 'float64'
+    signal_std                 : 'float64'
+    z_std                      : 'float64'
+    y_std                      : 'float64'
+    x_std                      : 'float64'
+    cost                       : 'float64'
+    x (um, imageStack)         : 'float64'
+    y (um, imageStack)         : 'float64'
+    z (um, imageStack)         : 'float64'
+    totalError                 : 'float64'
+    keepBool                   : 'bool'
+    ep_z                       : 'float64'
+    ep_y                       : 'float64'
+    ep_x                       : 'float64'
+    gel_Background             : 'float64'
+    gel_Tracer                 : 'float64'
+    sed_Colloid                : 'float64'
+    sed_Background             : 'float64'
+    fluorescent_chunk          : 'float64'
+    nonfluorescent_chunk       : 'float64'
+    gel_Background_core        : 'float64'
+    gel_Tracer_core            : 'float64'
+    sed_Colloid_core           : 'float64'
+    sed_Background_core        : 'float64'
+    fluorescent_chunk_core     : 'float64'
+    nonfluorescent_chunk_core  : 'float64'
+    gel_Background_shell       : 'float64'
+    gel_Tracer_shell           : 'float64'
+    sed_Colloid_shell          : 'float64'
+    sed_Background_shell       : 'float64'
+    fluorescent_chunk_shell    : 'float64'
+    nonfluorescent_chunk_shell : 'float64'
 
-
-  description:
-    z (px, hash): |
-      z position of particle within hashed chunk in units of pixels
-      with subpixel correction using nonlinear least squares fit or
-      sub pixel centroid fitting routine depending the file loaded
-    y (px, hash): |
-      analogous to z (px, hash) but y coordinate.
-      Note px to micron may be different in x,y,z and this difference
-      is not reflected in the position when stated in units of pixels
-    x (px, hash): |
-      analogous to z (px, hash) but x coordinate.
-      Note px to micron may be different in x,y,z and this difference
-      is not reflected in the position when stated in units of pixels
-    hashValue: |
-      The hashValue that was used to locate this specific particle.
-      Querying hash_df in a dpl instance with this hashValue will
-      return the xyzt bounds of the hashed chunk. This hashVlaue is
-      passed to SLURM job array to specify what part of the xyzt
-      confocal time series to run locating on. Typical hashDimensions
-      are (250,450,450) in (z,y,x) in pixels although this varies
-      and you should check the locating metaData for more info
-    gel_Background: |
-      Integrated pixel probability for a random forest classifier (ilastik)
-      with  channel name given by the key. The integration is center on the
-      refined position of the particle, and intergrates whole pixels
-      upto a fixed particle size. If the key is *_core or *_shell then
-      the integration was carried out to a volume that included just the
-      core (~800 nm diameter) or the nonfluorescent shell.
-      This key should be used to diagnose the quality of the image and help
-      retain some information of the underlying fluorescence image during
-      data analysis of the particle locations.
+    description:
+      z (px, hash): |
+        z position of particle within hashed chunk in units of pixels
+        with subpixel correction using nonlinear least squares fit or
+        sub pixel centroid fitting routine depending the file loaded
+      y (px, hash): |
+        analogous to z (px, hash) but y coordinate.
+        Note px to micron may be different in x,y,z and this difference
+        is not reflected in the position when stated in units of pixels
+      x (px, hash): |
+        analogous to z (px, hash) but x coordinate.
+        Note px to micron may be different in x,y,z and this difference
+        is not reflected in the position when stated in units of pixels
+      hashValue: |
+        The hashValue that was used to locate this specific particle.
+        Querying hash_df in a dpl instance with this hashValue will
+        return the xyzt bounds of the hashed chunk. This hashVlaue is
+        passed to SLURM job array to specify what part of the xyzt
+        confocal time series to run locating on. Typical hashDimensions
+        are (250,450,450) in (z,y,x) in pixels although this varies
+        and you should check the locating metaData for more info
+      gel_Background: |
+        Integrated pixel probability for a random forest classifier (ilastik)
+        with  channel name given by the key. The integration is center on the
+        refined position of the particle, and intergrates whole pixels
+        upto a fixed particle size. If the key is *_core or *_shell then
+        the integration was carried out to a volume that included just the
+        core (~800 nm diameter) or the nonfluorescent shell.
+        This key should be used to diagnose the quality of the image and help
+        retain some information of the underlying fluorescence image during
+        data analysis of the particle locations.

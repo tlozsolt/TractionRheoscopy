@@ -30,23 +30,31 @@ import pickle as pkl
 
 class StitchTrack(Analysis):
 
-    def __init__(self, globalParamFile, stepParamFile):
+    def __init__(self, globalParamFile, stepParamFile, test: bool=False):
         # load yaml metaData for both experiment and step
         super().__init__(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
+        if test: self.frames=3
 
         # add additional attributes that I will need here
-        self.dpl_metaData = self.stepParam['paths']['dplMetaData']
+        self.dpl_metaDataPath = self.stepParam['paths']['dplMetaData']
         self.dpl_log = self.stepParam['paths']['dpl_log']
         self.max_disp = self.stepParam['stitchTrack']['linking']['max_disp']
         self.locationCSV_frmt = self.stepParam['paths']['locationCSV']
 
         # add attributes inherited from dpl class without inheriting the methods etc
-        self.dpl = dpl.dplHash(self.dpl_metaData)
-        self.hash_df = self.dpl.hash_df
+        # this was added to Analysis paraent class
+        #self.dpl = dpl.dplHash(self.dpl_metaDataPath)
+        #self.hash_df = self.dpl.hash_df
 
     def sed(self, frame): return super().sed(frame)
-    def gel(self, frame): return super().gel(frame)
+    #def gel(self, frame): return super().gel(frame)
+    def gel(self, frame, step=None, gelGlobal: bool = True):
+        return super().gel(frame=frame, step=step, gelGlobal=gelGlobal)
+
+    def gelGlobal2Local(self, gelGlobalGen):super().gelGlobal2Local(gelGlobalGen)
+
     def setPlotStyle(self): pass
+
     def log(self): super().log()
 
     def posDict(self,
@@ -77,7 +85,7 @@ class StitchTrack(Analysis):
         there was likely an error with thresholding the images before particle locating
         """
         #dplMetaPath = self.paths['stem'] + self.paths['dplMetaData']
-        dplMetaPath = self.dpl_metaData
+        dplMetaPath = self.dpl_metaDataPath
         #log = self.paths['stem'] + '/log'
         log = self.paths['dpl_log']
 
@@ -147,6 +155,85 @@ class StitchTrack(Analysis):
             for linked in tp.link_df_iter(s, **param) : s.put(linked)
         return True
 
+    def trackGelGlobal(self, verbose=False):
+        """
+        Stitch and track gel tracers across experiments, including reference stacks
+
+        Refactored from da.static.stitchGelGlobal
+        -Zsolt Nov 23, 2021
+        """
+        from particleLocating import dplHash_v2 as dpl
+
+        global_stitch = self.gelGlobal['path']
+        max_disp = self.gelGlobal['max_disp']
+
+        # linked list of step kwrds (ie ref, a,b,c..)  and relative paths [./path/to/a/, path/to/b/, ... ]
+        stepList = [list(step.keys())[0] for step in self.exptStepList]
+        pathList = [list(step.values())[0] for step in self.exptStepList]
+
+        mIdx_tuples = []
+        tMax_list = []
+        # create the single large stitched h5 file to mimic locating all the gel regions all at once, across experiments
+        # one file to rule them all, also not the force overwrite by calling with 'w' flag
+        with tp.PandasHDFStoreBig(global_stitch, 'w') as s:
+            for n in range(len(stepList)):
+                step = stepList[n]
+                path = pathList[n]
+                if verbose: print('Starting step {}'.format(step))
+
+                # open correspodning yaml file to find out time steps. Note this cant be done in analysis abc
+                # as it is not just for this step, but rather all the steps
+                _ = dpl.dplHash(path+'tfrGel10212018A_shearRun10292018{}_metaData.yaml'.format(step))
+                metaData, hash_df = _.metaData, _.hash_df  # not sure if I need all the metaData or just the hash_df
+                del _
+
+                # open corresponding stitched file
+                prefix = self.gelGlobal['fName_frmtStep_prefix']
+                suffix = self.gelGlobal['fName_frmtTime_suffix']
+                stitchedPathDict = dict(path=path+'/locations/', fName_frmt=prefix.format(step) + suffix)
+
+                tMax = hash_df['t'].max() + 1
+                offset = sum(tMax_list)  # note the edge case sum([]) = 0 works by default
+                # TODO: add custom columns to loadStitched call trough dictionary expansion
+
+                refShift = self.gelGlobal['ref2ImageZ']['ref']
+                imageShift = self.gelGlobal['ref2ImageZ']['image']
+                for frame, data in enumerate(da.loadStitched(range(tMax),
+                                                             posKeys=self.posKeys_dict['gel'],
+                                                             colKeys=['frame'], **stitchedPathDict)):
+                    #for frame, data in enumerate(loadStitched(range(tMax), **stitchedPathDict)):
+                    dtype_dict = da.insersectDict(self.dtypes, dict(data.dtypes))
+                    data = data.astype(dtype_dict)
+                    data['frame_local'] = data['frame']
+
+                    # increment to prevent tp from overwriting the same frame number at different steps
+                    data['frame'] = data['frame'] + offset
+                    data['step'] = step
+                    if step == 'ref':
+                        data['z (um, refStack)'] = data['z (um, imageStack)']
+                        data['z (um, imageStack)'] = data['z (um, refStack)'] - (refShift - imageShift)
+                    else:
+                        data['z (um, refStack)'] = data['z (um, imageStack)'] + (refShift - imageShift)
+                    data['step'] = step
+                    s.put(data)
+                    mIdx_tuples.append((step, frame))
+
+                # increment now, after looping. Also, I explicitly checked off-by-one errors here.
+                tMax_list.append(tMax)
+
+        stitch_param = self.gelGlobal['stitch_param']
+        with tp.PandasHDFStoreBig(global_stitch) as s:  # now track
+            for linked in tp.link_df_iter(s, max_disp, **stitch_param): s.put(linked)
+
+        # assign mIdx to attribute
+        tmp = pd.DataFrame(pd.MultiIndex.from_tuples(mIdx_tuples), columns=['mIdx'])
+        tmp['step'] = tmp['mIdx'].apply(lambda x: x[0])
+        tmp['frame local'] = tmp['mIdx'].apply(lambda x: x[1])
+
+        self.gelGlobal_mIdx = tmp
+        # save to dataFrame
+        self.gelGlobal_mIdx.to_hdf(self.gelGlobal['mIdx'], 'mIdx')
+        return mIdx_tuples, global_stitch
 
     def __call__(self, verbose: bool = True):
 
@@ -171,4 +258,13 @@ class StitchTrack(Analysis):
                 if verbose: print('starting on material {}'.format(mat))
                 self.track(mat, **p['track'])
 
+        if pipeline['gelGlobal']: self.trackGelGlobal()
+
         return True
+
+if __name__ == '__main__':
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'
+    param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
+                 stepParamFile = './step_param.yml', test=False)
+    os.chdir(testPath)
+    test = StitchTrack(**param)

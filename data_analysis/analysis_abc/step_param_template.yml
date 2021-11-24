@@ -1,4 +1,5 @@
 name: 'short_name_of_step'
+step: 'e'
 nameLong: 'tfrGel10212018A_shearRun10292018a' # long name used in dpl locating
 frames: 22 # nubmer of frames for this step
 dimensions:

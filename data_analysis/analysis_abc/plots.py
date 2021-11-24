@@ -7,6 +7,7 @@ sys.path.append('/')
 from data_analysis.analysis_abc.analysis_abc import Analysis
 from data_analysis.analysis_abc import strain
 from data_analysis.analysis_abc import dataCleaning
+from data_analysis.analysis_abc import stress
 from data_analysis import static as da
 
 import pandas as pd
@@ -30,6 +31,7 @@ class Plots(Analysis):
 
         self.strain = strain.Strain(**self.abcParam) # add an instance of strain class as an attribute to access methods
         self.clean = dataCleaning.Cleaning(**self.abcParam)
+        self.stress = stress.Stress(**self.abcParam)
 
     def __call__(self):
         print('Not yet implemented')
@@ -92,9 +94,9 @@ class Plots(Analysis):
         'Ref: x displacement lower boundary (um)',
         'Ref: y displacement lower boundary (um)',
         'Ref: z displacement lower boundary (um)',
-        'Ref: stress xz (mPa)',
-        'Ref: stress yz (mPa)',
-        'Ref: stress zz (mPa)',
+        #'Ref: stress xz (mPa)',
+        #'Ref: stress yz (mPa)',
+        #'Ref: stress zz (mPa)',
         'Ref: residual mean fl - boundary min (%)',
         'Ref: residual mean fl - boundary mean (%)',
         'Ref: residual mean fl - boundary max (%)',
@@ -111,9 +113,9 @@ class Plots(Analysis):
         'dt1: x displacement lower boundary (um)',
         'dt1: y displacement lower boundary (um)',
         'dt1: z displacement lower boundary (um)',
-        'dt1: stress xz (mPa)',
-        'dt1: stress yz (mPa)',
-        'dt1: stress zz (mPa)',
+        #'dt1: stress xz (mPa)',
+        #'dt1: stress yz (mPa)',
+        #'dt1: stress zz (mPa)',
         'dt1: residual mean fl - boundary min (%)',
         'dt1: residual mean fl - boundary mean (%)',
         'dt1: residual mean fl - boundary max (%)'

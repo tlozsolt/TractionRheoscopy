@@ -10,8 +10,9 @@ import os
 
 class Cleaning(Analysis):
 
-    def __init__(self, globalParamFile, stepParamFile):
+    def __init__(self, globalParamFile, stepParamFile, test):
         super().__init__(globalParamFile, stepParamFile)
+        if test: self.frames = 3
 
         self.interfaceIdx = da.readOvitoIdx(self.paths['sed_interface_idx'])
         self.interfaceFits = None
@@ -65,8 +66,8 @@ class Cleaning(Analysis):
         #potentiall do more things like boolean selection on sedPos
         return sedPos
 
-    def gel(self, frame):
-        gelPos = super().gel(frame)
+    def gel(self, frame, **kwargs):
+        gelPos = super().gel(frame, **kwargs)
         # potentially do more thing like boolean section for Cleaning specific behavior
         return gelPos
 
@@ -222,46 +223,57 @@ class Cleaning(Analysis):
 
             if mat == 'sed':
                 posDF_gen = tp.PandasHDFStoreBig(self.paths['sed'])
+                # purely a formality for sediment
+                stepMin, stepMax, shift = 0, self.frames -1 , 0
             elif mat == 'gel':
                 posDF_gen = tp.PandasHDFStoreBig(self.paths['gel'])
+                _ = self.gelGlobal_mIdx
+                gelGlobal = _[_['step'] == self.step]
+                stepMin = gelGlobal.index.min()
+                stepMax = gelGlobal.index.max()
+                shift = -1*stepMin
                 #posDF_gen = self._gel()
 
             # loop over frames
-            for frame, posDF in enumerate(posDF_gen):
+            for frameGlobal, posDF in enumerate(posDF_gen):
+                if frameGlobal < stepMin or frameGlobal > stepMax: continue
+                else:
+                    # remap frame to local index so that I can use interfacefits in local frames
+                    frame = frameGlobal + shift
+                    # set particle index
+                    posDF.set_index('particle', inplace=True)
 
-                # set particle index
-                posDF.set_index('particle', inplace=True)
+                    # compute distance from plane
+                    fit_tmp = interfaceFitDF.loc[frame][['a', 'b', 'c']]
+                    posDF[dist_key] = da.pt2Plane(posDF[pos_keys].values, fit_tmp.values)
 
-                # compute distance from plane
-                fit_tmp = interfaceFitDF.loc[frame][['a', 'b', 'c']]
-                posDF[dist_key] = da.pt2Plane(posDF[pos_keys].values, fit_tmp.values)
+                    # flag sed particles that are below the interface, and gel particles above the interface
+                    #z_cutoff = self.da_param['interface_fit']['clean_cutoff']['garbage']['sed_{}'.format(mat)]
+                    if mat == 'sed':
+                        z_cutoff = garbage['sed_sed']
+                        posDF[keepBool_str] = posDF[dist_key] > z_cutoff
+                        # add rheo coordinates
+                        posDF['x (um, rheo_sedHeight)'] = posDF['x (um, imageStack)'] - self.dim['x (um)'] / 2.0
+                        posDF['y (um, rheo_sedHeight)'] = -1 * (posDF['y (um, imageStack)'] - self.dim['y (um)'] / 2.0)
+                        #posDF['z (um, rheo_sedHeight)'] = posDF[dist_key]
+                        posDF['z (um, rheo_sedHeight)'] = posDF['z (um, imageStack)'] - self.interfaceFits.loc[frame]['c']
 
-                # flag sed particles that are below the interface, and gel particles above the interface
-                #z_cutoff = self.da_param['interface_fit']['clean_cutoff']['garbage']['sed_{}'.format(mat)]
-                if mat == 'sed':
-                    z_cutoff = garbage['sed_sed']
-                    posDF[keepBool_str] = posDF[dist_key] > z_cutoff
-                    # add rheo coordinates
-                    posDF['x (um, rheo_sedHeight)'] = posDF['x (um, imageStack)'] - self.dim['x (um)'] / 2.0
-                    posDF['y (um, rheo_sedHeight)'] = -1 * (posDF['y (um, imageStack)'] - self.dim['y (um)'] / 2.0)
-                    #posDF['z (um, rheo_sedHeight)'] = posDF[dist_key]
-                    posDF['z (um, rheo_sedHeight)'] = posDF['z (um, imageStack)'] - self.interfaceFits.loc[frame]['c']
+                    elif mat == 'gel':
+                        z_cutoff = garbage['sed_gel']
+                        posDF[keepBool_str] = posDF[dist_key] < z_cutoff
 
-                elif mat == 'gel':
-                    z_cutoff = garbage['sed_gel']
-                    posDF[keepBool_str] = posDF[dist_key] < z_cutoff
+                        # compute height above coverslip
+                        if self.refFit is None: self.fitReference()
+                        z_offset = self.refFit.loc['refFit']['c'] - self.interfaceFits.loc[frame]['c']
 
-                    # compute height above coverslip
-                    if self.refFit is None: self.fitReference()
-                    z_offset = self.refFit.loc['refFit']['c'] - self.interfaceFits.loc[frame]['c']
+                        # add rheo coordinates
+                        posDF['x (um, rheo_sedHeight)'] = posDF['x (um, imageStack)'] - self.dim['x (um)'] / 2.0
+                        posDF['y (um, rheo_sedHeight)'] = -1 * (posDF['y (um, imageStack)'] - self.dim['y (um)'] / 2.0)
+                        posDF['z (um, rheo_sedHeight)'] = posDF['z (um, imageStack)'] + z_offset
 
-                    # add rheo coordinates
-                    posDF['x (um, rheo_sedHeight)'] = posDF['x (um, imageStack)'] - self.dim['x (um)'] / 2.0
-                    posDF['y (um, rheo_sedHeight)'] = -1 * (posDF['y (um, imageStack)'] - self.dim['y (um)'] / 2.0)
-                    posDF['z (um, rheo_sedHeight)'] = posDF['z (um, imageStack)'] + z_offset
-
-                # update the data store.. is it really this simple?
-                posDF_gen.put(posDF.reset_index())
+                    # update the data store.. is it really this simple? Yes, keep in mind the key
+                    # are derived from acolumn in the dataFrame.
+                    posDF_gen.put(posDF.reset_index())
 
         # not necessary to close generator as, I think, it closes since we have iterator through it
         #posDF_gen.close()
@@ -326,3 +338,10 @@ class Cleaning(Analysis):
             with open(outPath +'/log.yml','w') as f: yaml.dump(paramLog,f)
 
         return os.path.abspath(outPath)
+
+if __name__ == '__main__':
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'
+    param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
+                 stepParamFile = './step_param.yml', test=False)
+    os.chdir(testPath)
+    test = Cleaning(**param)

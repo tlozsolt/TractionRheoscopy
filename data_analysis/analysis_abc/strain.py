@@ -20,9 +20,11 @@ from multiprocessing import Pool
 
 class Strain(Analysis):
 
-    def __init__(self,globalParamFile, stepParamFile):
+    def __init__(self,globalParamFile, stepParamFile,test=False):
         # load yaml metaData for both expt and step
         super().__init__(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
+
+        if test: self.frames = 3
 
         # add additional attributes that I will need here
         self.figPath = self.paths['figPath']
@@ -457,152 +459,155 @@ class Strain(Analysis):
         # return aggregate statistic
         return relDisp
 
-    def avgStrain(self):
+    def avgStrain(self, forceRecompute: bool = False, save2hdf: bool = True):
         """
         Compute strain vs time with a fixed reference configuration at time t=0
         Should return a dataFrame that can be passed to seaborn and plotted
         """
-        #avgStrain = pd.DataFrame()
-        avgStrain_dict = {}
-        for cur in range(1,self.frames):
-            #strainDF = self.getStrain(0,cur,strainType)
-            #avgStrain[cur] = strainDF[strainDF['nnb count'] > 9].mean()
+        outPath = self.strainDataDir +'/frameAverage.h5'
+        if forceRecompute is False and os.path.exists(outPath):
+            return pd.read_hdf(outPath,'avgStrain')
+        else:
+            avgStrain_dict = {}
+            for cur in range(1,self.frames):
+                #strainDF = self.getStrain(0,cur,strainType)
+                #avgStrain[cur] = strainDF[strainDF['nnb count'] > 9].mean()
 
-            fl_ref = self.getStrain('falkLanger', 0, cur)
-            fl_dt1 = self.getStrain('falkLanger', cur - 1, cur)
-            bd_ref = self.getStrain('boundary', 0, cur)
-            bd_dt1 = self.getStrain('boundary', cur - 1, cur)
+                fl_ref = self.getStrain('falkLanger', 0, cur)
+                fl_dt1 = self.getStrain('falkLanger', cur - 1, cur)
+                bd_ref = self.getStrain('boundary', 0, cur)
+                bd_dt1 = self.getStrain('boundary', cur - 1, cur)
 
-            # apply selection criterion to remove large strain due to low nnb count
-            refIdx = fl_ref[fl_ref['nnb count'] >= 9].index
-            dt1Idx = fl_dt1[fl_dt1['nnb count'] >= 9].index
+                # apply selection criterion to remove large strain due to low nnb count
+                refIdx = fl_ref[fl_ref['nnb count'] >= 9].index
+                dt1Idx = fl_dt1[fl_dt1['nnb count'] >= 9].index
 
-            # select if applicable and apply mean
-            fl_ref = fl_ref.loc[refIdx].mean()
-            fl_dt1 = fl_dt1.loc[dt1Idx].mean()
-            bd_ref = bd_ref.mean()
-            bd_dt1 = bd_dt1.mean()
+                # select if applicable and apply mean
+                fl_ref = fl_ref.loc[refIdx].mean()
+                fl_dt1 = fl_dt1.loc[dt1Idx].mean()
+                bd_ref = bd_ref.mean()
+                bd_dt1 = bd_dt1.mean()
 
-            # now add output keys (this part should be incorporated into yaml file perhaps?
-            avgStrain_dict[cur] = {
-                'Ref: mean fl 2exz (%)' : 200*fl_ref['exz'],
-                'Ref: mean fl 2eyz (%)' : 200*fl_ref['eyz'],
-                'Ref: mean fl 2ezz (%)' : 200*fl_ref['ezz'],
-                'Ref: mean fl vM' : fl_ref['vonMises'],
-                'Ref: boundary gap min mean gamma (%)' : 100*bd_ref['strain 2exz, gap min'],
-                'Ref: boundary gap mean mean gamma (%)' : 100*bd_ref['strain 2exz, gap mean'],
-                'Ref: boundary gap max mean gamma (%)' : 100*bd_ref['strain 2exz, gap max'],
-                'Ref: x displacement upper boundary (um)': bd_ref['<xUpper> (um, rheo_SedHeight)'],
-                'Ref: y displacement upper boundary (um)': bd_ref['<yUpper> (um, rheo_SedHeight)'],
-                'Ref: z displacement upper boundary (um)': bd_ref['<zUpper> (um, rheo_SedHeight)'],
-                'Ref: x displacement lower boundary (um)': bd_ref['<xLower> (um, rheo_SedHeight)'],
-                'Ref: y displacement lower boundary (um)': bd_ref['<yLower> (um, rheo_SedHeight)'],
-                'Ref: z displacement lower boundary (um)': bd_ref['<zLower> (um, rheo_SedHeight)'],
-                'Ref: stress xz (mPa)': self.gelModulus*bd_ref['<xLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'Ref: stress yz (mPa)': self.gelModulus*bd_ref['<yLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'Ref: stress zz (mPa)': self.gelModulus*bd_ref['<zLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'Ref: residual mean fl - boundary min (%)' : 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap min'],
-                'Ref: residual mean fl - boundary mean (%)': 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap mean'],
-                'Ref: residual mean fl - boundary max (%)' : 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap max'],
-                'dt1: mean fl 2exz (%)' : 200 * fl_dt1['exz'],
-                'dt1: mean fl 2eyz (%)' : 200 * fl_dt1['eyz'],
-                'dt1: mean fl 2ezz (%)' : 200 * fl_dt1['ezz'],
-                'dt1: mean fl vM': fl_dt1['vonMises'],
-                'dt1: boundary gap min mean gamma (%)' : 100 * bd_dt1['strain 2exz, gap min'],
-                'dt1: boundary gap mean mean gamma (%)': 100 * bd_dt1['strain 2exz, gap mean'],
-                'dt1: boundary gap max mean gamma (%)' : 100 * bd_dt1['strain 2exz, gap max'],
-                'dt1: x displacement upper boundary (um)': bd_dt1['<xUpper> (um, rheo_SedHeight)'],
-                'dt1: y displacement upper boundary (um)': bd_dt1['<yUpper> (um, rheo_SedHeight)'],
-                'dt1: z displacement upper boundary (um)': bd_dt1['<zUpper> (um, rheo_SedHeight)'],
-                'dt1: x displacement lower boundary (um)': bd_dt1['<xLower> (um, rheo_SedHeight)'],
-                'dt1: y displacement lower boundary (um)': bd_dt1['<yLower> (um, rheo_SedHeight)'],
-                'dt1: z displacement lower boundary (um)': bd_dt1['<zLower> (um, rheo_SedHeight)'],
-                'dt1: stress xz (mPa)':  self.gelModulus * bd_dt1['<xLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'dt1: stress yz (mPa)':  self.gelModulus * bd_dt1['<yLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'dt1: stress zz (mPa)':  self.gelModulus * bd_dt1['<zLower> (um, rheo_SedHeight)']/self.gelThickness,
-                'dt1: residual mean fl - boundary min (%)' : 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap min'],
-                'dt1: residual mean fl - boundary mean (%)': 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap mean'],
-                'dt1: residual mean fl - boundary max (%)' : 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap max']
-            }
-        out = pd.DataFrame(avgStrain_dict).T
-        out.to_hdf(self.strainDataDir +'/frameAverage.h5', 'avgStrain',mode='a')
-        return out
+                # now add output keys (this part should be incorporated into yaml file perhaps?
+                avgStrain_dict[cur] = {
+                    'Ref: mean fl 2exz (%)' : 200*fl_ref['exz'],
+                    'Ref: mean fl 2eyz (%)' : 200*fl_ref['eyz'],
+                    'Ref: mean fl 2ezz (%)' : 200*fl_ref['ezz'],
+                    'Ref: mean fl vM' : fl_ref['vonMises'],
+                    'Ref: boundary gap min mean gamma (%)' : 100*bd_ref['strain 2exz, gap min'],
+                    'Ref: boundary gap mean mean gamma (%)' : 100*bd_ref['strain 2exz, gap mean'],
+                    'Ref: boundary gap max mean gamma (%)' : 100*bd_ref['strain 2exz, gap max'],
+                    'Ref: x displacement upper boundary (um)': bd_ref['<xUpper> (um, rheo_SedHeight)'],
+                    'Ref: y displacement upper boundary (um)': bd_ref['<yUpper> (um, rheo_SedHeight)'],
+                    'Ref: z displacement upper boundary (um)': bd_ref['<zUpper> (um, rheo_SedHeight)'],
+                    'Ref: x displacement lower boundary (um)': bd_ref['<xLower> (um, rheo_SedHeight)'],
+                    'Ref: y displacement lower boundary (um)': bd_ref['<yLower> (um, rheo_SedHeight)'],
+                    'Ref: z displacement lower boundary (um)': bd_ref['<zLower> (um, rheo_SedHeight)'],
+                    #'Ref: stress xz (mPa)': self.gelModulus*bd_ref['<xLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    #'Ref: stress yz (mPa)': self.gelModulus*bd_ref['<yLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    #'Ref: stress zz (mPa)': self.gelModulus*bd_ref['<zLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    'Ref: residual mean fl - boundary min (%)' : 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap min'],
+                    'Ref: residual mean fl - boundary mean (%)': 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap mean'],
+                    'Ref: residual mean fl - boundary max (%)' : 200 * fl_ref['exz'] - 100 * bd_ref['strain 2exz, gap max'],
+                    'dt1: mean fl 2exz (%)' : 200 * fl_dt1['exz'],
+                    'dt1: mean fl 2eyz (%)' : 200 * fl_dt1['eyz'],
+                    'dt1: mean fl 2ezz (%)' : 200 * fl_dt1['ezz'],
+                    'dt1: mean fl vM': fl_dt1['vonMises'],
+                    'dt1: boundary gap min mean gamma (%)' : 100 * bd_dt1['strain 2exz, gap min'],
+                    'dt1: boundary gap mean mean gamma (%)': 100 * bd_dt1['strain 2exz, gap mean'],
+                    'dt1: boundary gap max mean gamma (%)' : 100 * bd_dt1['strain 2exz, gap max'],
+                    'dt1: x displacement upper boundary (um)': bd_dt1['<xUpper> (um, rheo_SedHeight)'],
+                    'dt1: y displacement upper boundary (um)': bd_dt1['<yUpper> (um, rheo_SedHeight)'],
+                    'dt1: z displacement upper boundary (um)': bd_dt1['<zUpper> (um, rheo_SedHeight)'],
+                    'dt1: x displacement lower boundary (um)': bd_dt1['<xLower> (um, rheo_SedHeight)'],
+                    'dt1: y displacement lower boundary (um)': bd_dt1['<yLower> (um, rheo_SedHeight)'],
+                    'dt1: z displacement lower boundary (um)': bd_dt1['<zLower> (um, rheo_SedHeight)'],
+                    #'dt1: stress xz (mPa)':  self.gelModulus * bd_dt1['<xLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    #'dt1: stress yz (mPa)':  self.gelModulus * bd_dt1['<yLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    #'dt1: stress zz (mPa)':  self.gelModulus * bd_dt1['<zLower> (um, rheo_SedHeight)']/self.gelThickness,
+                    'dt1: residual mean fl - boundary min (%)' : 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap min'],
+                    'dt1: residual mean fl - boundary mean (%)': 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap mean'],
+                    'dt1: residual mean fl - boundary max (%)' : 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap max']
+                }
+            out = pd.DataFrame(avgStrain_dict).T
+            if save2hdf: out.to_hdf(self.strainDataDir +'/frameAverage.h5', 'avgStrain',mode='a')
+            return out
 
-    def compute_zBinDisp(self, frame: int, gelBins: int = 6, sedBins: int = 10, **kwargs):
-        """ ### Boundary Slip ### """
-        # Particle counts in gel per xy bin
-        # ability to segment gel and sediment (bimodal histogram)
-        # Displacement in shear direction vs. height (diverging color map with horizontal bins)
-        # make color palette
+    def     compute_zBinDisp(self, frame: int, gelBins: int = 6, sedBins: int = 10, **kwargs):
+            """ ### Boundary Slip ### """
+            # Particle counts in gel per xy bin
+            # ability to segment gel and sediment (bimodal histogram)
+            # Displacement in shear direction vs. height (diverging color map with horizontal bins)
+            # make color palette
 
-        # ToDo:
-        #  - turn into a function that loops over frames
-        #  - Find a way of incorporating the number of samples in each cut into the plot
-        #  - Change the logic so that the bin spacing is always the same across sed and gel so
-        #    so that slopes on gel and sed deformation are easy to compare without computing.
-        #    Not sure how to do this...maybe label material, concat, and then bin on both mat and dist from
-        #    interface?
+            # ToDo:
+            #  - turn into a function that loops over frames
+            #  - Find a way of incorporating the number of samples in each cut into the plot
+            #  - Change the logic so that the bin spacing is always the same across sed and gel so
+            #    so that slopes on gel and sed deformation are easy to compare without computing.
+            #    Not sure how to do this...maybe label material, concat, and then bin on both mat and dist from
+            #    interface?
 
-        # get the top surface height in um, rheo_sedHeight
-        c_ref = da.fitSurface_singleTime(self.sed(0), self.upperIdx, '(um, rheo_sedHeight)')['c']
-        c_cur = da.fitSurface_singleTime(self.sed(frame), self.upperIdx, '(um, rheo_sedHeight)')['c']
+            # get the top surface height in um, rheo_sedHeight
+            c_ref = da.fitSurface_singleTime(self.sed(0), self.upperIdx, '(um, rheo_sedHeight)')['c']
+            c_cur = da.fitSurface_singleTime(self.sed(frame), self.upperIdx, '(um, rheo_sedHeight)')['c']
 
-        # get the positions and compute displacement
-        # .   sed, keys x,y position and distance from bottom of sediment...this likely requires sed query on clean instance
-        clean = Cleaning(**self.abcParam)
-        ref = clean.sed(0)
-        ref = ref[ref['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
-                                               + ['dist from sed_gel interface (um, imageStack)']]
-        s = clean.sed(frame)
-        s = s[s['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
-                                         + ['dist from sed_gel interface (um, imageStack)']]
+            # get the positions and compute displacement
+            # .   sed, keys x,y position and distance from bottom of sediment...this likely requires sed query on clean instance
+            clean = Cleaning(**self.abcParam)
+            ref = clean.sed(0)
+            ref = ref[ref['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                                   + ['dist from sed_gel interface (um, imageStack)']]
+            s = clean.sed(frame)
+            s = s[s['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                             + ['dist from sed_gel interface (um, imageStack)']]
 
-        # only include particles that are below the grid (approx)
-        ref = ref[ref['z (um, rheo_sedHeight)'] < c_ref]
-        s = s[s['z (um, rheo_sedHeight)'] < c_cur]
+            # only include particles that are below the grid (approx)
+            ref = ref[ref['z (um, rheo_sedHeight)'] < c_ref]
+            s = s[s['z (um, rheo_sedHeight)'] < c_cur]
 
-        disp = (s - ref).dropna()
-        disp.rename(
-            columns={'{} (um, rheo_sedHeight)'.format(coord):
-                         'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
-            inplace=True)
-        disp.rename(columns={'dist from sed_gel interface (um, imageStack)':
-                                 'disp z sed_gel interface (um, imageStack)'}, inplace=True)
-
-        # .  gel, keys x,y position and distance from bottom of sediment
-        refGel = clean.gel(0)
-        refGel = refGel[refGel['cleanSedGel_keepBool']][
-            ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
-            + ['dist from sed_gel interface (um, imageStack)']]
-        g = clean.gel(frame)
-        g = g[g['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
-                                         + ['dist from sed_gel interface (um, imageStack)']]
-        disp_gel = (g - refGel).dropna()
-        disp_gel.rename(
-            columns={'{} (um, rheo_sedHeight)'.format(coord):
-                         'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
-            inplace=True)
-        disp_gel.rename(columns={'dist from sed_gel interface (um, imageStack)':
+            disp = (s - ref).dropna()
+            disp.rename(
+                columns={'{} (um, rheo_sedHeight)'.format(coord):
+                             'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
+                inplace=True)
+            disp.rename(columns={'dist from sed_gel interface (um, imageStack)':
                                      'disp z sed_gel interface (um, imageStack)'}, inplace=True)
 
-        # join pos and disp, concat, z- bin and aggregate
-        interface_dist = 'dist from sed_gel interface (um, imageStack)'
+            # .  gel, keys x,y position and distance from bottom of sediment
+            refGel = clean.gel(0)
+            refGel = refGel[refGel['cleanSedGel_keepBool']][
+                ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                + ['dist from sed_gel interface (um, imageStack)']]
+            g = clean.gel(frame)
+            g = g[g['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                             + ['dist from sed_gel interface (um, imageStack)']]
+            disp_gel = (g - refGel).dropna()
+            disp_gel.rename(
+                columns={'{} (um, rheo_sedHeight)'.format(coord):
+                             'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
+                inplace=True)
+            disp_gel.rename(columns={'dist from sed_gel interface (um, imageStack)':
+                                         'disp z sed_gel interface (um, imageStack)'}, inplace=True)
 
-        g = g.join(disp_gel)
-        g['bin bottom sed'] = pd.cut(g[interface_dist], gelBins)
-        g['bin mid'] = g['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
+            # join pos and disp, concat, z- bin and aggregate
+            interface_dist = 'dist from sed_gel interface (um, imageStack)'
 
-        s = s.join(disp)
-        s['bin bottom sed'] = pd.cut(s[interface_dist], sedBins)
-        s['bin mid'] = s['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
+            g = g.join(disp_gel)
+            g['bin bottom sed'] = pd.cut(g[interface_dist], gelBins)
+            g['bin mid'] = g['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
 
-        # assign material str
-        g['mat'] = 'gel'
-        s['mat'] = 'sed'
+            s = s.join(disp)
+            s['bin bottom sed'] = pd.cut(s[interface_dist], sedBins)
+            s['bin mid'] = s['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
 
-        # concatenate and reset index
-        tmp = pd.concat([s, g]).reset_index()
-        return tmp
+            # assign material str
+            g['mat'] = 'gel'
+            s['mat'] = 'sed'
+
+            # concatenate and reset index
+            tmp = pd.concat([s, g]).reset_index()
+            return tmp
 
     def plots(self):
         """

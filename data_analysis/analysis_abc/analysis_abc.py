@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+
+import pandas as pd
 import yaml
+from particleLocating import dplHash_v2 as dpl
 
 import data_analysis.static
 import trackpy as tp
@@ -27,18 +30,27 @@ class Analysis(ABC):
         self.rheo = {'gelModulus' : self.globalParam['experiment']['gelModulus'],
                      'gelThickness':  self.globalParam['experiment']['gelThickness']}
         self.dtypes = self.globalParam['locatingOutput']['dtypes']
+        self.gelGlobal = self.globalParam['experiment']['gelGlobal']
 
         #legacy
         self.zyx = ['z','y','x']
+        self.xyz = ['x','y','z']
+
+        #global gel deformation
 
         # some useful attributes specific to a step
         # paths are **always** given under steps until I write a function to concatenate or form a union of paths
         # specified in global and step
 
+        self.step = self.stepParam['step']
         self.paths = self.stepParam['paths']
         self.name = self.stepParam['name']
         self.nameLong = self.stepParam['nameLong']
         self.frames = self.stepParam['frames']
+
+        self.dpl = dpl.dplHash(self.paths['dplMetaData'])
+        self.dplMeta = self.dpl.metaData
+        self.hash_df = self.dpl.hash_df
 
         self.posKeys_dict = {
             'sed': ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',
@@ -63,6 +75,9 @@ class Analysis(ABC):
                     'gel_Background', 'gel_Tracer',
                     'sed_Colloid', 'sed_Background',
                     'fluorescent_chunk', 'nonfluorescent_chunk']}
+
+        try: self.gelGlobal_mIdx = pd.read_hdf(self.gelGlobal['mIdx'])
+        except FileNotFoundError: pass
 
     @abstractmethod
     def __call__(self): pass
@@ -92,12 +107,53 @@ class Analysis(ABC):
         return out
 
     @abstractmethod
-    def gel(self, frame):
-        with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-            out = s.get(frame)
-        out.set_index('particle', inplace=True)
-        out.sort_index(inplace=True)
-        return out
+    def gel(self, frame, step=None, gelGlobal: bool = True):
+        # write gel method to default to gel global stiched file
+        # and by default return dataFrame in the same format as previous gelStep() method
+        if gelGlobal:
+            if step is None: step=self.step
+
+            mIdx = self.gelGlobal_mIdx['mIdx']
+            tmp = {}
+
+            with tp.PandasHDFStoreBig(self.gelGlobal['path'],'r') as steps:
+                frame = mIdx.get_loc((step,frame))
+                tmp[frame] = steps.get(frame).set_index(['particle'])
+            return pd.DataFrame(tmp[frame]).sort_index()
+        else:
+            with tp.PandasHDFStoreBig(self.paths['gel']) as s: out = s.get(frame)
+            out.set_index('particle', inplace=True)
+            out.sort_index(inplace=True)
+            return out
+
+    @abstractmethod
+    def gelGlobal2Local(self, gelGlobalGen):
+        """
+        This is will a trackpy hdfStore generator for global gel
+        and return a generator that can be index as if it was local.
+
+        Old code segment for step dependent gel locations and tracks
+            for frame, posDF in enumerate(tp.PandasHDFStoreBig(self.paths['gel']):
+                foo(frame, posDF)
+
+        new code segments that should be equivalent to above:
+            for frame, posDF in enumerate(self.gelGlobal2Local(tp.PandasHDFStoreBig(self.gelGlobal['path']):
+                foo(frame, posDF)
+        """
+        gelGlobal = self.gelGlobal_mIdx # dataFrame with columns 'mIdx', 'step', and 'frame local' with index of frame
+        gelLocal = gelGlobal[gelGlobal['step'] == self.step] # select only the step you are on now
+        stepMin, stepMax = gelLocal.index.min(), gelLocal.index.max() # what the upper and lower bounds of the global index for this step?
+
+        for frameGlobal, posDF in enumerate(gelGlobalGen): # interate over global index
+            if frameGlobal < stepMin or frameGlobal > stepMax: continue # ignore interations outside bounds
+            #else: yield frameGlobal, posDF
+            else: yield posDF # if within bounds, yield the posDF
+
+    #def gelStep(self, frame:int):
+    #    with tp.PandasHDFStoreBig(self.paths['gel']) as s: out = s.get(frame)
+    #    out.set_index('particle', inplace=True)
+    #    out.sort_index(inplace=True)
+    #    return out
 
     #@abstractmethod
     #def writeXYZ(self, mat: str, outPath: str, keySet: str):
