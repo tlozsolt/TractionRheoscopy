@@ -51,7 +51,7 @@ class StitchTrack(Analysis):
     def gel(self, frame, step=None, gelGlobal: bool = True):
         return super().gel(frame=frame, step=step, gelGlobal=gelGlobal)
 
-    def gelGlobal2Local(self, gelGlobalGen):super().gelGlobal2Local(gelGlobalGen)
+    def gelGlobal2Local(self, gelGlobalGen): return super().gelGlobal2Local(gelGlobalGen)
 
     def setPlotStyle(self): pass
 
@@ -161,6 +161,11 @@ class StitchTrack(Analysis):
 
         Refactored from da.static.stitchGelGlobal
         -Zsolt Nov 23, 2021
+
+        ToDo: Modify to have the possibility of trackGelGlobal through mulitple reference stacks: ie
+                 ref, a, ref2, b, ref3, ref4, c, ... g ref9,ref10,...ref 23.
+                 Its possible this is alreafy compatible with that, but its worth checking
+              -Zsolt Nov 27 2021
         """
         from particleLocating import dplHash_v2 as dpl
 
@@ -196,8 +201,8 @@ class StitchTrack(Analysis):
                 offset = sum(tMax_list)  # note the edge case sum([]) = 0 works by default
                 # TODO: add custom columns to loadStitched call trough dictionary expansion
 
-                refShift = self.gelGlobal['ref2ImageZ']['ref']
-                imageShift = self.gelGlobal['ref2ImageZ']['image']
+                refShift = self.gelGlobal['ref2ImageZ']['ref'] # 143
+                imageShift = self.gelGlobal['ref2ImageZ']['image'] # 29
                 for frame, data in enumerate(da.loadStitched(range(tMax),
                                                              posKeys=self.posKeys_dict['gel'],
                                                              colKeys=['frame'], **stitchedPathDict)):
@@ -235,6 +240,34 @@ class StitchTrack(Analysis):
         self.gelGlobal_mIdx.to_hdf(self.gelGlobal['mIdx'], 'mIdx')
         return mIdx_tuples, global_stitch
 
+    #def _xyzSed(self, frame: int, coordList: list, path: str, fName: str):
+    #    """
+    #    Export xyz file to path
+    #    """
+    #    posDF = self.sed(frame)[coordList]
+    #    da.df2xyz(posDF,fPath = path,fName=fName)
+    #    return True
+
+    def xyzFirstLast(self):
+        """
+        Write xyz files for complete trajecotires on first and last frames to ovito subfolder
+        """
+        first = dict(n=0, posDF= self.sed(0))
+        last = dict(n=self.frames -1, posDF= self.sed(self.frames -1 ))
+
+        idx = first['posDF'].index.intersection(last['posDF'].index)
+
+        coordList = ['{} (um, imageStack)'.format(coord) for coord in self.xyz]
+        ovitoPath = './ovito'
+
+        for frameDict in [first,last]:
+            da.df2xyz(frameDict['posDF'].loc[idx][coordList],
+                      fPath=ovitoPath, fName='/sed_t{:03}_complete.xyz'.format(frameDict['n']))
+            da.df2xyz(frameDict['posDF'][coordList],
+                      fPath=ovitoPath, fName='/sed_t{:03}_all.xyz'.format(frameDict['n']))
+
+        return True
+
     def __call__(self, verbose: bool = True):
 
         pipeline = self.stepParam['stitchTrack']['pipeline']
@@ -258,12 +291,17 @@ class StitchTrack(Analysis):
                 if verbose: print('starting on material {}'.format(mat))
                 self.track(mat, **p['track'])
 
-        if pipeline['gelGlobal']: self.trackGelGlobal()
+        try:
+            if pipeline['gelGlobal']:  self.trackGelGlobal()
+        except KeyError: pass
+
+        # output the first and last frames
+        self.xyzFirstLast()
 
         return True
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018g'
     param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
                  stepParamFile = './step_param.yml', test=False)
     os.chdir(testPath)

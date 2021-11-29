@@ -59,21 +59,20 @@ class Stress(Analysis):
         self.gelThickness = self.rheo['gelThickness']
 
         #cache some commonly used time points
-        self.refGel = self.gel(0)
-        # not clear how to get global gel but this should be added to Analysis abc
-        #self.refGelGlobal = self.globalRefGel
+        self.globalRefGel = self.gel(0,step='ref')
+        self.stepRefGel = self.gel(0)
 
         # attributes that will be populated with functions in the class
         if os.path.exists('./theilSen.h5'): self.theilSen =  pd.read_hdf('./theilSen.h5',key='theilSen')
         else:
             self.theilSen = None
-            self.gelStrain_theilSen()
+            #self.gelStrain_theilSen()
 
         # constant z bins across all frames (possibly all steps as well)
         self.zBin_dim = (118,145,3)
         self.zBins = np.arange(self.zBin_dim[0], self.zBin_dim[1] + self.zBin_dim[2], self.zBin_dim[2])
 
-    def __call__(self,forceRecompute: bool=False):
+    def __call__(self,forceRecompute: bool=True):
         """
         - z scale
         - compute displacement
@@ -89,10 +88,10 @@ class Stress(Analysis):
         #        s.put(posDF.reset_index())
 
         # compute z-scaled height
-        for frame in range(self.frames): self.scaledFractionalHeight(frame=frame)
+        for frame in range(self.frames): self.zScaledFractionalHeight(frame=frame)
 
         #reset self.refGel to have new columns
-        self.refGel = self.gel(0)
+        self.globalRefGel = self.gel(0, step='ref')
 
         # compute displacement
         for frame in range(self.frames): self.disp(frame)
@@ -111,19 +110,14 @@ class Stress(Analysis):
         out = out[out[self.keepBool]]
         return out
 
-    def gel(self, frame: int):
+    def gel(self, frame: int, step=None, gelGlobal: bool = True):
         # inherit
-        out = super().gel(frame)
+        out = super().gel(frame, step=step, gelGlobal=gelGlobal)
         # select
         out = out[out[self.keepBool]]
         return out
 
-    def gelGlobal(self, frame: int):
-        """
-        Query and return gel positions (with particle ids from global tracking) for the given frame at this step
-        This should be added to analysisABC and inheritied across all steps
-        """
-
+    def gelGlobal2Local(self, gelGlobalGen): return super().gelGlobal2Local(gelGlobalGen)
 
     def setPlotStyle(self): super().setPlotStyle()
 
@@ -149,95 +143,94 @@ class Stress(Analysis):
 
     def log(self): pass
 
-    def scaledFractionalHeight(self,
-                               frame: int,
-                               key: str = 'z scaled fractional height (um, rheo_sedHeight)',
-                               save2hdf: bool = True,
-                               forceRecompute: bool = False):
+    def zScaledFractionalHeight(self,
+                                frame: int,
+                                key: str = 'z scaled fractional height (um, rheo_sedHeight)',
+                                step: str = None,
+                                save2hdf: bool = True):
+
         """
         Add a column of scaled fractional height to input dataFrame.
         Update the hdf and return the new column(s)
         """
-        newCols = [key]
-        try:
-            if forceRecompute:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    posDF = s.get(frame)
-                    posDF.set_index('particle', inplace=True)
-                    posDF.drop(newCols, axis=1, inplace=True)
-                    s.put(posDF.reset_index())
-                return self.scaledFractionalHeight(frame, key=key,save2hdf=save2hdf,forceRecompute=False)
+        if step is None: step = self.step
+        posDF = self.gel(frame,step=step)
+        hAvg = self.gelThickness
 
-            else: return self.gel(frame)[key]
-        except KeyError:
-            hAvg = self.gelThickness
-            posDF = self.gel(frame)
-            zScaled = pd.Series(
-                hAvg*(posDF['z (um, rheo_sedHeight)'])/(posDF['z (um, rheo_sedHeight)']
-                                                        - posDF['dist from sed_gel interface (um, imageStack)']),
-                name=key)
-            if save2hdf:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    tmp = s.get(frame)
-                    tmp.set_index('particle', inplace=True)
-                    out = tmp.join(zScaled)
-                    s.put(out.reset_index())
-            return zScaled
+        zScaled = pd.Series(
+            hAvg * (posDF['z (um, rheo_sedHeight)']) /
+            (posDF['z (um, rheo_sedHeight)'] - posDF['dist from sed_gel interface (um, imageStack)']),
+            name=key)
 
-    def driftCorrResid(self,
-                       frame: int,
-                       key_frmt: str = 'disp {} (um, rheo_sedHeight)',
-                       save2hdf: bool = True,
-                       forceRecompute: bool = False,
-                       verbose: bool = False):
+        if save2hdf:
+            posDF[key] = zScaled
+            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(posDF.reset_index())
+        return zScaled
+
+    def disp(self,
+             cur: int,
+             ref=None,
+             save2hdf: bool = True,
+             forceRecompute: bool = False,
+             verbose: bool = False):
         """
-        Compute the displacement correct x,y column on displacement dataFrame
-
-        This relies on the following being computed in this order
-        1. z scaled fractional height
-        2. displacement
-        3. fitted deformation
+        Compute the dispalcement of all gel tracers between current frame and reference frame.
+        This should be modified have the option of displacement over global gel deformation.
         """
-        newCols = ['driftCorr ' + key_frmt.format(coord) for coord in ['x', 'y']]
-        newCols += ['residual ' + key_frmt.format(coord) for coord in ['x', 'y']]
+        if ref is None:
+            ref = 'globalRef'
+            if verbose: print('Using global reference 0 to compute displacement')
 
-        try:
-            if forceRecompute:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    posDF = s.get(frame)
-                    posDF.set_index('particle', inplace=True)
-                    for col in newCols:
-                        try: posDF.drop([col], axis=1, inplace=True)
-                        except KeyError: pass
+        # create the mapping dictionary
+        newCols = ['disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+        newCols += ['disp z sed_gel interface (um, imageStack)']
+        newCols += ['disp z scaled fractional height (um, rheo_sedHeight)']
 
-                    s.put(posDF.reset_index())
-                return self.driftCorrResid(frame)
+        cols = ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']] \
+               + ['dist from sed_gel interface (um, imageStack)',
+                  'z scaled fractional height (um, rheo_sedHeight)']
 
-            else:
-                if verbose: print('Returning precompute driftCorrResid at frame {}'.format(frame))
-                return self.gel(frame).set_index('particle')[newCols]
-        except KeyError:
-            dispDF = self.disp(frame)
-            z = self.gel(frame)['z scaled fractional height (um, rheo_sedHeight)']
-            driftCorrDF = pd.DataFrame()
+        # load the gel positions at the current time for this step
+        g = self.gel(cur)
 
-            for coord in ['x','y']:
-                key = key_frmt.format(coord)
-                b = self.theilSen.loc[frame]['b_{}z'.format(coord)]
-                m = self.theilSen.loc[frame]['m_{}z'.format(coord)]
-                #dispDF['driftCorr ' + key] = dispDF[key] - b
-                driftCorrDF['driftCorr ' + key] = dispDF[key] -b
-                driftCorrDF['residual ' + key] = dispDF[key] -(m*z + b)
+        # set the reference, not ref = None has been mapped to ref = globalRef
+        if ref == 'globalRef': refGel = self.globalRefGel
+        else: refGel = self.gel(ref)
 
-            if save2hdf:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    posDF = s.get(frame)
-                    posDF.set_index('particle', inplace=True)
-                    try: posDF.drop(newCols,axis=1, inplace=True)
-                    except KeyError: pass
-                    out = posDF.join(driftCorrDF)
-                    s.put(out.reset_index())
-            return driftCorrDF
+        # select particles and drop unused columns
+        refGel = refGel[refGel[self.keepBool]][cols]
+        g = g[g[self.keepBool]][cols]
+
+        # compute the displacement
+        disp_gel = (g - refGel).dropna()
+
+        # remap the columns
+        # ToDo: add remapping dictionary to input yaml file and rewrite using dict.items() and values() etc.
+        old2New = dict(zip(cols, newCols))
+        disp_gel.rename(columns = old2New,inplace=True)
+        #disp_gel.rename(
+        #    columns={'{} (um, rheo_sedHeight)'.format(coord):
+        #                 'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
+        #    inplace=True)
+        #disp_gel.rename(columns={'dist from sed_gel interface (um, imageStack)':
+        #                             'disp z sed_gel interface (um, imageStack)'}, inplace=True)
+        #disp_gel.rename(columns={'z scaled fractional height (um, rheo_sedHeight)':
+        #                             'disp z scaled fractional height (um, rheo_sedHeight)'}, inplace=True)
+        if save2hdf:
+            # access with local frame number
+            posDF = self.gel(cur)
+
+            # attempt to drop new columns in order to overwrite if necessary
+            try: posDF.drop(newCols, axis=1, inplace=True)
+            except KeyError: pass
+
+            # join old with new columns
+            out = posDF.join(disp_gel)
+
+            # write it global with tp knowing what key to put it on with frame column
+            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(out.reset_index())
+
+        return disp_gel
 
     def gelStrain_theilSen(self,
                            coord: str = '(um, rheo_sedHeight)',
@@ -257,13 +250,13 @@ class Stress(Analysis):
             xz = {}
             yz = {}
             if fractionalHeight:
-                keys = dict(dx ='disp x ' + coord,
-                            dy = 'disp y ' + coord,
-                            z = 'z scaled fractional height ' + coord)
+                keys = dict(dx='disp x ' + coord,
+                            dy='disp y ' + coord,
+                            z='z scaled fractional height ' + coord)
             else:
-                keys = dict(dx ='disp x ' + coord,
-                            dy = 'disp y ' + coord,
-                            z = 'z ' + coord)
+                keys = dict(dx='disp x ' + coord,
+                            dy='disp y ' + coord,
+                            z='z ' + coord)
 
             for cur in range(self.frames):
                 # hmmm disp should update the posDF datastore or create its own new dataStore
@@ -271,123 +264,98 @@ class Stress(Analysis):
                 g = self.gel(cur)
 
                 inputDF = {}
-                for var,col in keys.items(): inputDF[var] = g[col]
+                for var, col in keys.items(): inputDF[var] = g[col]
                 inputDF = pd.DataFrame(inputDF).dropna()
 
-                m,b,m05, m95 = theilSen(inputDF['dx'],inputDF['z'])
+                m, b, m05, m95 = theilSen(inputDF['dx'], inputDF['z'])
                 xz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
 
-                m,b,m05, m95 = theilSen(inputDF['dy'],inputDF['z'])
+                m, b, m05, m95 = theilSen(inputDF['dy'], inputDF['z'])
                 yz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
 
             xz_df = pd.DataFrame(xz).T
             yz_df = pd.DataFrame(yz).T
-            out = xz_df.join(yz_df,lsuffix='_xz', rsuffix='_yz')
+            out = xz_df.join(yz_df, lsuffix='_xz', rsuffix='_yz')
 
             if add2Inst: self.theilSen = out
             if save2hdf: out.to_hdf('./theilSen.h5', 'theilSen')
             return out
 
         else:
-            if self.theilSen is not None: return self.theilSen
+            if self.theilSen is not None:
+                return self.theilSen
             else:
                 out = pd.read_hdf('./theilSen.h5')
                 if add2Inst: self.theilSen = out
                 return out
 
-    def disp(self,
-             cur: int,
-             ref: int=0,
-             save2hdf: bool = True,
-             forceRecompute: bool = False,
-             verbose: bool = False):
+    def driftCorrResid(self,
+                       frame: int,
+                       key_frmt: str = 'disp {} (um, rheo_sedHeight)',
+                       save2hdf: bool = True,
+                       forceRecompute: bool = False,
+                       verbose: bool = False):
         """
-        Compute the dispalcement of all gel tracers between current frame and reference frame.
-        This should be modified have the option of displacement over global gel deformation.
+        Compute the displacement correct x,y column on displacement dataFrame
+
+        This relies on the following being computed in this order
+        1. z scaled fractional height
+        2. displacement
+        3. fitted deformation
         """
-        newCols = ['disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
-        newCols += ['disp z sed_gel interface (um, imageStack)']
-        newCols += ['disp z scaled fractional height (um, rheo_sedHeight)']
+        newCols = ['driftCorr ' + key_frmt.format(coord) for coord in ['x', 'y']]
+        newCols += ['residual ' + key_frmt.format(coord) for coord in ['x', 'y']]
 
-        g = self.gel(cur)
-        try:
-            if forceRecompute:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    posDF = s.get(cur)
-                    posDF.set_index('particle', inplace=True)
-                    posDF.drop(newCols, axis=1, inplace=True)
-                    s.put(posDF.reset_index())
-                return self.disp(cur, ref, save2hdf=save2hdf)
-            else:
-                if verbose: print('Loading displacement from h5 file')
-                return g[newCols].dropna()
-        except KeyError:
-            if ref == 0: refGel = self.refGel
-            else: refGel = self.gel(ref)
+        dispDF = self.disp(frame)
+        z = self.gel(frame)['z scaled fractional height (um, rheo_sedHeight)']
+        driftCorrDF = pd.DataFrame()
 
-            # select particles and drop unused columns
-            cols = ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']] \
-                   + ['dist from sed_gel interface (um, imageStack)', 'z scaled fractional height (um, rheo_sedHeight)']
-            refGel = refGel[refGel[self.keepBool]][cols]
-            g = g[g[self.keepBool]][cols]
+        for coord in ['x', 'y']:
+            key = key_frmt.format(coord)
+            b = self.theilSen.loc[frame]['b_{}z'.format(coord)]
+            m = self.theilSen.loc[frame]['m_{}z'.format(coord)]
+            driftCorrDF['driftCorr ' + key] = dispDF[key] - b
+            driftCorrDF['residual ' + key] = dispDF[key] - (m * z + b)
 
-            # compute z scaled fractional height current and reference frames.
-            #refGel = self.scaledFractionalHeight(refGel)
-            #g = self.scaledFractionalHeight(g)
+        if save2hdf:
+            posDF = self.gel(frame)
+            try: posDF.drop(newCols, axis=1, inplace=True)
+            except KeyError: pass
+            out = posDF.join(driftCorrDF)
+            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(out.reset_index())
 
-            # compute the displacement
-            disp_gel = (g - refGel).dropna()
+        return driftCorrDF
 
-            # this remapping dictionary should probably be included in the yaml file or a parameter that is
-            # pass to this function
-            # ToDo: add remapping dictionary to input yaml file and rewrite using dict.items() and values() etc.
-            # remap the column keys in order to join later
-            disp_gel.rename(
-                columns={'{} (um, rheo_sedHeight)'.format(coord):
-                             'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
-                inplace=True)
-            disp_gel.rename(columns={'dist from sed_gel interface (um, imageStack)':
-                                         'disp z sed_gel interface (um, imageStack)'}, inplace=True)
-            disp_gel.rename(columns={'z scaled fractional height (um, rheo_sedHeight)':
-                                         'disp z scaled fractional height (um, rheo_sedHeight)'}, inplace=True)
 
-            # join pos and disp,
-            #g = g.join(disp_gel)
-            if save2hdf:
-                with tp.PandasHDFStoreBig(self.paths['gel']) as s:
-                    posDF = s.get(cur)
-                    posDF.set_index('particle', inplace=True)
 
-                    # remove previous columns
-                    try: posDF.drop(newCols, axis=1, inplace=True)
-                    except KeyError: pass
-
-                    out = posDF.join(disp_gel)
-                    s.put(out.reset_index())
-
-            #return g.join(disp_gel)
-            return disp_gel
 
     def xyResiduals_frame(self, cur: int, ref: int=0):
         """
-        Compute the residual difference in x disp and y disp relative to deformation profile.
         Return a dtaFrame of just residual differences: x, y, and magnitude for each particle
         """
-        if ref != 0: raise NotImplementedError
-        else:
-            residCols = ['residual disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['x', 'y']]
-            residDF = self.driftCorrResid(cur)[residCols]
+        #if ref != 0: raise NotImplementedError
+        #else:
+        # residDF = self.driftCorrResid(cur)[residCols]
+        # residDF = posDF[residCols]
 
-            posCol = ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['x','y','z']]
-            posCol += ['z scaled fractional height (um, rheo_sedHeight)']
-            posDF = self.gel(cur)[posCol]
+        # posDF = self.gel(cur)[posCol]
 
-            # join
-            out = posDF.join(residDF).dropna()
+        ## join
+        # out = posDF.join(residDF).dropna()
 
-            # compute z binning
-            out['z scaled bin'] = pd.cut(posDF['z scaled fractional height (um, rheo_sedHeight)'], bins=self.zBins)
-            return out
+        # compute z binning
+
+        posDF = self.gel(cur)
+
+        residCols = ['residual disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['x', 'y']]
+        posCol = ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['x','y','z']]
+        posCol += ['z scaled fractional height (um, rheo_sedHeight)']
+
+        out = posDF[posCol + residCols].dropna()
+        out['z scaled bin'] = pd.cut(posDF['z scaled fractional height (um, rheo_sedHeight)'], bins=self.zBins)
+        return out
+
+
 
     def xyResiduals_step(self):
         """
@@ -414,7 +382,7 @@ class Stress(Analysis):
 if __name__ == '__main__':
     testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'
     param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
-                 stepParamFile = './step_param.yml', test=True)
+                 stepParamFile = './step_param.yml', test=False)
     os.chdir(testPath)
     test = Stress(**param)
 

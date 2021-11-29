@@ -46,7 +46,8 @@ class Analysis(ABC):
         self.paths = self.stepParam['paths']
         self.name = self.stepParam['name']
         self.nameLong = self.stepParam['nameLong']
-        self.frames = self.stepParam['frames']
+        #self.frames = self.stepParam['frames']
+        self.frames = self.globalParam['experiment']['frames'][self.step]
 
         self.dpl = dpl.dplHash(self.paths['dplMetaData'])
         self.dplMeta = self.dpl.metaData
@@ -113,18 +114,21 @@ class Analysis(ABC):
         if gelGlobal:
             if step is None: step=self.step
 
-            mIdx = self.gelGlobal_mIdx['mIdx']
-            tmp = {}
-
+            mIdx = pd.MultiIndex.from_tuples(self.gelGlobal_mIdx['mIdx'])
+            frame = mIdx.get_loc((step, frame))
+            #tmp = {}
             with tp.PandasHDFStoreBig(self.gelGlobal['path'],'r') as steps:
-                frame = mIdx.get_loc((step,frame))
-                tmp[frame] = steps.get(frame).set_index(['particle'])
-            return pd.DataFrame(tmp[frame]).sort_index()
+                out =steps.get(frame)
+                #tmp[frame] = steps.get(frame).set_index(['particle'])
+            #out.set_index('particle', inplace=True)
+            #out.sort_index(inplace=True)
+            #return out
+            #return pd.DataFrame(tmp[frame]).sort_index()
         else:
             with tp.PandasHDFStoreBig(self.paths['gel']) as s: out = s.get(frame)
-            out.set_index('particle', inplace=True)
-            out.sort_index(inplace=True)
-            return out
+        out.set_index('particle', inplace=True)
+        out.sort_index(inplace=True)
+        return out
 
     @abstractmethod
     def gelGlobal2Local(self, gelGlobalGen):
@@ -137,17 +141,29 @@ class Analysis(ABC):
                 foo(frame, posDF)
 
         new code segments that should be equivalent to above:
-            for frame, posDF in enumerate(self.gelGlobal2Local(tp.PandasHDFStoreBig(self.gelGlobal['path']):
+            globalGen = tp.PandasHDFStoreBig(self.gelGlobal['paths']
+            gen = self.gelGlobal2Local(gen)
+            for frame, posDF in enumerate(gen):
                 foo(frame, posDF)
+            # then for garbage collection, manually close the global generator as it doesnt reach the end
+            globalGen.close()
         """
-        gelGlobal = self.gelGlobal_mIdx # dataFrame with columns 'mIdx', 'step', and 'frame local' with index of frame
-        gelLocal = gelGlobal[gelGlobal['step'] == self.step] # select only the step you are on now
-        stepMin, stepMax = gelLocal.index.min(), gelLocal.index.max() # what the upper and lower bounds of the global index for this step?
+        # dataFrame with columns 'mIdx', 'step', and 'frame local' with index of frame
+        gelGlobal = self.gelGlobal_mIdx
+
+        # select only the step you are on now
+        gelLocal = gelGlobal[gelGlobal['step'] == self.step]
+
+        # what the upper and lower bounds of the global index for this step?
+        stepMin, stepMax = gelLocal.index.min(), gelLocal.index.max()
 
         for frameGlobal, posDF in enumerate(gelGlobalGen): # interate over global index
-            if frameGlobal < stepMin or frameGlobal > stepMax: continue # ignore interations outside bounds
-            #else: yield frameGlobal, posDF
-            else: yield posDF # if within bounds, yield the posDF
+            if frameGlobal < stepMin or frameGlobal > stepMax:
+                # ignore iterations outside bounds
+                continue
+            else:
+                # if within bounds, yield the posDF
+                yield posDF
 
     #def gelStep(self, frame:int):
     #    with tp.PandasHDFStoreBig(self.paths['gel']) as s: out = s.get(frame)

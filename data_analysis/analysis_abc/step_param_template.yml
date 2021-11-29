@@ -1,10 +1,7 @@
-name: 'short_name_of_step'
+name: 'stepe'
 step: 'e'
-nameLong: 'tfrGel10212018A_shearRun10292018a' # long name used in dpl locating
-frames: 22 # nubmer of frames for this step
-dimensions:
-  x (um): 235
-  y (um): 235
+nameLong: 'tfrGel10212018A_shearRun10292018e' # long name used in dpl locating
+frames: 64 # nubmer of frames for this step
 
 paths:
   stem: './'
@@ -15,14 +12,15 @@ paths:
   sed_interface_idx: './ovito/sed_complete_bottom_surface.xyz'
   reference_sed_interface_idx: '../tfrGel10212018A_shearRun10292018ref/ovito/sed_complete_bottom_surface.xyz'
   interfaceFits: './sed_gel_interfaceFits.h5'
-  dplMetaData: './tfrGel10212018A_shearRun10292018g_metaData.yaml'
-  locationCSV: './locations/tfrGel10212018A_shearRun10292018g_locations_hv{:05}_{}_trackPy_lsqRefine.csv'
+  dplMetaData: './tfrGel10212018A_shearRun10292018e_metaData.yaml'
+  dpl_log: './log/'
+  locationCSV: './locations/tfrGel10212018A_shearRun10292018e_locations_hv{:05}_{}_trackPy_lsqRefine.csv'
   figPath: './plots/'
   strainDataDir: './strainData/'
   topIdx:
     init: './ovito/sed_t000_topSurface.xyz'
-    final: './ovito/sed_t115_topSurface.xyz'
-
+    final: './ovito/sed_t063_topSurface.xyz'
+  
 stitchTrack:
   pipeline:
     qc: True
@@ -40,21 +38,26 @@ stitchTrack:
       adaptive_stop: 0.1
       adaptive_step: 0.95
 
+dimensions:
+  x (um): 235
+  y (um): 235
+
 cleaning:
   fitSurface:
     mat: 'sed'
     coordStr: '(um, imageStack)'
-    add2Inst: False
+    add2Inst: True
     save2HDF: True
-    forceRecompute: False
+    forceRecompute: True
   fitReference:
     coordStr: '(um, imageStack)'
     add2Inst: True
   cleanSedGel:
-    pos_keys: ['x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)']
+    pos_keys: ['z (um, imageStack)', 'y (um, imageStack)', 'x (um, imageStack)']
     dist_key: 'dist from sed_gel interface (um, imageStack)'
     keepBool_str: 'cleanSedGel_keepBool'
-    garbage:  {'sed_sed': -1, 'sed_gel': -1.5, 'gel_gel' : nan, 'gel_sed': nan  }
+    garbage:  {'sed_sed': -1.0, 'sed_gel': -1.5, 'gel_gel' : nan, 'gel_sed': nan  }
+    forceRecompute: True
     description: |
       garbage key is parameters used to split particle locations into clean and garbage.
       if sediment particles are less than sed_sed distance below (meaning more negative) than cut off,
@@ -62,7 +65,7 @@ cleaning:
       I probably wont used gel_* for anything as the fits are expected to be worse that sediment fits.
   xyzClean:
     fNameFlag: ''
-    keySet : ['locations_rheoSedHeight', 'uncertainty']
+    keySet : ['locations_rheoSedHeight', 'locations_imageStack', 'uncertainty']
     extraCols : ['dist from sed_gel interface (um, imageStack)']
     keepBool_str: 'cleanSedGel_keepBool'
     forceWrite: True
@@ -73,13 +76,12 @@ cleaning:
       fitSurface function uses the particle ids manually found using the following parameters
       in ovito. The particles ids as stored in [paths][sed_interface_idx] as output from ovito
     ovito_param:
-        x: 0.00626804
-        y: -0.0175754
-        z: 0.999826
-        distance: 29
-        slab_width: 1
+        x: 0.00848448
+        y: -0.0167703
+        z: 0.999823
+        distance: 27.6
+        slab_width: 1.45
         coordStr: '(um, imageStack)'
-
 strain:
   verbose: False
   posCoordinateSystem:
@@ -96,7 +98,5 @@ strain:
     nnb_cutoff: 2.2
     verbose: False
   boundary:
-    gapMethod: 'min'
-
-
+    description: 'compute the strain from relative displacement of lower and upper boundaries of sediment'
 

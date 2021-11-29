@@ -251,6 +251,7 @@ def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_f
 def pt2Plane(pt_zyx, plane_abc):
     """
     returns the distance of pt_zyx to plane defined by f(z) = ax + by + c
+    Note, this is not the shortest distance to the plane, but rather the signed distance along z
     """
     try: z, y, x = pt_zyx[:, 0], pt_zyx[:, 1], pt_zyx[:, 2]
     except IndexError: z,y,x = pt_zyx
