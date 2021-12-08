@@ -363,18 +363,26 @@ class Stress(Analysis):
         """
         return True
 
-    def stressStrain(self, stressStr: str = 'theilSen_mxz',
-                     avgStrainKey: str = 'Ref: mean fl 2e{}z (%)'):
+    def stressStrain(self,
+                     stressStr: str = 'theilSen_mxz',
+                     avgStrainKey: str = 'ref0: mean fl 2e{}z (%)',
+                     strainTupleList: list = None,
+                     forceRecompute: bool = False):
         """
         Return a dataFrame of stress and avg strain computed in multiple ways index by frame
         with constant reference
         """
         if stressStr != 'theilSen_mxz': raise NotImplementedError
         else:
+            if strainTupleList is None: strainTupleList = [(0,frame, 'falkLanger') for frame in range(1,self.frames)]
             out = []
             for coord in ['x','y']:
                 stress = pd.Series(self.gelModulus * self.gelStrain_theilSen()['m_{}z'.format(coord)], name='{}z stress (mPa)'.format(coord))
-                strain = pd.Series(self.strainInst.avgStrain()[avgStrainKey.format(coord)], name = avgStrainKey.format(coord))
+                strain = pd.Series(
+                    self.strainInst.avgStrain(idString='ref0',
+                                              strainTupleList=strainTupleList,
+                                              forceRecompute=forceRecompute)[avgStrainKey.format(coord)],
+                    name = avgStrainKey.format(coord))
                 out.append(stress)
                 out.append(strain)
             return pd.concat(out,axis=1)

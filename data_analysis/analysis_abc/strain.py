@@ -40,7 +40,7 @@ class Strain(Analysis):
         self.gelModulus = self.rheo['gelModulus']
         self.gelThickness = self.rheo['gelThickness']
 
-    def __call__(self):
+    def __call__(self, strainPaths: dict = None):
         """
         carry out by default (with all frames given in step dependent, not global like gel stress)
         1. falkLanger with ref=0 on frame local
@@ -48,27 +48,30 @@ class Strain(Analysis):
         3. falkLanger with dt=1
         4. boundary with dt=1
         """
-        # form the strain list of tuples (re,cur, type)
-        ref0 = [(0,cur,'falkLanger') for cur in range(1,self.frames)]
-        ref0 += [(0, cur, 'boundary') for cur in range(1,self.frames)]
-        dt1 = [(cur-1, cur, 'falkLanger') for cur in range(1,self.frames)]
-        dt1 += [(cur-1, cur, 'boundary') for cur in range(1,self.frames)]
+        if strainPaths is None:
+            # form the strain list of tuples (re,cur, type)
+            ref0 = [(0,cur,'falkLanger') for cur in range(1,self.frames)]
+            ref0 += [(0, cur, 'boundary') for cur in range(1,self.frames)]
 
-        strainPaths = dict(ref0=ref0, dt1=dt1)
+            dt1 = [(cur-1, cur, 'falkLanger') for cur in range(1,self.frames)]
+            dt1 += [(cur-1, cur, 'boundary') for cur in range(1,self.frames)]
+            strainPaths = dict(ref0=ref0, dt1=dt1)
+
 
         for path, tupleList in strainPaths.items():
             [self.computeStrain(strainCall=strainCall, forceRecompute=False) for strainCall in tupleList]
 
-            # hack to recompute boundary as I stupidly changed the keys without changing anything about the output..
-            [self.computeStrain(strainCall=strainCall, forceRecompute=True) for strainCall in tupleList[int(len(tupleList)/2):len(tupleList)]]
-            # call avgStrain on the same path, but keep in mind that avgStrain will compute both boundary and FL
-            # ToDo: Make a better version of avgStrain that has the same input signatures as computeStrain
-            #       and deal with merging the dataFrames later...maybe in two functions:
-            #           - computeAvg(idString, strainTuple) -> computes avg strain in a way that depends on strainType
-            #           - avgStrain(idString) -> fetches and joins avgStrain dataFrames computed
-            #                                    for all files matching frameAverage_{idString}.h5
-            #       - Zsolt Nov 27 2021
-            self.avgStrain(path,strainTupleList=tupleList[0:int(len(tupleList)/2)])
+            ## hack to recompute boundary as I stupidly changed the keys without changing anything about the output..
+            #[self.computeStrain(strainCall=strainCall, forceRecompute=True) for strainCall in tupleList[int(len(tupleList)/2):len(tupleList)]]
+            ## call avgStrain on the same path, but keep in mind that avgStrain will compute both boundary and FL
+            ## ToDo: Make a better version of avgStrain that has the same input signatures as computeStrain
+            ##       and deal with merging the dataFrames later...maybe in two functions:
+            ##           - computeAvg(idString, strainTuple) -> computes avg strain in a way that depends on strainType
+            ##           - avgStrain(idString) -> fetches and joins avgStrain dataFrames computed
+            ##                                    for all files matching frameAverage_{idString}.h5
+            ##       - Zsolt Nov 27 2021
+
+            #self.avgStrain(path,strainTupleList=tupleList[0:int(len(tupleList)/2)])
 
     def sed(self, frame: int):
         """ get sed positions that are used for strain computation"""
@@ -489,7 +492,17 @@ class Strain(Analysis):
     def avgStrain(self, idString: str, strainTupleList: list, forceRecompute: bool = False, save2hdf: bool = True):
         """
         Compute strain vs time with a fixed reference configuration at time t=0
-        Should return a dataFrame that can be passed to seaborn and plotted
+        for both boundary and falkLanger.
+
+        idString is ref0 or dt1, for examsle
+
+        The falkLanger strain includes particles with a minimum of 9 nnb
+
+        This will return a dataFrame that can be passed to seaborn and plotted
+
+        By default, avgStrain save to hdf if file is not present in './strainData'
+        and otherwise load from hdf. YOu can force recompute and overwrite existing file
+        with forceRecompute boolean flag.
 
         ToDo: Refactor to take as input a strainTupleList and idString, keeping the index of
               the returned dataFrame the current time. For example, the reference keys here would be
@@ -534,9 +547,12 @@ class Strain(Analysis):
                     '{}: mean fl 2eyz (%)'.format(idString) : 200*fl['eyz'],
                     '{}: mean fl 2ezz (%)'.format(idString) : 200*fl['ezz'],
                     '{}: mean fl vM'.format(idString) : fl['vonMises'],
-                    '{}: boundary gap min mean gamma (%)'.format(idString) : 100*bd['strain 2exz, gap min'],
-                    '{}: boundary gap center mean gamma (%)'.format(idString) : 100*bd['strain 2exz, gap center'],
-                    '{}: boundary gap max mean gamma (%)'.format(idString) : 100*bd['strain 2exz, gap max'],
+                    '{}: boundary gap min mean gamma xz (%)'.format(idString) : 100*bd['strain 2exz, gap min'],
+                    '{}: boundary gap center mean gamma xz (%)'.format(idString) : 100*bd['strain 2exz, gap center'],
+                    '{}: boundary gap max mean gamma xz (%)'.format(idString) : 100*bd['strain 2exz, gap max'],
+                    '{}: boundary gap min mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap min'],
+                    '{}: boundary gap center mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap center'],
+                    '{}: boundary gap max mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap max'],
                     '{}: x displacement upper boundary (um)'.format(idString): bd['<xUpper> (um, rheo_SedHeight)'],
                     '{}: y displacement upper boundary (um)'.format(idString): bd['<yUpper> (um, rheo_SedHeight)'],
                     '{}: z displacement upper boundary (um)'.format(idString): bd['<zUpper> (um, rheo_SedHeight)'],
@@ -587,11 +603,18 @@ class Strain(Analysis):
                 #    'dt1: residual mean fl - boundary mean (%)': 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap mean'],
                 #    'dt1: residual mean fl - boundary max (%)' : 200 * fl_dt1['exz'] - 100 * bd_dt1['strain 2exz, gap max']
                 #}
-            out = pd.DataFrame(avgStrain_dict).T
-            if save2hdf: out.to_hdf(outPath, 'avgStrain',mode='a')
-            return out
+            avgStrain = pd.DataFrame(avgStrain_dict).T
 
-    def compute_zBinDisp(self, frame: int, gelBins: int = 6, sedBins: int = 10, **kwargs):
+            # add zero strain column
+            avgStrain.set_index(avgStrain.index + 1, inplace=True) # increment index
+            # ref = cur = 0 and so does everything else
+            avgStrain = avgStrain.append(pd.DataFrame(np.zeros((1, avgStrain.shape[1])), columns=avgStrain.columns))
+            avgStrain.sort_index(inplace=True) # sort
+
+            if save2hdf: avgStrain.to_hdf(outPath, 'avgStrain',mode='a')
+            return avgStrain
+
+    def old_compute_zBinDisp(self, frame: int, gelBins: int = 6, sedBins: int = 10, **kwargs):
         """ ### Boundary Slip ### """
         # Particle counts in gel per xy bin
         # ability to segment gel and sediment (bimodal histogram)
@@ -666,6 +689,147 @@ class Strain(Analysis):
         # concatenate and reset index
         tmp = pd.concat([s, g]).reset_index()
         return tmp
+
+    def compute_zBinDisp(self, frame: int):
+        # get the positions and compute displacement
+        # sed, keys x,y position and distance from bottom of sediment...this likely requires sed query on clean instance
+        clean = Cleaning(**self.abcParam)
+
+        ref = clean.sed(0)
+        ref = ref[ref['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                               + ['dist from sed_gel interface (um, imageStack)']]
+        s = clean.sed(frame)
+        s = s[s['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                         + ['dist from sed_gel interface (um, imageStack)']]
+
+        # compute extrema
+        ur = ref.loc[self.upperIdx].describe()
+        us = s.loc[self.upperIdx].describe()
+        extremaDict = {'r_sedGel': ur.at['min', 'dist from sed_gel interface (um, imageStack)'],
+                       'r_zum_min': ur.at['min', 'z (um, rheo_sedHeight)'],
+                       'r_zum_max': ur.at['max', 'z (um, rheo_sedHeight)'],
+                       's_sedGel': us.at['min', 'dist from sed_gel interface (um, imageStack)'],
+                       's_zum_min': us.at['min', 'z (um, rheo_sedHeight)'],
+                       's_zum_max': us.at['max', 'z (um, rheo_sedHeight)'],
+                       's_zum_mean': us.at['mean', 'z (um, rheo_sedHeight)']}
+
+        # discard everything z um rheo_sedHeight greater than max of upper partition
+        s = s[s['z (um, rheo_sedHeight)'] <= extremaDict['s_zum_max']]
+        ref = ref[ref['z (um, rheo_sedHeight)'] <= extremaDict['r_zum_max']]
+
+        # now compute displacement
+        disp = (s - ref).dropna()
+        disp.rename(
+            columns={'{} (um, rheo_sedHeight)'.format(coord):
+                         'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
+            inplace=True)
+        disp.rename(columns={'dist from sed_gel interface (um, imageStack)':
+                                 'disp z sed_gel interface (um, imageStack)'}, inplace=True)
+
+        # .  gel, keys x,y position and distance from bottom of sediment
+        refGel = clean.gel(0)
+        refGel = refGel[refGel['cleanSedGel_keepBool']][
+            ['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+            + ['dist from sed_gel interface (um, imageStack)']+[]]
+        g = clean.gel(frame)
+        g = g[g['cleanSedGel_keepBool']][['{} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']]
+                                         + ['dist from sed_gel interface (um, imageStack)']]
+        disp_gel = (g - refGel).dropna()
+        disp_gel = disp_gel.join( clean.gel(frame)[['driftCorr disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['x','y']]])
+        disp_gel.rename(
+            columns={'{} (um, rheo_sedHeight)'.format(coord):
+                         'disp {} (um, rheo_sedHeight)'.format(coord) for coord in ['z', 'y', 'x']},
+            inplace=True)
+        disp_gel.rename(columns={'dist from sed_gel interface (um, imageStack)':
+                                     'disp z sed_gel interface (um, imageStack)'}, inplace=True)
+
+        # join pos and disp,
+        g = g.join(disp_gel)
+        s = s.join(disp)
+
+        # assign material
+        g['mat'] = 'gel'
+        s['mat'] = 'sed'
+
+        # add partition column to gel
+        g['partition'] = 'bulk'
+
+        # add partition column to sed
+        s['partition'] = 'bulk'
+        s.at[self.lowerIdx, 'partition'] = 'lower'
+        s.at[self.upperIdx, 'partition'] = 'upper'
+
+        s_triIdx = s[(s['dist from sed_gel interface (um, imageStack)'] > extremaDict['s_sedGel']) & (
+                    s['partition'] == 'bulk')].index
+        s.at[
+            s_triIdx, 'partition'] = 'triangle'  # could have used anything other than bulk, lower, or upper. Will not be called.
+
+        # concatenate and reset index
+        tmp = pd.concat([s, g]).reset_index()
+
+        # select only for bulk to cut on
+        bulk = tmp[tmp['partition'] == 'bulk']
+
+        # now cut on concatenated list
+        interface_dist = 'dist from sed_gel interface (um, imageStack)'
+
+        # create bins
+        # ToDo: break this out into a standalone function to compute bins
+        # should probably use some numpy a range function as I dont need to bin into integers
+        # and can use len to get number of color patches
+        s_bound = int(bulk[bulk['mat'] == 'sed'][interface_dist].max())
+        g_bound = int(bulk[bulk['mat'] == 'gel'][interface_dist].min())
+        d = 3
+        gelBins = [(-x - d - 0.5, -x - 0.5) for x in range(0, -1 * g_bound, d)]
+        gelBins.reverse()
+        sedBins = [(x + 0.5, x + d + 0.5) for x in range(0, s_bound, d)]
+        # include interface bin in case some particle thats are really at the interface were not part of the lowerIndex. Maybe they werent
+        # tracked for the full experiment? Or perhaps the inital fit didnt include everything.
+        interfaceBin = [(-0.5, 0.5)]
+
+        bins = pd.IntervalIndex.from_tuples(gelBins + interfaceBin + sedBins)
+
+        # bin and define midpoint of the bins
+        # apply the cut only on particles not in the boundary displacement. If part of boundary label 'bin bottom sed' as lower or upper
+        #bulk.loc[:,'bin bottom sed'] = pd.cut(bulk[interface_dist], bins=bins)
+        bulk['bin bottom sed'] = pd.cut(bulk[interface_dist], bins=bins)
+        bulk['bin mid'] = bulk['bin bottom sed'].map(lambda x: round((x.left + x.right) / 2, 1))
+        #bulk['bin mid'] = bulk['bin bottom sed'].map(lambda x: '{:.1f}'.format(round((x.left + x.right) / 2, 1)))
+
+        # now handle interface and upper boundary case explicitly
+        # create
+        lower = tmp[tmp['partition'] == 'lower']
+        upper = tmp[tmp['partition'] == 'upper']
+
+        # assign bin mid to be the gap used to match boundary strain with vol avg
+        lower['bin mid'] = 0
+        upper['bin mid'] = round(extremaDict['s_zum_min'], 1)
+
+        # add this to bulk
+        tmp = pd.concat([bulk, lower, upper])
+        return tmp, sedBins, gelBins
+
+    def filteredStrain(self, ref: int, cur: int,
+                     nnbCount: int = 4,
+                     colList: list = ['vonMises', 'D2_min', 'exz','eyz']) -> dict:
+        """
+        Filter the strain for nnb count >4
+        Tukey filter applied to the colList
+        """
+        # load the strain
+        df = self.getStrain('falkLanger', ref=ref, cur=cur)
+
+        # filter nnb count
+        df = df[df['nnb count'] > nnbCount]
+
+        # apply Tukey
+        da.tukey(df,col=colList)
+
+        # compute some statitistics to return
+        describe = df.describe()
+        return dict(df=df, describe=describe)
+
+
 
     def plots(self):
         """

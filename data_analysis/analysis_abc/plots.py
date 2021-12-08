@@ -22,6 +22,12 @@ class Plots(Analysis):
         super().__init__(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
 
         # add additional attributes
+
+        # maybe these should be loaded from saved pkl instance?
+        self.strain = strain.Strain(**self.abcParam) # add an instance of strain class as an attribute to access methods
+        self.clean = dataCleaning.Cleaning(**self.abcParam)
+        self.stress = stress.Stress(**self.abcParam)
+
         self.figPath = self.paths['figPath']
 
         #used in sed and gel method to return only locations that are flagged as keepbool in strain
@@ -29,9 +35,8 @@ class Plots(Analysis):
         self.posCoordinateSystem = self.strain['posCoordinateSystem']
         self.strainDataDir = self.paths['strainDataDir']
 
-        self.strain = strain.Strain(**self.abcParam) # add an instance of strain class as an attribute to access methods
-        self.clean = dataCleaning.Cleaning(**self.abcParam)
-        self.stress = stress.Stress(**self.abcParam)
+        self.avgStrain = pd.read_hdf(self.strainDataDir + '/frameAverage.h5')
+
 
     def __call__(self):
         print('Not yet implemented')

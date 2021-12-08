@@ -11,8 +11,12 @@ wdir_frmt = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun1
 param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
              stepParamFile = './step_param.yml')
 #steps = ['ref','a','b','c','d','e','f','g']
-#steps = ['a','b','c','d','e','f','g']
-steps = ['f','g']
+steps = ['a','b','c','d','e','f','g']
+#steps = ['g']
+boolDict = dict(dataCleaning=False,
+                stress=False,
+                strain=True,
+                pickle=True)
 for step in steps:
 
     print('Starting step {}'.format(step) )
@@ -25,30 +29,39 @@ for step in steps:
 
 
     # dataCleaning
-    print('Starting dataCleaning on step {}'.format(step) )
     clean = Cleaning(**param)
-    clean()
+    if boolDict['dataCleaning']:
+        print('Starting dataCleaning on step {}'.format(step))
+        clean()
 
     ## ToDo: get top and bottom surface ids by manually slicing cleaning xyz file in ovito and save to
     #       ./ovito/sed_t{:03}_topSurface.xyz and ./ovito/sed_t{:03}_bottomSurface.xyz
     #
     # stress
-    print('Starting stress on step {}'.format(step) )
     stress = Stress(**param)
-    stress()
+    if boolDict['stress']:
+        print('Starting stress on step {}'.format(step) )
+        stress()
 
     # strain
     # ToDo: Parallelize strain run over steps
-    print('Starting strain on step {}'.format(step) )
     strain = Strain(**param)
-    strain.verbose=True
-    strain()
+    if boolDict['strain']:
+         print('Starting strain on step {}'.format(step) )
+         strain.verbose=True
+
+         ref1 = [(1, cur, 'falkLanger') for cur in range(1, strain.frames)]
+         ref1 += [(1, cur, 'boundary') for cur in range(1, strain.frames)]
+         strainPaths = dict(ref1=ref1)
+
+         strain(strainPaths=strainPaths)
 
     #pickle all the instances?
-    inst_dict = dict(clean=clean, stress=stress, strain = strain)
-    dateStr = date.today().strftime("%d_%m_%Y")
-    with open('./analysis_step_{step}_{date}.pkl'.format(step=step, date=dateStr),'wb' ) as f:
-        pkl.dump(inst_dict,f)
+    if boolDict['pickle']:
+        inst_dict = dict(clean=clean, stress=stress, strain = strain)
+        dateStr = date.today().strftime("%d_%m_%Y")
+        with open('./analysis_step_{step}_{date}.pkl'.format(step=step, date=dateStr),'wb' ) as f:
+            pkl.dump(inst_dict,f)
 
     """
     # Ideally what is the order of all the steps? 
