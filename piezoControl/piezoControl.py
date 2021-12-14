@@ -10,8 +10,11 @@ Copied to git from Dropbox/SCRIPTS
 Zsolt Dec 6 2021
 I think this was called everytime a shear step was made with inst.oscillate()
 
+Started editing from legacy_piezoControlClass
+-Zsolt Dec 12 2021
+
 """
-class piezoSerial(serial.Serial):
+class Piezo(serial.Serial):
     """ This class contains methods and attributed required to control
         a linear piezo drive in closed loop operation with serial
         commands.
@@ -42,6 +45,8 @@ class piezoSerial(serial.Serial):
         self.birth = 'This instance was created at ' + str(datetime.now())
         self.path2microscopy = '/path/to/microscope/images/during/benchmark/routines/'
         self.comments = 'This is string file containing comments \n'
+
+        self.delay = 0.001 # pause in seconds between consecuative writes to peizo
         # we want a class attributbe self.data to contain a dictionary of key:value pairs
         # for every motion set called. This should contain:
         # Comments on what is begin called...possibly text input at command lines to answer 'what is the purpose of this call'
@@ -57,11 +62,16 @@ class piezoSerial(serial.Serial):
 
     def getPos(self, output='tupleFloat'):
         """ This function returns the current position of the piezoObject in microns """
+
         self.write(b'POS? A\n')  # the b prefix means 'convert to bytes' before sending to serial
         actualPos = self.readline()
         now = datetime.now()
+        self.pause()
+
         self.write(b'MOV? A\n')  # convert to bytes then pass string
         targetPos = self.readline()
+        self.pause()
+
         if output == 'tuple':
             return (float(actualPos), float(targetPos), now)
         elif output == 'tupleFloat':
@@ -75,11 +85,12 @@ class piezoSerial(serial.Serial):
     def mov(self, newPos, **kwargs):
         """ This function moves the piezo to absolute position 'newPos' and then returns the current position"""
         self.write(bytes('MOV A' + str(newPos) + '\n', 'UTF-8'))  # concatenate, convert to bytes, then write to serial
-        return self.getPos(**kwargs)
+        self.pause()
+        return self.getPos()
 
     def movList(self, posList, dataOut={}, **kwargs):
         dataOut['posList'].append(self.mov(posList.pop(0), **kwargs))
-        # print dataOut['posList'][-1]
+        #print(dataOut['posList'][-1])
         return posList
 
     def servoOn(self):
@@ -122,10 +133,12 @@ class piezoSerial(serial.Serial):
                 self.do_every, [interval, worker_func, params, dataOut, 0 if iterations == 0 else iterations - 1]
             )
             thread.start()
+            #print(iterations)
         worker_func(params, dataOut)
 
-    def pause(self, seconds):
+    def pause(self, seconds: float = None):
         """ This function simply pauses its a certain amount of time in seconds before finishing"""
+        if seconds is None: seconds = self.delay
         time.sleep(seconds)
 
     def oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
@@ -185,7 +198,7 @@ class piezoSerial(serial.Serial):
                     strainRate=0.00001):
         """
         This function carries out a strain sweep going through the following hard coded strains:
-	0.1, 1, 2, 5, 10, 15, 30 percent
+	    0.1, 1, 2, 5, 10, 15, 30 percent
         going through 2 cycles at each strain and pausing for 15 min between cycles
         at strain rates dictated by the velocity v (\dot{\gamma} = velocity/gap)
         total run time is sum_{strains} cycles*strain/strainRate*4
@@ -230,4 +243,7 @@ class piezoSerial(serial.Serial):
         """
         return True
 
-##### Code to test class ###
+if __name__ == '__main__':
+
+    p = Piezo()
+    print('initialized')

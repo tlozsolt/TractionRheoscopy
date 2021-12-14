@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/TractionRheoscopy.iml" filepath="$PROJECT_DIR$/.idea/TractionRheoscopy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../trackpy/.idea/trackpy.iml" filepath="$PROJECT_DIR$/../trackpy/.idea/trackpy.iml" />
     </modules>
   </component>
 </project>

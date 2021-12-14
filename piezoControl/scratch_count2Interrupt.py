@@ -1,4 +1,6 @@
 import time
+from pynput import keyboard
+
 try:
     from console_thrift import KeyboardInterruptException as KeyboardInterrupt
 except ImportError:
