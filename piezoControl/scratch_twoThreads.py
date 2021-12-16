@@ -91,7 +91,8 @@ def main():
 
     try:
         while True:
-            time.sleep(0.5)
+            time.sleep(0.5):w
+
     except KeyboardInterrupt:
         print("Closing threads")
         s.join()
@@ -101,7 +102,7 @@ main()
 
 # create one thread that checks whether a step is being run say every ten seconds
 # if thread is not being run: start a hold pattern and raise a prompt to continue.
-#
+# #
 
 #do_every(10,startNewStep(),[],[])
 
