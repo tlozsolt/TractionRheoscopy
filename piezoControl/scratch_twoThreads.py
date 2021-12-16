@@ -1,5 +1,5 @@
 import threading
-import schedule
+import time
 
 """
 This script is meant to demonstrate the use of two threads. 
@@ -43,11 +43,67 @@ def startNewStep():
         posList = stepList[int(n)]
         do_every(1,printPop,posList, out)
 
+class shear(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.event = threading.Event()
+        self.posList = list(range(10))
+        self.startHold = False
+
+    def run(self):
+        while not self.event.is_set():
+            if len(self.posList) == 0:
+                self.event.set()
+                print("completed shear")
+                self.startHold = True
+                break
+            else:
+                print("shear is running")
+                print(self.posList.pop())
+                self.event.wait(1)
+
+class hold(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.event = threading.Event()
+        self.holdValue = 40
+        self.startHold = False
+
+    def run(self, shearThread):
+        while not self.event.is_set():
+            self.startHold = shearThread.startHold
+            #global stopThread
+            if self.startHold:
+                print("starting hold at value {}".format(self.holdValue))
+                self.event.wait(5)
+                #if stopThread: break
+            else:
+                #print("waiting for shear to stop")
+                self.event.wait(0.1)
+            #if stopThread: break
+
+def main():
+    stopThread = False
+    s = shear()
+    h = hold()
+    s.start()
+    h.run(s)
+
+    try:
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("Closing threads")
+        s.join()
+        h.join()
+
+main()
+
 # create one thread that checks whether a step is being run say every ten seconds
 # if thread is not being run: start a hold pattern and raise a prompt to continue.
 #
 
-do_every(10,startNewStep(),[],[])
+#do_every(10,startNewStep(),[],[])
 
 
 
