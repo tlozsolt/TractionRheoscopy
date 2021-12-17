@@ -45,7 +45,7 @@ def startNewStep():
 
 class shear(threading.Thread):
     def __init__(self):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.event = threading.Event()
         self.posList = list(range(10))
         self.startHold = False
@@ -64,7 +64,7 @@ class shear(threading.Thread):
 
 class hold(threading.Thread):
     def __init__(self):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.event = threading.Event()
         self.holdValue = 40
         self.startHold = False
@@ -72,11 +72,11 @@ class hold(threading.Thread):
     def run(self, shearThread):
         while not self.event.is_set():
             self.startHold = shearThread.startHold
-            #global stopThread
+            global stopThread
             if self.startHold:
                 print("starting hold at value {}".format(self.holdValue))
                 self.event.wait(5)
-                #if stopThread: break
+                if stopThread: break
             else:
                 #print("waiting for shear to stop")
                 self.event.wait(0.1)
@@ -91,14 +91,15 @@ def main():
 
     try:
         while True:
-            time.sleep(0.5):w
+            time.sleep(0.5)
 
     except KeyboardInterrupt:
         print("Closing threads")
         s.join()
         h.join()
 
-main()
+if __name__ == '__main__':
+    main()
 
 # create one thread that checks whether a step is being run say every ten seconds
 # if thread is not being run: start a hold pattern and raise a prompt to continue.
