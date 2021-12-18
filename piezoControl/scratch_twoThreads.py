@@ -64,6 +64,7 @@ class shear(threading.Thread):
 
 class hold(threading.Thread):
     def __init__(self):
+        stop_threads = False
         threading.Thread.__init__(self, daemon=True)
         self.event = threading.Event()
         self.holdValue = 40
@@ -72,31 +73,65 @@ class hold(threading.Thread):
     def run(self, shearThread):
         while not self.event.is_set():
             self.startHold = shearThread.startHold
-            global stopThread
             if self.startHold:
                 print("starting hold at value {}".format(self.holdValue))
                 self.event.wait(5)
-                if stopThread: break
-            else:
-                #print("waiting for shear to stop")
-                self.event.wait(0.1)
-            #if stopThread: break
+            else: self.event.wait(0.1)
+
+class query(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self, daemon=True )
+        self.event = threading.Event()
+        #self.holdValue = 40
+        self.query = False
+
+    def run(self):
+        global stopHold
+        while not self.event.is_set():
+            self.query = stopHold
+            if self.query:
+                input('Press enter to kill hold')
+                break
+            else: self.event.wait(0.1)
+
+
+class inputThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self, daemon=True)
+        self.event = threading.Event()
+        self.endHold = False
+
+    def run(self):
+        while not self.event.is_set():
+            se3
+
+    def run(self):
+        while not self.event.is_set():
+            global stopThread
+            stopThread = not bool(input('Press enter to end thread'))
+
 
 def main():
-    stopThread = False
     s = shear()
     h = hold()
+    q = query()
+    #q.run(h)
     s.start()
+    q.start()
     h.run(s)
+    #stop_threads = not bool(input('Press enter to kill thread'))
+    s.join()
+    h.join()
+    q.join()
 
-    try:
-        while True:
-            time.sleep(0.5)
+    #try:
+    #    while True:
+    #        time.sleep(0.5)
 
-    except KeyboardInterrupt:
-        print("Closing threads")
-        s.join()
-        h.join()
+    #except KeyboardInterrupt:
+    #    print("Closing threads")
+    #    s.join()
+    #    h.join()
 
 if __name__ == '__main__':
     main()
