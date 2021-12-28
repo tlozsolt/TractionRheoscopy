@@ -226,7 +226,7 @@ class Piezo(serial.Serial):
         posList2 = [round((-a * x + b + amplitude), 3) for x in range(int(amplitude / a))]
         posList = posList1 + posList2
         name = self.makeDpwd
-        ataEntry()
+        self.makeDataEntry()
         self.data[name]['functionCall'] = self.strainCycleNoOscillate.__doc__ + '\n' + 'gap: ' + str(
             gap) + 'strain: ' + str(strain) + '\n time:' + str(time) + '\n amplitude:' + str(
             amplitude) + '\n strainRate: ' + str(strainRate) + '\n'
