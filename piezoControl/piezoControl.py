@@ -47,7 +47,7 @@ class Piezo(serial.Serial):
         self.path2microscopy = '/path/to/microscope/images/during/benchmark/routines/'
         self.comments = 'This is string file containing comments \n'
 
-        self.delay = 0.001 # pause in seconds between consecuative writes to peizo
+        self.delay = 0.005 # pause in seconds between consecuative writes to peizo
         # we want a class attributbe self.data to contain a dictionary of key:value pairs
         # for every motion set called. This should contain:
         # Comments on what is begin called...possibly text input at command lines to answer 'what is the purpose of this call'
@@ -57,10 +57,20 @@ class Piezo(serial.Serial):
         self.data = {
             'description': 'this attribute contains a keyed entry for every motion that was called during the lifetime of the instance. The entries are populated using the makeDataEntry method'}
 
+        # job control
+        self.stop_threads = False
+        self.currentStep = None
+        self.movingBool = False # is the piezo currently shearing?
+        self.currentPosTuple = None
+
+        # timing and stepSize
         self.repRate = 0.05 # how often should I query the piezo?
-        self.stackTime = input('How long, in seconds, between sucessive stacks?')
-        self.maxStepPerStack = input('What is the max acceptable displacement of the shear plate between stacks?')
+        self.stackTime = float(input('How long, in seconds, between sucessive stacks?'))
+        self.maxStepPerStack = float(input('What is the max acceptable displacement in um of the shear plate between stacks?'))
         self.maxStep = self.maxStepPerStack/(self.stackTime/self.repRate)
+
+        # deformation paramters?
+        self.posList = None # This should be a dictionary of steps created with functions ramp, hold, etc
 
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
@@ -111,6 +121,8 @@ class Piezo(serial.Serial):
         targetPos = self.readline()
         self.pause()
 
+        self.currentPosTuple = (float(actualPos), float(targetPos), now)
+
         if output == 'tuple':
             return (float(actualPos), float(targetPos), now)
         elif output == 'tupleFloat':
@@ -127,10 +139,93 @@ class Piezo(serial.Serial):
         self.pause()
         return self.getPos()
 
+    def pause(self, seconds: float = None):
+        """ This function simply pauses its a certain amount of time in seconds before finishing.
+            By default it is used to pause a millisecond or so to no overload the communication rate to the piezo
+            but could be extended to any pause.
+            It does not communicate with the piezo.
+        """
+        if seconds is None: seconds = self.delay
+        time.sleep(seconds)
+
+    def runStep(self, stopFn, step: str):
+        """
+        ToDo:
+        + modify function to call mov
+        - modify function, probably by calling a different logging function, to log the output as opposed to printing
+          to screen
+        - initialize posList within the class so that it scans over steps
+        - when should posList be created? Should be loaded from yaml? Or created from param passed to yaml?
+        - note that runStep should only run a single step, and self.stepList is probably the full deformation sequence
+        + the first step in clearing up the ambiguity has been done by creating step parameter that indexes (probably
+          with kwarg into posList to retrieve the step
+        - this construction may somehow fail as now runStep will be threaded and takes arguements other than stopFn...
+          it should work, but I may not know how to do it.
+        """
+        self.currentStep = step
+        self.movingBool = True
+
+        stepList = self.posList[step]
+        holdPt = stepList[-1]
+        startTime = time.time()  # this time should be started when the shear is started.
+        while len(stepList) > 0:
+            #print('shearing {}'.format(stepList.pop()))
+            #print(datetime.now())
+            #time.sleep(random.uniform(0, 1) / 10)  # sleep for upto 100 ms to test the locking to system clock
+            self.mov(stepList.pop(0))
+            elapsedTime = time.time() - startTime
+            time.sleep((self.repRate / 1000 - elapsedTime) % (self.repRate / 1000))
+            if len(stepList) == 0:
+                print('Step {} complete! Holding at pos {}'.format(self.currentStep, holdPt))
+                self.movingBool = False
+        while len(stepList) == 0:
+            #if not datetime.now().second % 10:
+            #    print('Hold at pos {}'.format(holdPt))
+            self.mov(holdPt)
+            time.sleep(self.repRate)
+            if stopFn(): break
+
+    def query(self):
+        #global stop_threads
+        i = input('n: next step, info: print info')
+        if i == 'n':
+            self.stop_threads = True
+        elif i == 'info':
+            #print('here is some info, probably from the class')
+            #print('stopThreads is {}'.format(stop_threads))
+            print('number of active threads: {}'.format(threading.active_count()))
+            #try:
+            #    print('Current target position of the piezo: {}'. format(self.posList[self.currentStep[0]]))
+            #except IndexError:
+            #    print('Current step is completed, and current holding')
+            print('Current pos tuple is: {}'.format(self.currentPosTuple))
+            print('Current step is: {}'.format(self.currentStep))
+            print('The piezo is currently in the middle of a step? {}'.format(self.movingBool))
+            self.query()
+        else:
+            print('input not recognized, try again')
+            self.query()
+
+    def main(self,step: str):
+        #global stop_threads
+        # shearTmp is a function of one variable 'stop'.
+        # step is fixed parameter that is passed when shearTmp is created. It is not callable with shearTmp
+        shearTmp = lambda stop: self.runStep(stop, step)
+        t1 = threading.Thread(target=shearTmp, args=(lambda: self.stop_threads,))
+        t1.start()
+        self.query()
+        # stop_threads = not bool(input('Press enter to kill thread'))
+        t1.join()
+        print('step finished killed')
+
     def ramp(self, start: float, stop: float,
              time: float = None,
              endPt: bool = False):
-        """ Creates a ramp between start and stop over time"""
+        """
+        Creates list of position that constitute a ramp from start to stop in time t.
+        Makes sure that step size is at most self.maxStep and assumes a repRate of self.repRate
+        Does not move the piezo. Only creates a list of values to move through
+        """
         if time is not None: step = min(self.maxStep, (start-stop)/(time/self.repRate))
         else: step = self.maxStep
 
@@ -147,8 +242,7 @@ class Piezo(serial.Serial):
     def hold(self, position: float, time: float):
         hold = np.empty(time/self.repRate, dtype=float)
         hold[:] = position
-        return = list(hold)
-
+        return  list(hold)
 
     def upHoldDown(self, start: float, stop: float, holdTime: float):
         up = self.ramp(start,stop, endPt=False)
@@ -165,19 +259,20 @@ class Piezo(serial.Serial):
         hold = self.hold(start,pause)
         return bump + hold + bump
 
+    def benchmark(self):
+        """ This function carries out a battery of three benchmark tests
+        1) Histogram of thermal drift: gather 1000 positions at a constant position
+        and record to a file. This file can be plotted as histogram and the FWHM determined
 
-    def movList(self, posList, dataOut={}, **kwargs):
+        2) Three speed linear ramp
+        3) Settling time: move to a series of new positions and query the position as fast as possible after the initial motion.
+        """
+        return True
+
+    def _movList(self, posList, dataOut={}, **kwargs):
         dataOut['posList'].append(self.mov(posList.pop(0), **kwargs))
         #print(dataOut['posList'][-1])
         return posList
-
-    def ramp(self, start, stop, time):
-        """
-        Creates list of position that constitute a ramp from start to stop in time t.
-        Makes sure that step size is at most self.maxStep and assumes a repRate of self.repRate
-        Does not move the piezo. Only creates a list of values to move through
-        """
-
 
 
     def _do_every(self, interval, worker_func, params, dataOut, iterations=0, **kwargs):
@@ -190,10 +285,7 @@ class Piezo(serial.Serial):
             #print(iterations)
         worker_func(params, dataOut)
 
-    def _pause(self, seconds: float = None):
-        """ This function simply pauses its a certain amount of time in seconds before finishing"""
-        if seconds is None: seconds = self.delay
-        time.sleep(seconds)
+
 
     def _oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
         """ This function carries out a 60um (+/- 30um) amplitude linear ramp at fixed speed of 2 um/s
@@ -287,15 +379,6 @@ class Piezo(serial.Serial):
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def benchmark(self):
-        """ This function carries out a battery of three benchmark tests
-        1) Histogram of thermal drift: gather 1000 positions at a constant position
-        and record to a file. This file can be plotted as histogram and the FWHM determined
-
-        2) Three speed linear ramp
-        3) Settling time: move to a series of new positions and query the position as fast as possible after the initial motion.
-        """
-        return True
 
 if __name__ == '__main__':
 
