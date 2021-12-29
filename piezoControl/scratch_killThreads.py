@@ -17,7 +17,7 @@ import random
 #            time.sleep(3)
 #        if stop(): break
 repRate = 100 # how quickly to repeat task in milliseconds
-def shear(stop,posList):
+def runStep(stop, posList):
     startTime = time.time() # this time should be started when the shear is started.
     while len(posList) > 0:
         print('shearing {}'.format(posList.pop()))
@@ -48,7 +48,7 @@ def query():
 
 def main(n):
     global stop_threads
-    shearTmp = lambda stop: shear(stop, list(range(n)))
+    shearTmp = lambda stop: runStep(stop, list(range(n)))
     t1 = threading.Thread(target=shearTmp, args=(lambda: stop_threads,))
     t1.start()
     query()

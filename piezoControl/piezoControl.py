@@ -2,6 +2,7 @@ import serial
 from datetime import datetime
 import time
 import threading
+import numpy as np
 import json
 
 """
@@ -56,9 +57,47 @@ class Piezo(serial.Serial):
         self.data = {
             'description': 'this attribute contains a keyed entry for every motion that was called during the lifetime of the instance. The entries are populated using the makeDataEntry method'}
 
+        self.repRate = 0.05 # how often should I query the piezo?
+        self.stackTime = input('How long, in seconds, between sucessive stacks?')
+        self.maxStepPerStack = input('What is the max acceptable displacement of the shear plate between stacks?')
+        self.maxStep = self.maxStepPerStack/(self.stackTime/self.repRate)
+
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
         return ['path2serial', 'baudRate', 'timeOut', 'birth', 'path2microscopy', 'comments', 'data']
+
+    def makeDataEntry(self, **kwargs):
+        """ This function makes a data entry in the form of a dictionary to added to self.data
+        It should be run every time a larger series of motions is performed.
+        It should store a pandas data frame containing tuples (time in seconds, requested position, actual position)
+        It should store the date and time
+        It should store a full programming description of what function was called
+        in addition to a full written description of 'why the function was called' which should be added
+        possibly on the command line before the motion is executed.
+        At the end of the day, I need to have enough information stored in self.data and other attributes
+        to 1) replot whatever I'd like, using whatever program I'd like (but i will probably have to write code to handle import etc)
+        2) connect the serial commands and outputs to microscopy images of what is going on in the sample
+        3) be able to convincingly answer any low level information about piezo position, velocity, and any associated uncertainties
+        4) Be able to connect serial output with whatever i was thinking at the time of running the piezo...
+             ie, "I am oscilating the piezo in order to align the grid. There are no particles currently in the sample."
+             or "I am carrying out a SRFS deformation of STAS particle colloidal glass which was initially prepared on XX with comments in SP2:63, M1:23
+             and previous calibration and alignment  on this same sample is  contained in <this other self.data entry>  or possibly this other
+             piezoSerial instance stored at <path/to/other/piezoSerial/instance/>
+        """
+        name = input('Enter a keyword to name this motion as if this was a filename.')
+        dataEntry = {}
+        dataEntry['comments'] = input('What motion of the piezo are you calling and what is the purpose?: ')
+        # dataEntry['functionCall'] = input('What method are you calling? ')
+        dataEntry['date'] = str(datetime.now())
+        dataEntry['posList'] = [self.getPos(**kwargs)]
+        self.data[name] = dataEntry
+        return name
+
+    def servoOn(self):
+        """ This function turns the servo state to ON and returns state of the servo (== True if on)"""
+        self.write(b'SVO A1\n')
+        self.write(b'SVO? A\n')
+        return bool(self.readline())
 
     def getPos(self, output='tupleFloat'):
         """ This function returns the current position of the piezoObject in microns """
@@ -88,45 +127,60 @@ class Piezo(serial.Serial):
         self.pause()
         return self.getPos()
 
+    def ramp(self, start: float, stop: float,
+             time: float = None,
+             endPt: bool = False):
+        """ Creates a ramp between start and stop over time"""
+        if time is not None: step = min(self.maxStep, (start-stop)/(time/self.repRate))
+        else: step = self.maxStep
+
+        if endPt: return list(np.arange(start,stop + step, step))
+        else: return list(np.arange(start,stop, step))
+
+    def triangle(self, start: float, stop: float, time: float = None):
+        if time is not None: time /= 2
+        up = self.ramp(start,stop,time, endPt=True)
+        down = self.ramp(start, stop, time, endPt=False)
+        down.reverse()
+        return up + down
+
+    def hold(self, position: float, time: float):
+        hold = np.empty(time/self.repRate, dtype=float)
+        hold[:] = position
+        return = list(hold)
+
+
+    def upHoldDown(self, start: float, stop: float, holdTime: float):
+        up = self.ramp(start,stop, endPt=False)
+
+        hold = self.hold(stop,holdTime)
+
+        down = self.ramp(start,stop,endPt=False)
+        down.reverse()
+
+        return up + hold + down
+
+    def bumpPauseBump(self, start: float, stop:float, pause: float):
+        bump = self.triangle(start,stop)
+        hold = self.hold(start,pause)
+        return bump + hold + bump
+
+
     def movList(self, posList, dataOut={}, **kwargs):
         dataOut['posList'].append(self.mov(posList.pop(0), **kwargs))
         #print(dataOut['posList'][-1])
         return posList
 
-    def servoOn(self):
-        """ This function turns the servo state to ON and returns state of the servo (== True if on)"""
-        self.write(b'SVO A1\n')
-        self.write(b'SVO? A\n')
-        return bool(self.readline())
-
-    def makeDataEntry(self, **kwargs):
-        """ This function makes a data entry in the form of a dictionary to added to self.data
-        It should be run every time a larger series of motions is performed.
-        It should store a pandas data frame containing tuples (time in seconds, requested position, actual position)
-        It should store the date and time
-        It should store a full programming description of what function was called
-        in addition to a full written description of 'why the function was called' which should be added
-        possibly on the command line before the motion is executed.
-        At the end of the day, I need to have enough information stored in self.data and other attributes
-        to 1) replot whatever I'd like, using whatever program I'd like (but i will probably have to write code to handle import etc)
-        2) connect the serial commands and outputs to microscopy images of what is going on in the sample
-        3) be able to convincingly answer any low level information about piezo position, velocity, and any associated uncertainties
-        4) Be able to connect serial output with whatever i was thinking at the time of running the piezo...
-             ie, "I am oscilating the piezo in order to align the grid. There are no particles currently in the sample."
-             or "I am carrying out a SRFS deformation of STAS particle colloidal glass which was initially prepared on XX with comments in SP2:63, M1:23
-             and previous calibration and alignment  on this same sample is  contained in <this other self.data entry>  or possibly this other
-             piezoSerial instance stored at <path/to/other/piezoSerial/instance/>
+    def ramp(self, start, stop, time):
         """
-        name = input('Enter a keyword to name this motion as if this was a filename.')
-        dataEntry = {}
-        dataEntry['comments'] = input('What motion of the piezo are you calling and what is the purpose?: ')
-        # dataEntry['functionCall'] = input('What method are you calling? ')
-        dataEntry['date'] = str(datetime.now())
-        dataEntry['posList'] = [self.getPos(**kwargs)]
-        self.data[name] = dataEntry
-        return name
+        Creates list of position that constitute a ramp from start to stop in time t.
+        Makes sure that step size is at most self.maxStep and assumes a repRate of self.repRate
+        Does not move the piezo. Only creates a list of values to move through
+        """
 
-    def do_every(self, interval, worker_func, params, dataOut, iterations=0, **kwargs):
+
+
+    def _do_every(self, interval, worker_func, params, dataOut, iterations=0, **kwargs):
         if iterations != 1:
             thread = threading.Timer(
                 interval,
@@ -136,12 +190,12 @@ class Piezo(serial.Serial):
             #print(iterations)
         worker_func(params, dataOut)
 
-    def pause(self, seconds: float = None):
+    def _pause(self, seconds: float = None):
         """ This function simply pauses its a certain amount of time in seconds before finishing"""
         if seconds is None: seconds = self.delay
         time.sleep(seconds)
 
-    def oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
+    def _oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
         """ This function carries out a 60um (+/- 30um) amplitude linear ramp at fixed speed of 2 um/s
         for a specified number of cycles.
         Each cycle takes 1 minute to complete using the default parameters.
@@ -167,7 +221,7 @@ class Piezo(serial.Serial):
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def triangleHalfWave(self, cycles=1, a=0.1, b=0, A=20, velocity=2, **kwargs):
+    def _triangleHalfWave(self, cycles=1, a=0.1, b=0, A=20, velocity=2, **kwargs):
         """ This function carries out a 20um  amplitude triangle bump  at fixed speed of 2 um/s
         for a specified number of cycles.
         Each cycle takes 1 minute to complete using the default parameters.
@@ -194,7 +248,7 @@ class Piezo(serial.Serial):
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def strainSweep(self, gap, cycles=2, pause=15, strainList=[0.001, 0.01, 0.02, 0.05, 0.1, 0.15, 0.30],
+    def _strainSweep(self, gap, cycles=2, pause=15, strainList=[0.001, 0.01, 0.02, 0.05, 0.1, 0.15, 0.30],
                     strainRate=0.00001):
         """
         This function carries out a strain sweep going through the following hard coded strains:
@@ -210,7 +264,7 @@ class Piezo(serial.Serial):
                 self.oscillate(self, cycles=1, a=0.01, b=40, A=peak2troughAmplitude, velocity=v)
                 self.pause(pause * 60 * 15)
 
-    def strainCycleNoOscillate(self, gap=100, strain=0.1, time=3600):
+    def _strainCycleNoOscillate(self, gap=100, strain=0.1, time=3600):
         """ This function carries out a strain out and back, with no sign reversal.
             The strain rate is set by the strain and the time.
         """
