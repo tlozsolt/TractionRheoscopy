@@ -78,6 +78,9 @@ class Piezo(serial.Serial):
         self.instName = input('Enter a string for this piezo instance')
         self.dataDir ='/home/zsolt/piezoData/'
 
+    def __call__(self):
+        pass
+
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
         return ['path2serial', 'baudRate', 'timeOut', 'birth', 'path2microscopy', 'comments', 'data']
