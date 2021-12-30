@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import threading
 import numpy as np
+import pandas as pd
 import json
 
 """
@@ -70,7 +71,12 @@ class Piezo(serial.Serial):
         self.maxStep = self.maxStepPerStack/(self.stackTime/self.repRate)
 
         # deformation paramters?
-        self.posList = None # This should be a dictionary of steps created with functions ramp, hold, etc
+        self.posList = dict(a=self.ramp(40,50)) # This should be a dictionary of steps created with functions ramp, hold, etc
+        self.data = {key:[] for key in self.posList.keys()}
+
+        # logging and filepaths
+        self.instName = input('Enter a string for this piezo instance')
+        self.dataDir ='/home/zsolt/piezoData/'
 
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
@@ -166,17 +172,20 @@ class Piezo(serial.Serial):
         self.movingBool = True
 
         stepList = self.posList[step]
+
         holdPt = stepList[-1]
         startTime = time.time()  # this time should be started when the shear is started.
         while len(stepList) > 0:
             #print('shearing {}'.format(stepList.pop()))
             #print(datetime.now())
             #time.sleep(random.uniform(0, 1) / 10)  # sleep for upto 100 ms to test the locking to system clock
-            self.mov(stepList.pop(0))
+            self.mov(stepList.pop(0)) # this will update self.currentPosTuple during the embedded call to self.getPos()
+            self.data[step].append(self.currentPosTuple)
             elapsedTime = time.time() - startTime
-            time.sleep((self.repRate / 1000 - elapsedTime) % (self.repRate / 1000))
+            time.sleep((self.repRate - elapsedTime) % (self.repRate))
             if len(stepList) == 0:
                 print('Step {} complete! Holding at pos {}'.format(self.currentStep, holdPt))
+                self.log()
                 self.movingBool = False
         while len(stepList) == 0:
             #if not datetime.now().second % 10:
@@ -187,7 +196,7 @@ class Piezo(serial.Serial):
 
     def query(self):
         #global stop_threads
-        i = input('n: next step, info: print info')
+        i = input(' next: go to next step\n info: print info \n log: print pos and log if not shearing\n')
         if i == 'n':
             self.stop_threads = True
         elif i == 'info':
@@ -201,12 +210,34 @@ class Piezo(serial.Serial):
             print('Current pos tuple is: {}'.format(self.currentPosTuple))
             print('Current step is: {}'.format(self.currentStep))
             print('The piezo is currently in the middle of a step? {}'.format(self.movingBool))
+            print('\n\n')
+            self.query()
+        elif i =='log':
+            #print(self.data[self.currentStep])
+            print(self.currentPosTuple)
+            print('\n\n')
+            if not self.movingBool : self.log(self.currentStep)
             self.query()
         else:
             print('input not recognized, try again')
             self.query()
 
-    def main(self,step: str):
+    def log(self, step: str = None):
+        """
+        Writes a pandas dataFrame of posList to file f
+        """
+        if step is None: steps = self.data.keys()
+        else: steps = [step]
+        for step in steps:
+            if len(self.data[step]) == 0: pass
+            else:
+                df = pd.DataFrame(self.data[step],
+                                  columns=['actual pos (um)', 'target pos (um)', 'time (datetime obj)'])
+                t0 = df['time (datetime obj)'][0]
+                df['elapsed time (s)'] = df['time (datetime obj)'].apply(lambda x: (x - t0).total_seconds())
+                df.to_hdf(self.dataDir + '/{}_step{}_piezoData.h5'.format(self.instName, step), 'piezoData')
+
+    def takeStep(self, step: str):
         #global stop_threads
         # shearTmp is a function of one variable 'stop'.
         # step is fixed parameter that is passed when shearTmp is created. It is not callable with shearTmp
@@ -267,6 +298,8 @@ class Piezo(serial.Serial):
         2) Three speed linear ramp
         3) Settling time: move to a series of new positions and query the position as fast as possible after the initial motion.
         """
+        for step in ['ramp', 'triangle', 'upHoldDown', 'bumpPauseBump']: pass
+
         return True
 
     def _movList(self, posList, dataOut={}, **kwargs):
