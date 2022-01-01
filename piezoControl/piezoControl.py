@@ -71,6 +71,10 @@ class Piezo(serial.Serial):
         self.maxStep = self.maxStepPerStack/(self.stackTime/self.repRate)
 
         # deformation paramters?
+        self.gap = float(input('What is the approximate shear gap?'))
+        self.totalThickness = float(input('What is position of the shear post relative to the coverslip?'))
+        self.gelModulus = float(input('What is the modulus of the gel (Pa)'))
+        self.sampleModulus_estimate = float(input('What do you estimate the modulus of the sample to be?'))
         self.posList = dict(a=self.ramp(40,50)) # This should be a dictionary of steps created with functions ramp, hold, etc
         self.data = {key:[] for key in self.posList.keys()}
 
@@ -79,7 +83,17 @@ class Piezo(serial.Serial):
         self.dataDir ='/home/zsolt/piezoData/'
 
     def __call__(self):
-        pass
+        for step in self.posList: self.takeStep(step)
+
+    def strainRamp(self):
+        strainRampDict = {}
+        #epsilon = dict(a=0.001, b= 0.005, c = 0.01, d=0.02, e=0.03, f=0.05, g=0.07, h=0.1, i=0.15, j=0.2)
+        epsilon = dict(a=0.001, b= 0.005, c = 0.01, d=0.02, e=0.03, f=0.05, g=0.07, h=0.1, i=0.15, j=0.2)
+        for step, strain in epsilon.values():
+            eTotal = (1 + self.sampleModulus_estimate/self.gelModulus)*strain
+            disp = eTotal *(self.totalThickness)
+            strainRampDict[step] = self.triangle(10,10+disp)
+        self.posList = strainRampDict
 
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
