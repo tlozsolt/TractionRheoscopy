@@ -101,16 +101,18 @@ class inputThread(threading.Thread):
         self.event = threading.Event()
         self.endHold = False
 
-    def run(self):
-        while not self.event.is_set():
-            se3
+    #def run(self):
+    #    while not self.event.is_set():
+    #        se3
 
     def run(self):
         while not self.event.is_set():
-            global stopThread
-            stopThread = not bool(input('Press enter to end thread'))
+            #global stopThread
+            global stopHold
+            #stopThread = not bool(input('Press enter to end thread'))
+            #stopHold = not bool(input('Press enter to end thread'))
 
-
+stopHold = False
 def main():
     s = shear()
     h = hold()

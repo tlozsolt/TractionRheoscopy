@@ -2,6 +2,8 @@ import serial
 from datetime import datetime
 import time
 import threading
+import numpy as np
+import pandas as pd
 import json
 
 """
@@ -46,7 +48,7 @@ class Piezo(serial.Serial):
         self.path2microscopy = '/path/to/microscope/images/during/benchmark/routines/'
         self.comments = 'This is string file containing comments \n'
 
-        self.delay = 0.001 # pause in seconds between consecuative writes to peizo
+        self.delay = 0.005 # pause in seconds between consecuative writes to peizo
         # we want a class attributbe self.data to contain a dictionary of key:value pairs
         # for every motion set called. This should contain:
         # Comments on what is begin called...possibly text input at command lines to answer 'what is the purpose of this call'
@@ -56,48 +58,46 @@ class Piezo(serial.Serial):
         self.data = {
             'description': 'this attribute contains a keyed entry for every motion that was called during the lifetime of the instance. The entries are populated using the makeDataEntry method'}
 
+        # job control
+        self.stop_threads = False
+        self.currentStep = None
+        self.movingBool = False # is the piezo currently shearing?
+        self.currentPosTuple = None
+
+        # timing and stepSize
+        self.repRate = 0.05 # how often should I query the piezo?
+        self.stackTime = float(input('How long, in seconds, between sucessive stacks?'))
+        self.maxStepPerStack = float(input('What is the max acceptable displacement in um of the shear plate between stacks?'))
+        self.maxStep = self.maxStepPerStack/(self.stackTime/self.repRate)
+
+        # deformation paramters?
+        self.gap = float(input('What is the approximate shear gap?'))
+        self.totalThickness = float(input('What is position of the shear post relative to the coverslip?'))
+        self.gelModulus = float(input('What is the modulus of the gel (Pa)'))
+        self.sampleModulus_estimate = float(input('What do you estimate the modulus of the sample to be?'))
+        self.posList = dict(a=self.ramp(40,50)) # This should be a dictionary of steps created with functions ramp, hold, etc
+        self.data = {key:[] for key in self.posList.keys()}
+
+        # logging and filepaths
+        self.instName = input('Enter a string for this piezo instance')
+        self.dataDir ='/home/zsolt/piezoData/'
+
+    def __call__(self):
+        for step in self.posList: self.takeStep(step)
+
+    def strainRamp(self):
+        strainRampDict = {}
+        #epsilon = dict(a=0.001, b= 0.005, c = 0.01, d=0.02, e=0.03, f=0.05, g=0.07, h=0.1, i=0.15, j=0.2)
+        epsilon = dict(a=0.001, b= 0.005, c = 0.01, d=0.02, e=0.03, f=0.05, g=0.07, h=0.1, i=0.15, j=0.2)
+        for step, strain in epsilon.values():
+            eTotal = (1 + self.sampleModulus_estimate/self.gelModulus)*strain
+            disp = eTotal *(self.totalThickness)
+            strainRampDict[step] = self.triangle(10,10+disp)
+        self.posList = strainRampDict
+
     def listAttr(self):
         """ This function should list all class attritubtes that can be pickled or stored in JSON array"""
         return ['path2serial', 'baudRate', 'timeOut', 'birth', 'path2microscopy', 'comments', 'data']
-
-    def getPos(self, output='tupleFloat'):
-        """ This function returns the current position of the piezoObject in microns """
-
-        self.write(b'POS? A\n')  # the b prefix means 'convert to bytes' before sending to serial
-        actualPos = self.readline()
-        now = datetime.now()
-        self.pause()
-
-        self.write(b'MOV? A\n')  # convert to bytes then pass string
-        targetPos = self.readline()
-        self.pause()
-
-        if output == 'tuple':
-            return (float(actualPos), float(targetPos), now)
-        elif output == 'tupleFloat':
-            return (float(actualPos), float(targetPos), 60.0 * now.minute + now.second + (now.microsecond) / 1000000.)
-        elif output == 'printData':
-            return str(float(actualPos)) + ', ' + str(60.0 * now.minute + now.second + (now.microsecond) / 1000000.)
-        else:
-            print(self.getPos.__doc__)
-            raise NameError('the output type for getPos() is not valid. See piezoSerial.getPos.__doc__')
-
-    def mov(self, newPos, **kwargs):
-        """ This function moves the piezo to absolute position 'newPos' and then returns the current position"""
-        self.write(bytes('MOV A' + str(newPos) + '\n', 'UTF-8'))  # concatenate, convert to bytes, then write to serial
-        self.pause()
-        return self.getPos()
-
-    def movList(self, posList, dataOut={}, **kwargs):
-        dataOut['posList'].append(self.mov(posList.pop(0), **kwargs))
-        #print(dataOut['posList'][-1])
-        return posList
-
-    def servoOn(self):
-        """ This function turns the servo state to ON and returns state of the servo (== True if on)"""
-        self.write(b'SVO A1\n')
-        self.write(b'SVO? A\n')
-        return bool(self.readline())
 
     def makeDataEntry(self, **kwargs):
         """ This function makes a data entry in the form of a dictionary to added to self.data
@@ -126,7 +126,206 @@ class Piezo(serial.Serial):
         self.data[name] = dataEntry
         return name
 
-    def do_every(self, interval, worker_func, params, dataOut, iterations=0, **kwargs):
+    def servoOn(self):
+        """ This function turns the servo state to ON and returns state of the servo (== True if on)"""
+        self.write(b'SVO A1\n')
+        self.write(b'SVO? A\n')
+        return bool(self.readline())
+
+    def getPos(self, output='tupleFloat'):
+        """ This function returns the current position of the piezoObject in microns """
+
+        self.write(b'POS? A\n')  # the b prefix means 'convert to bytes' before sending to serial
+        actualPos = self.readline()
+        now = datetime.now()
+        self.pause()
+
+        self.write(b'MOV? A\n')  # convert to bytes then pass string
+        targetPos = self.readline()
+        self.pause()
+
+        self.currentPosTuple = (float(actualPos), float(targetPos), now)
+
+        if output == 'tuple':
+            return (float(actualPos), float(targetPos), now)
+        elif output == 'tupleFloat':
+            return (float(actualPos), float(targetPos), 60.0 * now.minute + now.second + (now.microsecond) / 1000000.)
+        elif output == 'printData':
+            return str(float(actualPos)) + ', ' + str(60.0 * now.minute + now.second + (now.microsecond) / 1000000.)
+        else:
+            print(self.getPos.__doc__)
+            raise NameError('the output type for getPos() is not valid. See piezoSerial.getPos.__doc__')
+
+    def mov(self, newPos, **kwargs):
+        """ This function moves the piezo to absolute position 'newPos' and then returns the current position"""
+        self.write(bytes('MOV A' + str(newPos) + '\n', 'UTF-8'))  # concatenate, convert to bytes, then write to serial
+        self.pause()
+        return self.getPos()
+
+    def pause(self, seconds: float = None):
+        """ This function simply pauses its a certain amount of time in seconds before finishing.
+            By default it is used to pause a millisecond or so to no overload the communication rate to the piezo
+            but could be extended to any pause.
+            It does not communicate with the piezo.
+        """
+        if seconds is None: seconds = self.delay
+        time.sleep(seconds)
+
+    def runStep(self, stopFn, step: str):
+        """
+        ToDo:
+        + modify function to call mov
+        - modify function, probably by calling a different logging function, to log the output as opposed to printing
+          to screen
+        - initialize posList within the class so that it scans over steps
+        - when should posList be created? Should be loaded from yaml? Or created from param passed to yaml?
+        - note that runStep should only run a single step, and self.stepList is probably the full deformation sequence
+        + the first step in clearing up the ambiguity has been done by creating step parameter that indexes (probably
+          with kwarg into posList to retrieve the step
+        - this construction may somehow fail as now runStep will be threaded and takes arguements other than stopFn...
+          it should work, but I may not know how to do it.
+        """
+        self.currentStep = step
+        self.movingBool = True
+
+        stepList = self.posList[step]
+
+        holdPt = stepList[-1]
+        startTime = time.time()  # this time should be started when the shear is started.
+        while len(stepList) > 0:
+            #print('shearing {}'.format(stepList.pop()))
+            #print(datetime.now())
+            #time.sleep(random.uniform(0, 1) / 10)  # sleep for upto 100 ms to test the locking to system clock
+            self.mov(stepList.pop(0)) # this will update self.currentPosTuple during the embedded call to self.getPos()
+            self.data[step].append(self.currentPosTuple)
+            elapsedTime = time.time() - startTime
+            time.sleep((self.repRate - elapsedTime) % (self.repRate))
+            if len(stepList) == 0:
+                print('Step {} complete! Holding at pos {}'.format(self.currentStep, holdPt))
+                self.log()
+                self.movingBool = False
+        while len(stepList) == 0:
+            #if not datetime.now().second % 10:
+            #    print('Hold at pos {}'.format(holdPt))
+            self.mov(holdPt)
+            time.sleep(self.repRate)
+            if stopFn(): break
+
+    def query(self):
+        #global stop_threads
+        i = input(' next: go to next step\n info: print info \n log: print pos and log if not shearing\n')
+        if i == 'n':
+            self.stop_threads = True
+        elif i == 'info':
+            #print('here is some info, probably from the class')
+            #print('stopThreads is {}'.format(stop_threads))
+            print('number of active threads: {}'.format(threading.active_count()))
+            #try:
+            #    print('Current target position of the piezo: {}'. format(self.posList[self.currentStep[0]]))
+            #except IndexError:
+            #    print('Current step is completed, and current holding')
+            print('Current pos tuple is: {}'.format(self.currentPosTuple))
+            print('Current step is: {}'.format(self.currentStep))
+            print('The piezo is currently in the middle of a step? {}'.format(self.movingBool))
+            print('\n\n')
+            self.query()
+        elif i =='log':
+            #print(self.data[self.currentStep])
+            print(self.currentPosTuple)
+            print('\n\n')
+            if not self.movingBool : self.log(self.currentStep)
+            self.query()
+        else:
+            print('input not recognized, try again')
+            self.query()
+
+    def log(self, step: str = None):
+        """
+        Writes a pandas dataFrame of posList to file f
+        """
+        if step is None: steps = self.data.keys()
+        else: steps = [step]
+        for step in steps:
+            if len(self.data[step]) == 0: pass
+            else:
+                df = pd.DataFrame(self.data[step],
+                                  columns=['actual pos (um)', 'target pos (um)', 'time (datetime obj)'])
+                t0 = df['time (datetime obj)'][0]
+                df['elapsed time (s)'] = df['time (datetime obj)'].apply(lambda x: (x - t0).total_seconds())
+                df.to_hdf(self.dataDir + '/{}_step{}_piezoData.h5'.format(self.instName, step), 'piezoData')
+
+    def takeStep(self, step: str):
+        #global stop_threads
+        # shearTmp is a function of one variable 'stop'.
+        # step is fixed parameter that is passed when shearTmp is created. It is not callable with shearTmp
+        shearTmp = lambda stop: self.runStep(stop, step)
+        t1 = threading.Thread(target=shearTmp, args=(lambda: self.stop_threads,))
+        t1.start()
+        self.query()
+        # stop_threads = not bool(input('Press enter to kill thread'))
+        t1.join()
+        print('step finished killed')
+
+    def ramp(self, start: float, stop: float,
+             time: float = None,
+             endPt: bool = False):
+        """
+        Creates list of position that constitute a ramp from start to stop in time t.
+        Makes sure that step size is at most self.maxStep and assumes a repRate of self.repRate
+        Does not move the piezo. Only creates a list of values to move through
+        """
+        if time is not None: step = min(self.maxStep, (start-stop)/(time/self.repRate))
+        else: step = self.maxStep
+
+        if endPt: return list(np.arange(start,stop + step, step))
+        else: return list(np.arange(start,stop, step))
+
+    def triangle(self, start: float, stop: float, time: float = None):
+        if time is not None: time /= 2
+        up = self.ramp(start,stop,time, endPt=True)
+        down = self.ramp(start, stop, time, endPt=False)
+        down.reverse()
+        return up + down
+
+    def hold(self, position: float, time: float):
+        hold = np.empty(time/self.repRate, dtype=float)
+        hold[:] = position
+        return  list(hold)
+
+    def upHoldDown(self, start: float, stop: float, holdTime: float):
+        up = self.ramp(start,stop, endPt=False)
+
+        hold = self.hold(stop,holdTime)
+
+        down = self.ramp(start,stop,endPt=False)
+        down.reverse()
+
+        return up + hold + down
+
+    def bumpPauseBump(self, start: float, stop:float, pause: float):
+        bump = self.triangle(start,stop)
+        hold = self.hold(start,pause)
+        return bump + hold + bump
+
+    def benchmark(self):
+        """ This function carries out a battery of three benchmark tests
+        1) Histogram of thermal drift: gather 1000 positions at a constant position
+        and record to a file. This file can be plotted as histogram and the FWHM determined
+
+        2) Three speed linear ramp
+        3) Settling time: move to a series of new positions and query the position as fast as possible after the initial motion.
+        """
+        for step in ['ramp', 'triangle', 'upHoldDown', 'bumpPauseBump']: pass
+
+        return True
+
+    def _movList(self, posList, dataOut={}, **kwargs):
+        dataOut['posList'].append(self.mov(posList.pop(0), **kwargs))
+        #print(dataOut['posList'][-1])
+        return posList
+
+
+    def _do_every(self, interval, worker_func, params, dataOut, iterations=0, **kwargs):
         if iterations != 1:
             thread = threading.Timer(
                 interval,
@@ -136,12 +335,9 @@ class Piezo(serial.Serial):
             #print(iterations)
         worker_func(params, dataOut)
 
-    def pause(self, seconds: float = None):
-        """ This function simply pauses its a certain amount of time in seconds before finishing"""
-        if seconds is None: seconds = self.delay
-        time.sleep(seconds)
 
-    def oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
+
+    def _oscillate(self, cycles=1, a=0.1, b=40, A=60, velocity=2, **kwargs):
         """ This function carries out a 60um (+/- 30um) amplitude linear ramp at fixed speed of 2 um/s
         for a specified number of cycles.
         Each cycle takes 1 minute to complete using the default parameters.
@@ -167,7 +363,7 @@ class Piezo(serial.Serial):
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def triangleHalfWave(self, cycles=1, a=0.1, b=0, A=20, velocity=2, **kwargs):
+    def _triangleHalfWave(self, cycles=1, a=0.1, b=0, A=20, velocity=2, **kwargs):
         """ This function carries out a 20um  amplitude triangle bump  at fixed speed of 2 um/s
         for a specified number of cycles.
         Each cycle takes 1 minute to complete using the default parameters.
@@ -194,7 +390,7 @@ class Piezo(serial.Serial):
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def strainSweep(self, gap, cycles=2, pause=15, strainList=[0.001, 0.01, 0.02, 0.05, 0.1, 0.15, 0.30],
+    def _strainSweep(self, gap, cycles=2, pause=15, strainList=[0.001, 0.01, 0.02, 0.05, 0.1, 0.15, 0.30],
                     strainRate=0.00001):
         """
         This function carries out a strain sweep going through the following hard coded strains:
@@ -210,7 +406,7 @@ class Piezo(serial.Serial):
                 self.oscillate(self, cycles=1, a=0.01, b=40, A=peak2troughAmplitude, velocity=v)
                 self.pause(pause * 60 * 15)
 
-    def strainCycleNoOscillate(self, gap=100, strain=0.1, time=3600):
+    def _strainCycleNoOscillate(self, gap=100, strain=0.1, time=3600):
         """ This function carries out a strain out and back, with no sign reversal.
             The strain rate is set by the strain and the time.
         """
@@ -226,22 +422,13 @@ class Piezo(serial.Serial):
         posList2 = [round((-a * x + b + amplitude), 3) for x in range(int(amplitude / a))]
         posList = posList1 + posList2
         name = self.makeDpwd
-        ataEntry()
+        self.makeDataEntry()
         self.data[name]['functionCall'] = self.strainCycleNoOscillate.__doc__ + '\n' + 'gap: ' + str(
             gap) + 'strain: ' + str(strain) + '\n time:' + str(time) + '\n amplitude:' + str(
             amplitude) + '\n strainRate: ' + str(strainRate) + '\n'
         self.do_every(interval, self.movList, posList, self.data[name], len(posList))
         return name
 
-    def benchmark(self):
-        """ This function carries out a battery of three benchmark tests
-        1) Histogram of thermal drift: gather 1000 positions at a constant position
-        and record to a file. This file can be plotted as histogram and the FWHM determined
-
-        2) Three speed linear ramp
-        3) Settling time: move to a series of new positions and query the position as fast as possible after the initial motion.
-        """
-        return True
 
 if __name__ == '__main__':
 
