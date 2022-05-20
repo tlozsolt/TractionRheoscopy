@@ -602,10 +602,13 @@ class dplHash:
             timeStep = self.getTimeStep(hashValue)
             stackBool = self.metaData['imageParam']['stackBool']
             # assemble the right fileName for the given timeStep
+            tPadding = self.metaData['fileNamePrefix']['tPadding']
             if stackBool == True:
-                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
+                # file name is zero padded to 4, pre upgrade to new version of andor iq
+                #fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
+                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + fileExt
             elif stackBool == False:
-                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + '_z*' + fileExt
+                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + '_z*' + fileExt
             else:
                 raise ValueError(
                     'stackBool value {} is not True or False when calling getPath2File on rawTiff keyword'.format(

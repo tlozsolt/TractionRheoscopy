@@ -52,6 +52,7 @@ class Stress(Analysis):
         self.strain = self.stepParam['strain']
         self.posCoordinateSystem = self.strain['posCoordinateSystem']
         self.keepBool = self.strain['keepBool']
+        self.lowerIdx = da.readOvitoIdx(self.paths['sed_interface_idx'])
 
 
         # rheo calibration
@@ -326,6 +327,66 @@ class Stress(Analysis):
 
         return driftCorrDF
 
+    def driftCorr_sediment(self,
+                           coord: str = '(um, rheo_sedHeight)',
+                           outCoord: str = '(um, rheo_sedHeight driftCorr)',
+                           add2Inst: bool = True,
+                           save2hdf: bool = True,
+                           forceRecompute: bool = True):
+        """
+        This function computes the strain in the gel by subtracting rigid body displacement
+        derived from theilSen fitting of the defomration profile in the gel from the particle positions
+        in the sediment and then computing the displacement of the lower boudnary of the seidment against
+        the (what is assumed) zero dipsalcment of the coverslip.
+        """
+        for cur in range(self.frames):
+            b_x, b_y = self.theilSen.at[cur, 'b_xz'], self.theilSen.at[cur, 'b_yz']
+            posDF = self.sed(cur)
+
+            posDF['x '+ outCoord] = posDF['x ' + coord] - b_x
+            posDF['y '+ outCoord] = posDF['y ' + coord] - b_y
+            # just copy the column for z position so that I can use
+            # posCoordinateSystem without an exception to handle no z drift corr
+            posDF['z '+ outCoord] = posDF['z ' + coord]
+
+            if save2hdf:
+                with tp.PandasHDFStoreBig(self.paths['sed']) as s:
+                    s.put(posDF.reset_index())
+        return True
+
+    def gelStrain_boundary(self,
+                           coord: str = '(um, rheo_sedHeight driftCorr)',
+                           forceRecompute: bool = True):
+        """
+        This computes the strain the gel using the drift corrected displacement of the sediment
+        particles in the interface (ie first layer above the gel.
+        """
+        # get the particle ids in the first layer
+        # compute the displacement relative to time zero (not global)
+        # divide by the gel thickness
+
+        ref = self.sed(0)
+        lowerIdx = self.lowerIdx
+        upperIdx = self.upperIdx
+
+        for t in range(self.frames):
+            cur = self.sed(t)
+            idx = ref.index.intersection(cur.index)
+
+            # now compute displacement
+            disp = dict( x=cur['x ' + coord] - ref['x ' + coord],
+                         y=cur['y ' + coord] - ref['y ' + coord])
+
+            disp['x'] = disp['x'].loc[lowerIdx].dropna().mean()
+            disp['y'] = disp['y'].loc[lowerIdx].dropna().mean()
+
+            # return the displacement dataframe that has been de-drifted.
+
+            return disp
+
+
+
+
 
 
 
@@ -354,8 +415,6 @@ class Stress(Analysis):
         out = posDF[posCol + residCols].dropna()
         out['z scaled bin'] = pd.cut(posDF['z scaled fractional height (um, rheo_sedHeight)'], bins=self.zBins)
         return out
-
-
 
     def xyResiduals_step(self):
         """

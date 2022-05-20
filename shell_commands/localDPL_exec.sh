@@ -1,0 +1,5 @@
+for hv in 25 33 37 41 49 50 58 66 74 150 158 162 166 174 21200 21208 21212 21216 21224 21225 21233 21237 21241 21249 21325 21333 21337 21341 21349
+do
+  echo "Starting hashvalue ${hv}"
+  ./tfrGel23042022_shearRun01052022f_imageStack_dplScript_exec_pipeline.x $hv
+done

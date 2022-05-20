@@ -36,6 +36,7 @@ def query():
         print('here is some info, probably from the class')
         print('stopThreads is {}'.format(stop_threads))
         print('number of active threads: {}'.format(threading.active_count()))
+        print('active threads: {}'.format(threading.enumerate(nf)))
         query()
     else:
         print('input not recognized, try again')

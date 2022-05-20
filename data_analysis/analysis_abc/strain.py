@@ -59,7 +59,7 @@ class Strain(Analysis):
 
 
         for path, tupleList in strainPaths.items():
-            [self.computeStrain(strainCall=strainCall, forceRecompute=False) for strainCall in tupleList]
+            [self.computeStrain(strainCall=strainCall, forceRecompute=True) for strainCall in tupleList]
 
             ## hack to recompute boundary as I stupidly changed the keys without changing anything about the output..
             #[self.computeStrain(strainCall=strainCall, forceRecompute=True) for strainCall in tupleList[int(len(tupleList)/2):len(tupleList)]]
@@ -152,8 +152,11 @@ class Strain(Analysis):
         lIdx = self.lowerIdx.intersection(idx)
 
         # now get equations for each of these planes
-        u = da.fitSurface_singleTime(pos,uIdx,'(um, rheo_sedHeight)')
-        l = da.fitSurface_singleTime(pos,lIdx,'(um, rheo_sedHeight)')
+        posStr = '({}, {})'.format(self.posCoordinateSystem['units'], self.posCoordinateSystem['coordSys'])
+        u = da.fitSurface_singleTime(pos,uIdx, posStr)
+        l = da.fitSurface_singleTime(pos,lIdx, posStr)
+        #u = da.fitSurface_singleTime(pos,uIdx,'(um, rheo_sedHeight)')
+        #l = da.fitSurface_singleTime(pos,lIdx,'(um, rheo_sedHeight)')
 
         # eval the plane at 5 points: 4 corners and 0
         def plane(x,y,a,b,c, **kwargs): return a*x + b*y + c
@@ -437,12 +440,16 @@ class Strain(Analysis):
             by the boundary (DUH) This should remove high strain particles taht are near the grid in FL thereby
             lowering the average strain, which goes in the same direction as scaling the boundary strain by ~5%
         """
+        coordStr = self.posCoordinateSystem['coordSys']
+        units = self.posCoordinateSystem['units']
+        posStr_sfx = '({}, {})'.format(units, coordStr)
 
         # compute the gap in the reference frame before remapping variables ref and cur to dataframes
         gapDict = self.gap(ref)
         refN, curN = ref,cur
         # load ref and cur
         # note ref and cur are now dataFrames, not int as the call signature shows.
+
         # note this defaults to the col keys in self.sed()
         ref = self.sed(ref)
         cur = self.sed(cur)
@@ -463,36 +470,46 @@ class Strain(Analysis):
         relDisp = dispUpper - dispLower
 
         # rename the column labels
-        rename = {'{} (um, rheo_sedHeight)'.format(coord):
-                      '<{}Upper> - <{}Lower> (um, rheo_sedHeight)'.format(coord,coord) for coord in ['x','y','z']}
+        rename = {'{} {}'.format(coord, posStr_sfx):
+                      '<{}Upper> - <{}Lower> {}'.format(coord,coord, posStr_sfx) for coord in ['x','y','z']}
         relDisp = pd.DataFrame(relDisp).T
         relDisp.rename(columns=rename, inplace=True)
 
         # add the displacement of upper and lower boundaries
-        disp_frmt = '<{}{}> (um, rheo_SedHeight)'
+        #disp_frmt = '<{}{}> (um, rheo_SedHeight)'
+        disp_frmt = '<{}{}> ' + posStr_sfx
         for coord in ['x','y','z']:
             # add the upper and lower boundary displacments to relDisp
-            relDisp[disp_frmt.format(coord,'Lower' )] = dispLower['{} (um, rheo_sedHeight)'.format(coord)]
-            relDisp[disp_frmt.format(coord,'Upper' )] = dispUpper['{} (um, rheo_sedHeight)'.format(coord)]
+            relDisp[disp_frmt.format(coord,'Lower' )] = dispLower['{} {}'.format(coord, posStr_sfx)]
+            relDisp[disp_frmt.format(coord,'Upper' )] = dispUpper['{} {}'.format(coord, posStr_sfx)]
 
         # compute the strain gamma (simple, divide by gap)
         for method, gap in gapDict.items():
             for coord in ['x','y','z']:
                 relDisp['strain 2e{}z, gap {}'.format(coord,method)] = \
-                    relDisp['<{}Upper> - <{}Lower> (um, rheo_sedHeight)'.format(coord,coord)]/gap
-                relDisp['gap ref {} (um, rheo_sedHeight)'.format(method)] = gap
+                    relDisp['<{}Upper> - <{}Lower> {}'.format(coord,coord, posStr_sfx)]/gap
+                relDisp['gap ref {} {}'.format(method, posStr_sfx)] = gap
                 #relDisp['strain 2e{}z, gap {}'.format(method)] = relDisp['y (um, rheo_sedHeight)']/gap
                 #relDisp['strain 2e{}z, gap {}'.format(method)] = relDisp['z (um, rheo_sedHeight)']/gap
 
-        self.writeStrain(relDisp,refN,curN,'boundary')
+        # compute stress from boudnary displacement (which will be driftCorr or not depending on self.posCoordinateSystem
+        print('Compute stress from lower boundary displacement in coordinate system \n {}'.format(self.posCoordinateSystem))
+        for coord in ['x','y','z']:
+            d = relDisp[disp_frmt.format(coord,'Lower' )]
+            relDisp['stress boundary sigma_{}z (mPa)'.format(coord)] = self.gelModulus*(d)/self.gelThickness
+
+        #self.writeStrain(relDisp,refN,curN,'boundary')
         # append output to pyTable with index of tuple
         # return aggregate statistic
         return relDisp
 
-    def avgStrain(self, idString: str, strainTupleList: list, forceRecompute: bool = False, save2hdf: bool = True):
+    def avgStrain(self, idString: str, strainTupleList: list=None, forceRecompute: bool = False, save2hdf: bool = True):
         """
-        Compute strain vs time with a fixed reference configuration at time t=0
+        Compute abgstrain vs time with a fixed reference configuration at time t=0
         for both boundary and falkLanger.
+
+        This function only **averages** previously computed strain.
+        Setting forceRecompute=True, forces a recompute of the average, but not a recompute of the strain
 
         idString is ref0 or dt1, for examsle
 
@@ -553,12 +570,12 @@ class Strain(Analysis):
                     '{}: boundary gap min mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap min'],
                     '{}: boundary gap center mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap center'],
                     '{}: boundary gap max mean gamma yz (%)'.format(idString) : 100*bd['strain 2eyz, gap max'],
-                    '{}: x displacement upper boundary (um)'.format(idString): bd['<xUpper> (um, rheo_SedHeight)'],
-                    '{}: y displacement upper boundary (um)'.format(idString): bd['<yUpper> (um, rheo_SedHeight)'],
-                    '{}: z displacement upper boundary (um)'.format(idString): bd['<zUpper> (um, rheo_SedHeight)'],
-                    '{}: x displacement lower boundary (um)'.format(idString): bd['<xLower> (um, rheo_SedHeight)'],
-                    '{}: y displacement lower boundary (um)'.format(idString): bd['<yLower> (um, rheo_SedHeight)'],
-                    '{}: z displacement lower boundary (um)'.format(idString): bd['<zLower> (um, rheo_SedHeight)'],
+                    '{}: x displacement upper boundary (um)'.format(idString): bd['<xUpper> (um, rheo_sedHeight driftCorr)'],
+                    '{}: y displacement upper boundary (um)'.format(idString): bd['<yUpper> (um, rheo_sedHeight driftCorr)'],
+                    '{}: z displacement upper boundary (um)'.format(idString): bd['<zUpper> (um, rheo_sedHeight driftCorr)'],
+                    '{}: x displacement lower boundary (um)'.format(idString): bd['<xLower> (um, rheo_sedHeight driftCorr)'],
+                    '{}: y displacement lower boundary (um)'.format(idString): bd['<yLower> (um, rheo_sedHeight driftCorr)'],
+                    '{}: z displacement lower boundary (um)'.format(idString): bd['<zLower> (um, rheo_sedHeight driftCorr)'],
                     '{}: residual mean fl - boundary min (%)'.format(idString) : 200 * fl['exz'] - 100 * bd['strain 2exz, gap min'],
                     '{}: residual mean fl - boundary center (%)'.format(idString): 200 * fl['exz'] - 100 * bd['strain 2exz, gap center'],
                     '{}: residual mean fl - boundary max (%)'.format(idString) : 200 * fl['exz'] - 100 * bd['strain 2exz, gap max']}
@@ -828,8 +845,6 @@ class Strain(Analysis):
         # compute some statitistics to return
         describe = df.describe()
         return dict(df=df, describe=describe)
-
-
 
     def plots(self):
         """

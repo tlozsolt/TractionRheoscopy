@@ -526,10 +526,12 @@ class PostDecon_dask(dpl.dplHash):
 
             nprocs = self.dpl.metaData['dask_resources'][computer]['nprocs']
             nthreads = self.dpl.metaData['dask_resources'][computer]['nthreads']
+            local_dir = self.dpl.metaData['dask_resources'][computer]['local_directory']
             mem = self.dpl.metaData['dask_resources'][computer]['memory-limit']
             node = LocalCluster(n_workers=nprocs,
                                 threads_per_worker=nthreads,
                                 memory_limit=mem,
+                                local_directory=local_dir,
                                 silence_logs='INFO')
             client = Client(node)
             #client.restart()
