@@ -227,6 +227,7 @@ class PostDecon_dask(dpl.dplHash):
 
         # is this hashvalue contain a sed/gel interface? Is it mostly sed or gel?
         sedGel = self.dpl.sedGelInterface(self.hashValue)
+        # this wont be called if using ilastik
         if sedGel[1] == True \
                 and metaData['sedGelCrop']['bool'] == True \
                 and metaData['sedGelCrop']['method'] == 'zGradAvgXY' \
@@ -330,12 +331,13 @@ class PostDecon_dask(dpl.dplHash):
             out[cz, cy, cx] = np.array([maxEntropyThreshold(chunk1D)])[..., None, None]
             return out
 
-        def applyThreshold(imgArray, thresholdArray, recastBool=True, scaleFactor=1.0):
+        def applyThreshold(imgArray, thresholdArray, recastBool=True):
             """
             This function does not compute a threshold. It just takes imgArray and thresholdArray
             and outputs an 16 bit image of the threshold with optional recasting to image to 16 bit depth.
             :return:
             """
+            scaleFactor = self.metaData['postDecon']['threshold']['scaleFactor'][self.mat]
             # change type to enable subtraction
             out = imgArray.astype('float32') - scaleFactor * thresholdArray.astype('float32')
             # clip everything below zero

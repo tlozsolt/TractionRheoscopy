@@ -933,9 +933,18 @@ class dplHash:
         # pass the correct stackBool flag to zStack2Mem
         stackBool = self.metaData['imageParam']['stackBool']
         rawStack = flatField.zStack2Mem(rawPath, stackBool=stackBool)
-        darkStack = flatField.zStack2Mem(darkPath)
-        masterDark = flatField.zProject(darkStack)
-        del darkStack
+
+
+        # add try except clause to include functionality that precompute masterDark
+        # bascially add kwrd to metaData to load masterDark. if key error, theen go back to this
+        # depracated routine of manually compute masterdark each time.
+        try:
+            print("Loading masterDark frame from file")
+            masterDark = flatField.zStack2Mem(self.metaData['flatField']['masterDark'])
+        except KeyError:
+            darkStack = flatField.zStack2Mem(darkPath)
+            masterDark = flatField.zProject(darkStack)
+            del darkStack
 
         # crop according to the yaml file and read off the crop parameters specific to hashValue from metaData
         if self.metaData['flatField']['crop2Hash'] == True:

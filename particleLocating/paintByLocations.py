@@ -3,65 +3,66 @@ import pandas
 from scipy import signal
 from particleLocating import pyFiji, threshold, flatField
 from particleLocating import dplHash_v2 as dpl
+from particleLocating import particleGlyph
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-class particleGlyph:
-    """
-    A class for storing a an array of intensity with a strict ellipsoidal mask and defined intensity shading
-    """
-    def __init__(self,dim,boxDim):
-        """
-        :param dim: the dimensions of the ellipse (a,b,c)
-        :param boxDim: the dimensions of the kernel.
-        """
-        # initalize a numpy array of dimensions dx,dy,dz
-        # round up dz dy dz to odd numbers if input was even
-        out = []
-        for d in boxDim:
-            if bool(d%2==0) == True: d=d+1
-            out.append(d)
-        [dz,dy,dx] = out
-        glyphBox = np.zeros([dz,dy,dx],dtype='uint8')
-        deltaKernel = np.zeros([dz,dy,dx],dtype='uint8')
-        mask = np.zeros([dz,dy,dx],dtype='uint8')
-        # put the ellipsoid in the center and define the shading. I think it should fall off linearly in intensity
-        # scan through the indices in the box. If within the ellipsoid region, then decide on linear shading
-
-        def ellipseInterior(pt,dim,center,out='bool'):
-          (z,y,x) = pt
-          (c,b,a) = [elt/2 for elt in dim]
-          (cz,cy,cx) = center
-          if out == 'bool':
-            if ((x-cx)/a)**2 + ((y-cy)/b)**2 + ((z-cz)/c)**2 < 1: return True
-            else: return False
-          elif out == 'norm':
-            return ((x-cx)/a)**2 + ((y-cy)/b)**2 + ((z-cz)/c)**2
-          else: print("Unrecognized out kwrd: "+ out)
-
-        def linearShade(x,left,right,min,max ):
-            """ as x goes from left to right, the output will go continuously from min to max"""
-            m = (max - min)/(right - left)
-            b = max - m*right
-            return m*x+b
-
-        center = [elt/2 for elt in [dz,dy,dx]]
-        deltaKernel[int(np.rint(center[0])),\
-                    int(np.rint(center[1])),\
-                    int(np.rint(center[2]))] = 1
-        for z in range(dz):
-          for y in range(dy):
-            for x in range(dx):
-                n = ellipseInterior((z,y,x),dim,center,out='norm')
-                if n < 1:
-                    glyphBox[z,y,x] = linearShade(n,0,1,10,0)
-                    mask[z, y, x] = 1
-        self.glyph = glyphBox
-        self.mask = mask
-        self.deltaKernel = deltaKernel
-        self.shading = 'linearShading'
-        self.dim = glyphBox.shape
-        self.boundingBoxDim = boxDim
+#class particleGlyph:
+#    """
+#    A class for storing a an array of intensity with a strict ellipsoidal mask and defined intensity shading
+#    """
+#    def __init__(self,dim,boxDim):
+#        """
+#        :param dim: the dimensions of the ellipse (a,b,c)
+#        :param boxDim: the dimensions of the kernel.
+#        """
+#        # initalize a numpy array of dimensions dx,dy,dz
+#        # round up dz dy dz to odd numbers if input was even
+#        out = []
+#        for d in boxDim:
+#            if bool(d%2==0) == True: d=d+1
+#            out.append(d)
+#        [dz,dy,dx] = out
+#        glyphBox = np.zeros([dz,dy,dx],dtype='uint8')
+#        deltaKernel = np.zeros([dz,dy,dx],dtype='uint8')
+#        mask = np.zeros([dz,dy,dx],dtype='uint8')
+#        # put the ellipsoid in the center and define the shading. I think it should fall off linearly in intensity
+#        # scan through the indices in the box. If within the ellipsoid region, then decide on linear shading
+#
+#        def ellipseInterior(pt,dim,center,out='bool'):
+#          (z,y,x) = pt
+#          (c,b,a) = [elt/2 for elt in dim]
+#          (cz,cy,cx) = center
+#          if out == 'bool':
+#            if ((x-cx)/a)**2 + ((y-cy)/b)**2 + ((z-cz)/c)**2 < 1: return True
+#            else: return False
+#          elif out == 'norm':
+#            return ((x-cx)/a)**2 + ((y-cy)/b)**2 + ((z-cz)/c)**2
+#          else: print("Unrecognized out kwrd: "+ out)
+#
+#        def linearShade(x,left,right,min,max ):
+#            """ as x goes from left to right, the output will go continuously from min to max"""
+#            m = (max - min)/(right - left)
+#            b = max - m*right
+#            return m*x+b
+#
+#        center = [elt/2 for elt in [dz,dy,dx]]
+#        deltaKernel[int(np.rint(center[0])),\
+#                    int(np.rint(center[1])),\
+#                    int(np.rint(center[2]))] = 1
+#        for z in range(dz):
+#          for y in range(dy):
+#            for x in range(dx):
+#                n = ellipseInterior((z,y,x),dim,center,out='norm')
+#                if n < 1:
+#                    glyphBox[z,y,x] = linearShade(n,0,1,10,0)
+#                    mask[z, y, x] = 1
+#        self.glyph = glyphBox
+#        self.mask = mask
+#        self.deltaKernel = deltaKernel
+#        self.shading = 'linearShading'
+#        self.dim = glyphBox.shape
+#        self.boundingBoxDim = boxDim
 
 class pxLocations:
   """
@@ -102,13 +103,17 @@ class locationOverlay():
 
     def loadFromFile(self, hv: int):
         self.hv = hv
+
+        # read in all columns to self.locOutput
+        # reserve self.locations for pandas slices of self.locOutput.loc[boolean selection][locColumns]
         sep,loc_columns = self.metaData['sep'], self.metaData['locColumns']
         locationInputPath = self.dpl.getPath2File(hv, kwrd='visualize', computer=self.computer, extension='locInput.tif')
 
         _refineLocExt = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
         refinePath = self.dpl.getPath2File(hv, kwrd='locations', extension=_refineLocExt, computer=self.computer)
 
-        self.locations = pandas.read_csv(refinePath,sep=sep)[loc_columns]
+        #self.locations = pandas.read_csv(refinePath,sep=sep)[loc_columns]
+        self.locOutput = pandas.read_csv(refinePath,sep=sep)
         self.inputImg = flatField.zStack2Mem(locationInputPath)
 
     def makeGlyphImg(self):
@@ -123,7 +128,7 @@ class locationOverlay():
         locColumns = self.metaData['locColumns']
 
         # create glyph object
-        g = particleGlyph(dim,boxDim)
+        g = particleGlyph.particleGlyph(dim,boxDim)
 
         # name keys for indexing pandas df of locations
         z_key, y_key, x_key = locColumns
@@ -209,6 +214,7 @@ class locationOverlay():
       # fill in some metaData attributes that will be used for exporting
 
 if __name__ == "__main__":
+    """
     #locationPath = '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/' \
     #               'locations/tfrGel09052019b_shearRun05062019i_locations_hv00002_gel_pxLocations.text'
     #locationPath ='/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/' \
@@ -227,5 +233,28 @@ if __name__ == "__main__":
     #plt.show()
 
     print(pyFiji.send2Fiji([overlay.glyphImage,overlay.inputPadded],wdir=testImgPath))
+    """
+
+    # input information
+    metaPath = '/Users/zsolt/Colloid_git/TractionRheoscopy/metaDataYAML/tfrGel23042022_shearRun01052022f_imageStack_metaData.yaml'
+    hv = 21325 #pick a random example
+
+    # initialize
+    inst = locationOverlay(metaPath)
+
+    # check hv information. sed/gel where in the sample it?
+    inst.dpl.hash_df.loc[hv]
+
+    # load images including locInput and locations
+    inst.loadFromFile(hv)
+
+    # select columns of self.locOutput
+    inst.locations = inst.locOutput[inst.metaData['locColumns']]
+
+    # make glyph image, store in class attribute
+    inst.makeGlyphImg()
+
+    # save to tiff and copy fiji commands to clipboard
+    inst.send2pyFiji()
 
 

@@ -200,13 +200,14 @@ preprocessing:
 
 flatField:
   software: python
-  crop: False # This is a bit misleading because the images are first actually cropped according to hash parameters in Flatfield, but there is no cropping in addition to the hash.
-  crop2Hash: True
+  crop: False # This flag is whether there is additional cropping to hash for logging purposes. "False" is a bit misleading because the images are first actually cropped according to hash parameters in Flatfield, but there is no cropping in addition to the hash.
+  crop2Hash: True # this controls whether the images are cropped in flatField
   returnType: uint16 # after flatfielding what the is the data type of a single pixel? unit16 in "unisgned 16 bit integer"
   flatStack_method: gaussianBlur # description of how the the flatStack is formed. Either a guassian blur or an actual microscope image of an optical phantom
   sigma: 15 # standard deviation of gaussian used
   dim: 3D # slice by slice in 2D or full 3D?
   darkFrame_method: darkStackAvg
+  masterDark: '/Volumes/PROJECT/calibration/darkTiff/masterDark_zyla2923_60msExp_15kFrames.tif'
 
 decon:
   software: DeconvolutionLab2 # string saying what software was used to carry out decon
@@ -242,7 +243,8 @@ ilastik:
         output_filename_format: '{dataset_dir}/{nickname}_probabilities.h5'
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
-      classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
+      #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
+      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_21MAY2022.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1
@@ -253,7 +255,7 @@ ilastik:
       sedGelSplit:
         weights:
           sed: [0,0,1,1,1,0]
-          gel: [1,1,0,0,1,0]
+          gel: [1,1,0,0,0,0]
           chunk: [0,0,0,0,1,1]
         cutoff:
           gel: 0.5
@@ -406,17 +408,17 @@ locating:
   pxClassifier:
     bool: True # should I compute integrals of the pxClassifier around the located particle positions
     integrate_mask: # must be converted to nonmutable type tuple after loading, also this is a radius
-      gel: [3.5,4.6,4.6]
+      gel: [3.5,4.6,4.6] # radius in pixels zyx to integrate over
       sed:
-        core: [2.0, 3.4, 3.4]
-        shell: [4.0, 6.8, 6.8]
+        core: [1.5, 2.5, 2.5]
+        shell: [3.0, 5.0, 5.0]
 
   iterative:
     bool: True # do iterative locating?
     maxIter: 7 # how many iterative locating loops to do before force quitting? Note this is *not* the same as how iterations of refinement to do, but rather how many iterations of iterative locating to do.
     mask:
-      sed: [17, 17, 17] # keep in mind this can be much larger than a single particle diameter
-      gel: [21,27,27] # pixel order is [z,y,x]
+      sed: [[11,13,13],[11,13,13],[13,17,17],[16, 20, 20]] # If you want fixed size, put in a nested list of len 1, eg [[17,17,17]], otherwise iterations will step through list and adjust mask size. May 2022
+      gel: [[21,27,27]] # pixel order is [z,y,x] keep in mind this can be much larger than a single particle diameter
   refine_lsq:
     bool: True
     refine_array: None
@@ -425,8 +427,12 @@ locating:
       sed: disc
       gel: disc
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 0, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 1000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [11, 11, 11], separation: [11,11,11], minmass: 5.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [11, 11, 11], separation: [11,11,11], minmass: 4.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 2.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 1.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [9, 9, 9], max_shift: 0.1, max_rms_dev: 0.01, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}

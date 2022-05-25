@@ -1,7 +1,8 @@
 import trackpy as tp
 import functools,yaml
 from functools import partial
-from particleLocating.paintByLocations import particleGlyph as pg
+#from particleLocating.paintByLocations import particleGlyph as pg
+from particleLocating import particleGlyph as pg
 import numpy as np
 import pandas as pd
 import scipy
@@ -181,8 +182,8 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
                         }
     refine_dtypes = None
     while particleBool == True and iterCount < maxIter:
-        iterCount += 1
         # try moving down the list, until you cant...
+
         try:
             param_all = locatingParam[iterCount]
             locParam = {k:v for k,v in locatingParam[iterCount].items() if k != 'refine_lsq'}
@@ -190,6 +191,15 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         except IndexError:
             locParam = {k:v for k,v in locatingParam[-1].items() if k != 'refine_lsq'}
             param_all = locatingParam[-1]
+
+        # maybe include some logic to change the iterative mask size within the
+        # try/except clause below, or an aditional one if different length of changing options
+        # basically, iterMask = paramDict['iterative']['mask']['mat'][iterCount]
+        # zsolt, May 2022
+        try:
+            iterMask = np.array(paramDict['iterative']['mask'][material][iterCount])
+        except IndexError: iterMask = np.array(paramDict ['iterative']['mask'][material][-1])
+        if iterMask.shape != (3,): raise KeyError('You must pass a 3-tuple for iterative mask size. Probably error in metaData')
 
         # create the locating function with partial application
         locateFunc = functools.partial(tp.locate,**locParam )
@@ -223,13 +233,27 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
             except IndexError: combined_dict['iteration'] = locatingParam[-1]['refine_lsq']
             loc, loc_refine = lsq_refine_combined(loc, imgArray_refine,daskClient, **combined_dict)
 
+
         # add to output
         locList.append(loc) # add the dataframe to locList and deal with merging later
         refineList.append(loc_refine)
-        if not refineBool: mask = createMask(loc,imgArray,iterativeParam['mask'][material])
-        else: mask = createMask(loc_refine, imgArray, iterativeParam['mask'][material])
-        mask = createMask(loc,imgArray,iterativeParam['mask'][material])
+
+        #if not refineBool: mask = createMask(loc,imgArray,iterativeParam['mask'][material])
+        #else: mask = createMask(loc_refine, imgArray, iterativeParam['mask'][material])
+        # why did I do this? I think if I dont mask the original Crocker Grier position, I am just going to keep
+        # finding that same particle on the next round. The actual refinement with nllsq is done on the unamsked
+        # image as it is local refinement. So I probably could get away with a slightly smaller mask.
+        # zsolt May 2022
+
+        #mask = createMask(loc,imgArray,iterativeParam['mask'][material])
+        mask = createMask(loc,imgArray,iterMask)
         imgArray = imgArray*np.logical_not(mask)
+
+        # increment iterCount at the end of the while loop
+        iterCount += 1
+        # end while loop
+
+
     #particleDF = pd.concat(locList)
     particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
                                                     "y": "y_centroid (px)",
@@ -265,7 +289,7 @@ def createMask(locDF, imgArray, glyphShape,refineBool=True):
     :return:
     """
     glyphShape = np.array(glyphShape) # just to make sure that it is an array.
-    glyph = pg(glyphShape,glyphShape + 2 )
+    glyph = pg.particleGlyph(glyphShape,glyphShape + 2 )
 
     maskGlyph = glyph.mask
     deltaKernel = glyph.deltaKernel
