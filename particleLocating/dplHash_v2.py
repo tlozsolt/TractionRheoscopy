@@ -940,7 +940,7 @@ class dplHash:
         # depracated routine of manually compute masterdark each time.
         try:
             print("Loading masterDark frame from file")
-            masterDark = flatField.zStack2Mem(self.metaData['flatField']['masterDark'])
+            masterDark = flatField.zStack2Mem(self.metaData['filePaths']['calibrationDirectory_{}'.format(computer)] + self.metaData['flatField']['masterDark'])
         except KeyError:
             darkStack = flatField.zStack2Mem(darkPath)
             masterDark = flatField.zProject(darkStack)

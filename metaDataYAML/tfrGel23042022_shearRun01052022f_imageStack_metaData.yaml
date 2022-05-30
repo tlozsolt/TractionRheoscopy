@@ -207,7 +207,7 @@ flatField:
   sigma: 15 # standard deviation of gaussian used
   dim: 3D # slice by slice in 2D or full 3D?
   darkFrame_method: darkStackAvg
-  masterDark: '/Volumes/PROJECT/calibration/darkTiff/masterDark_zyla2923_60msExp_15kFrames.tif'
+  masterDark: '/darkTiff/masterDark_zyla2923_60msExp_15kFrames.tif'
 
 decon:
   software: DeconvolutionLab2 # string saying what software was used to carry out decon
