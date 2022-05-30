@@ -3,14 +3,14 @@ filePaths:
   scratchDirectory_MBP: /No/longer/used
   scratchDirectory_IMAC: /Volumes/SCRATCH/tfrGel23042022/strainRamp/f
   scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel23042022_shearRun01052022_strainRamp/tfrGel23042022_shearRun01052022_f_imageStack_20220503_042339
-  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel23042022_shearRun01052022_strainRamp/tfrGel23042022_shearRun01052022_f_imageStack_20220503_042339
+  scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel23042022_shearRun01052022_strainRamp/f_imageStack
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
   testImgPath : '/Users/zsolt/Colloid/DATA/DeconvolutionTesting_Huygens_DeconvolutionLab2/OddysseyHashScripting/pyFiji/testImages'
 
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /No/longer/used
   projectDirectory_IMAC: /Volumes/PROJECT/tfrGel23042022/strainRamp/f
-  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel23042022/strainRamp/f
+  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel23042022/strainRamp/f_imageStack
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
   tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
@@ -417,7 +417,7 @@ locating:
     bool: True # do iterative locating?
     maxIter: 7 # how many iterative locating loops to do before force quitting? Note this is *not* the same as how iterations of refinement to do, but rather how many iterations of iterative locating to do.
     mask:
-      sed: [[11,13,13],[11,13,13],[13,17,17],[16, 20, 20]] # If you want fixed size, put in a nested list of len 1, eg [[17,17,17]], otherwise iterations will step through list and adjust mask size. May 2022
+      sed: [[16, 20, 20]] # If you want fixed size, put in a nested list of len 1, eg [[17,17,17]], otherwise iterations will step through list and adjust mask size. May 2022
       gel: [[21,27,27]] # pixel order is [z,y,x] keep in mind this can be much larger than a single particle diameter
   refine_lsq:
     bool: True
@@ -427,12 +427,13 @@ locating:
       sed: disc
       gel: disc
   sed: # ordered list of dictionary parameter values for first iterations. If only two, then treat as initial and all subsequent parameters
-    - { diameter: [11, 11, 11], separation: [11,11,11], minmass: 5.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [11, 11, 11], separation: [11,11,11], minmass: 4.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 2.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
-    - { diameter: [15, 15, 15], separation: [11,11,11], minmass: 1.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    - { diameter: [15, 17, 17], separation: [11,11,11], minmass: 5.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [15,17, 17], max_iter: 65, max_shift: 0.05, max_rms_dev: 0.2, param_val: {disc_size: 0.21, size_x: 4.0, size_y : 4.0, size_z: 3.88}, compute_error: True}}}
+    #- {diameter: [15,17,17], separation:[11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [15,17, 17], max_iter: 65, max_shift: 0.05, max_rms_dev: 0.2, param_mode: {background: 'var',disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x:[2,7], size_y: [2,7], size_z: [1,5]}, param_val: {disc_size: 0.2, size_x: 3.5, size_y: 3.5, size_z: 2.05, background: 0 }, compute_error: True}}}
+    #- { diameter: [11, 11, 11], separation: [11,11,11], minmass: 4.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    #- { diameter: [15, 15, 15], separation: [11,11,11], minmass: 2.0e+6, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    #- { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    #- { diameter: [15, 15, 15], separation: [11,11,11], minmass: 6.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
+    #- { diameter: [15, 15, 15], separation: [11,11,11], minmass: 1.0e+5, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [9,11, 11], max_iter: 35, max_shift: 0.1, max_rms_dev: 0.5, param_val: {disc_size: 0.2, size_x: 3.4, size_y : 3.4, size_z: 2}, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 30, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [9, 9, 9], max_shift: 0.1, max_rms_dev: 0.01, compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [11,11,11], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
