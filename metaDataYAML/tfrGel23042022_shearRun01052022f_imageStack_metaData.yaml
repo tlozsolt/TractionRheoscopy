@@ -21,7 +21,7 @@ filePaths:
   # copying.
   calibrationDirectory_MBP: /No/longer/used
   calibrationDirectory_IMAC: /Volumes/PROJECT/calibration
-  calibrationDirectory_ODSY: /n/holyscratch01/spaepen_lab/calibration
+  calibrationDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/calibration
   calibrationDirectory_SS: /path/to/calibration/files/on/storage/server
 
   gitDirList: # files that permanent and updated/synced with git. Hard 100 Mb total git repo size limit. NO IMAGES
