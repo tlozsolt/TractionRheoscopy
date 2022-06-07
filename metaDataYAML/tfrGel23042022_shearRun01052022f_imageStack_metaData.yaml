@@ -244,7 +244,7 @@ ilastik:
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
-      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_07JUN2022.ilp'
+      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_21MAY2022.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1
