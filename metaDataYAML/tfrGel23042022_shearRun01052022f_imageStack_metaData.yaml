@@ -244,7 +244,7 @@ ilastik:
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
-      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_21MAY2022.ilp'
+      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_07JUN2022.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1
@@ -294,7 +294,7 @@ postDeconCombined:
     - visualize
 postDecon:
   software: python
-  crop: False # How many pixels to trim off the image borders?
+  crop: True # How many pixels to trim off the image borders?
   output:
     dtype: uint8 # what format should the image be returned?
     recastBool: True # should histogram be stretched over dtype range at the end?
@@ -344,7 +344,7 @@ postDecon:
         - {method: totalVariation, iter: 25, n_jobs: 4}
         - { method: gaussianBlur, sigma: 2, n_jobs: 4}
     sed:
-      bool: True
+      bool: False
       methodParamList: # ordered list of dictionaries containing filter method and parameters
         - { method: totalVariation, iter: 5, n_jobs: 4}
         - { method: gaussianBlur, sigma: 1, n_jobs: 4}

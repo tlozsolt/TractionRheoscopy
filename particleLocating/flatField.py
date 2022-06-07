@@ -192,7 +192,10 @@ def correctImageStack(rawStack, masterDark, flatStack):
         out[slice] = out[slice]*m[slice]
         #print("Corrected z slice:", slice)
     #return out.astype('uint16')
-    return threshold.arrayThreshold.recastImage(out,'uint16')
+
+    # changed Jun 2022 after added clip option (not as default) to recastImage
+    #return threshold.arrayThreshold.recastImage(out,'uint16')
+    return threshold.arrayThreshold.recastImage(out,'uint16',clip=True)
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
