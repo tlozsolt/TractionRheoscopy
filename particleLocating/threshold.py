@@ -149,16 +149,23 @@ class arrayThreshold:
             return m * x + b
 
     @staticmethod
-    def recastImage(imgArray, dtypeOut):
+    def recastImage(imgArray, dtypeOut, clip = False, clipPercent = (0.01,99.99)):
         """
         output an array where each value has been recast to a new data type without any other change
         The entire dynamic range of the image is remapped to the output bit depth. There is no clipping.
         :param imgArray: np.array of image data
         :param dtypeOut: str specifying output data type. Currently either 'uint16' or 'uint8'
         :return:
+
+        Added default option of clipping top and bottom 0.1% of pixels.
         """
         if dtypeOut == 'uint16':
-           min,max = 0.99*np.nanmin(imgArray) ,1.01*np.nanmax(imgArray)
+           if not clip: min,max = 0.99*np.nanmin(imgArray) ,1.01*np.nanmax(imgArray)
+           else:
+               min, max = np.percentile(imgArray, clipPercent[0]), np.percentile(imgArray, clipPercent[1])
+               imgArray[imgArray <= min] = min
+               imgArray[imgArray >= max] = max
+
            m = 2**16/(max-min)
            b = 2**16-m*max
            mArray = np.full(imgArray.shape,m)
