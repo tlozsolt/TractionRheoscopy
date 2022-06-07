@@ -294,7 +294,7 @@ postDeconCombined:
     - visualize
 postDecon:
   software: python
-  crop: True # How many pixels to trim off the image borders?
+  crop: False # How many pixels to trim off the image borders?
   output:
     dtype: uint8 # what format should the image be returned?
     recastBool: True # should histogram be stretched over dtype range at the end?
@@ -344,7 +344,7 @@ postDecon:
         - {method: totalVariation, iter: 25, n_jobs: 4}
         - { method: gaussianBlur, sigma: 2, n_jobs: 4}
     sed:
-      bool: False
+      bool: True
       methodParamList: # ordered list of dictionaries containing filter method and parameters
         - { method: totalVariation, iter: 5, n_jobs: 4}
         - { method: gaussianBlur, sigma: 1, n_jobs: 4}
