@@ -7,6 +7,7 @@ YAMLPATH=$1
 
 # use grep to get Project directory
 PROJECT=$(grep 'projectDirectory_ODSY' $YAMLPATH | awk '{print $2}')
+cd $PROJECT
 
 # use grep to get Transfer directory
 TRANSFER=$(grep 'TRANSFER_ODSY' $YAMLPATH | awk '{print $2}')
@@ -38,9 +39,9 @@ cp $YAMLPATH $PROJECT
 
 #check this works on a small subset of files
 tar -cvf $TRANSFER/$tfrGel/$TARNAME \
-         $PROJECT/log/*00000.yaml \
-         $PROJECT/locations/*hv0000*.csv \
-         $PROJECT/dplPath/submissionLogs/*00000* \
-         $PROJECT/dplPath/*_hv00000_* \
-         $PROJECT/dplPath/*sbatch \
-         $PROJECT/$YAMLFNAME \
+         /log/*00000.yaml \
+         /locations/*hv0000*.csv \
+         /dplPath/submissionLogs/*00000* \
+         /dplPath/*_hv00000_* \
+         /dplPath/*sbatch \
+         $YAMLFNAME \
