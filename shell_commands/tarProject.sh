@@ -1,7 +1,5 @@
 # /usr/bin/env bash
-#PROJECT=$1 # path to project directory. should be the same as projectDirectory_ODSY
-#YAMLFNAME=$2
-#TARNAME=$3
+salloc -p test -n 1 -N 1 -t 0-01:30 --mem 4000
 
 YAMLPATH=$1
 
