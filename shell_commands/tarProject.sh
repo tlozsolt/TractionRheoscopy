@@ -39,9 +39,9 @@ cp $YAMLPATH $PROJECT
 
 #check this works on a small subset of files
 tar -cvf $TRANSFER/$tfrGel/$TARNAME \
-         /log/*00000.yaml \
-         /locations/*hv0000*.csv \
-         /dplPath/submissionLogs/*00000* \
-         /dplPath/*_hv00000_* \
-         /dplPath/*sbatch \
-         $YAMLFNAME \
+         $PROJECT/log/*00000.yaml \
+         $PROJECT/locations/*hv0000*.csv \
+         $PROJECT/dplPath/submissionLogs/*00000* \
+         $PROJECT/dplPath/*_hv00000_* \
+         $PROJECT/dplPath/*sbatch \
+         $PROJECT/$YAMLFNAME
