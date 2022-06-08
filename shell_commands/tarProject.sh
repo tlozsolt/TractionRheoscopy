@@ -28,20 +28,19 @@ mkdir $PROJECT'/dplPath/submissionLogs'
 
 #mv $PROJECT/dplPath/*log $PROJECT/dplPath/submissionLogs
 cp $YAMLPATH $PROJECT
-#tar -cvf $TARNAME \
+#tar -cvf $TRANSFER/$tfrGel/$TARNAME \
 #         $PROJECT/log/ \
 #         $PROJECT/locations/ \
 #         $PROJECT/dplPath/submissionLogs/ \
 #         $PROJECT/dplPath/*_hv00000_* \
 #         $PROJECT/dplPath/*sbatch \
-#         $PROJECT/$YAMLFNAME \
-#         -C $TRANSFER
+#         $PROJECT/$YAMLFNAME
+
 #check this works on a small subset of files
 tar -cvf $TRANSFER/$tfrGel/$TARNAME \
-         $PROJECT/log/*0.yaml \
-         $PROJECT/locations/*0.csv \
+         $PROJECT/log/*00000.yaml \
+         $PROJECT/locations/*00000*.csv \
          $PROJECT/dplPath/submissionLogs/*00000* \
          $PROJECT/dplPath/*_hv00000_* \
          $PROJECT/dplPath/*sbatch \
          $PROJECT/$YAMLFNAME \
-         -C $TRANSFER
