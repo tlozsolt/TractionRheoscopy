@@ -14,7 +14,7 @@ TRANSFER=$(grep 'TRANSFER_ODSY' $YAMLPATH | awk '{print $2}')
 # use grep to get fileNamePrefix/global
 fName_global=$(grep -A1 'fileNamePrefix:' $YAMLPATH | grep 'global' | awk '{print $2}')
 tfrGel=$(echo $fName_global | cut -d'_' -f1)
-TARNAME=$fName_global$(date '+%d%b%Y').tar
+TARNAME=$fName_global"_locatingArchive_"$(date '+%d%b%Y').tar
 #echo $TARNAME
 
 
