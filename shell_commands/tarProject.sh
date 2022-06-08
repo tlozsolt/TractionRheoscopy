@@ -25,6 +25,9 @@ mkdir $TRANSFER/$fName_global'locating'
 
 #mkdir tfrGel10212018A_shearRun10292018f/dplPath/submissionLogs
 mkdir $PROJECT'/dplPath/submissionLogs'
+mv $PROJECT'/dplPath/*log' $PROJECT'/dplPath/submissionLogs'
+mv $PROJECT'/dplPath/*sbatch' $PROJECT'/dplPath/submissionLogs'
+mv $PROJECT'/dplPath/*_hv00000_*' $PROJECT'/dplPath/submissionLogs'
 #echo $PROJECT'/dplPath/submissionLogs'
 
 #mv $PROJECT/dplPath/*log $PROJECT/dplPath/submissionLogs
@@ -33,8 +36,6 @@ tar -cvf $TRANSFER/$tfrGel/$TARNAME \
          $PROJECT/log/ \
          $PROJECT/locations/ \
          $PROJECT/dplPath/submissionLogs/ \
-         $PROJECT/dplPath/*_hv00000_* \
-         $PROJECT/dplPath/*sbatch \
          $PROJECT/$YAMLFNAME
 
 #check this works on a small subset of files
