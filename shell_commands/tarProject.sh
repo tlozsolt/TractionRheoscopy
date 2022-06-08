@@ -14,16 +14,16 @@ TRANSFER=$(grep 'TRANSFER_ODSY' $YAMLPATH | awk '{print $2}')
 # use grep to get fileNamePrefix/global
 fName_global=$(grep -A1 'fileNamePrefix:' $YAMLPATH | grep 'global' | awk '{print $2}')
 TARNAME=$fName_global$(date '+%d%b%Y').tar
-echo $TARNAME
+#echo $TARNAME
 
 
 # make subdirectories in TRASNFER
-#mkdir $TRANSFER/$fName_global'locating'
-echo $TRANSFER/$fName_global'locating'
+mkdir $TRANSFER/$fName_global'locating'
+#echo $TRANSFER/$fName_global'locating'
 
 #mkdir tfrGel10212018A_shearRun10292018f/dplPath/submissionLogs
-#mkdir $PROJECT'/dplPath/submissionLogs'
-echo $PROJECT'/dplPath/submissionLogs'
+mkdir $PROJECT'/dplPath/submissionLogs'
+#echo $PROJECT'/dplPath/submissionLogs'
 
 #mv $PROJECT/dplPath/*log $PROJECT/dplPath/submissionLogs
 cp $YAMLPATH $PROJECT
@@ -44,5 +44,3 @@ tar -cvf $TARNAME \
          $PROJECT/dplPath/*sbatch \
          $PROJECT/$YAMLFNAME \
          -C $TRANSFER
-
-
