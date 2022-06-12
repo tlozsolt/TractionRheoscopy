@@ -133,3 +133,6 @@ awk '{ if($5 == 0 || $5 == 89) printf "%s ", $1}' hashTable.text
 
 # shell command for checking home directory useage.
 df -h ~
+
+# comand for getting summary of running and pending jobs on ODSY
+squeue -u jzterdik -h -t pending,running -r -O "state" | uniq -c

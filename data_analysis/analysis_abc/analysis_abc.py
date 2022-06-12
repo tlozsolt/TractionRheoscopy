@@ -56,7 +56,8 @@ class Analysis(ABC):
         self.posKeys_dict = {
             'sed': ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',
                     'x (um, imageStack)', 'y (um, imageStack)', 'z (um, imageStack)',
-                    'x_std', 'y_std', 'z_std', 'cost', 'totalError', 'size', 'n_iteration',
+                    'x_std', 'y_std', 'z_std', 'cost', 'totalError', 'n_iteration',
+                    'size_z', 'size_y', 'size_x',
                     'mass', 'raw_mass', 'signal', 'signal_std', 'background', 'background_std',
                     'sed_Colloid_core', 'sed_Colloid_shell',
                     'fluorescent_chunk_core', 'fluorescent_chunk_shell',

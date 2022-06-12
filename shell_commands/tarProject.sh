@@ -1,4 +1,6 @@
-# /usr/bin/env bash
+#!/usr/bin/env bash
+
+#
 #salloc -p test -n 1 -N 1 -t 0-01:30 --mem 4000
 
 YAMLPATH=$1
