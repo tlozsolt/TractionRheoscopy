@@ -89,7 +89,11 @@ def detectOutliersTukey(particleCount, k = 3, col_key = 'particle count'):
 
     return outlier_df
 
-def compileOutliers(particleCount, binHash, hashSize=125, k=1.5):
+def compileOutliers(particleCount, binHash, k=1.5):
+
+    # compute hash size, I found a bug that assumed a constant hash size of 125
+    # and hence did not detect outlier for hv % t above 125
+    hashSize = binHash.index.max() + 1
 
     out = []
     for hv_modt in range(hashSize):

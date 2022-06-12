@@ -263,7 +263,7 @@ class StitchTrack(Analysis):
         coordList = ['{} (um, imageStack)'.format(coord) for coord in self.xyz]
         ovitoPath = './ovito'
 
-        if ~os.path.exists(ovitoPath): os.mkdir(ovitoPath)
+        if not os.path.exists(ovitoPath): os.mkdir(ovitoPath)
 
         for frameDict in [first,last]:
             da.df2xyz(frameDict['posDF'].loc[idx][coordList],
