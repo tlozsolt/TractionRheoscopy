@@ -1,5 +1,5 @@
 # /usr/bin/env bash
-#salloc -p test -n 1 -N 1 -t 0-01:30 --mem 4000
+#salloc -p test -n 1 -N 1 -t 0-02:00 --mem 4000
 
 YAMLPATH=$1
 
@@ -13,7 +13,8 @@ TRANSFER=$(grep 'TRANSFER_ODSY' $YAMLPATH | awk '{print $2}')
 # use grep to get fileNamePrefix/global
 fName_global=$(grep -A1 'fileNamePrefix:' $YAMLPATH | grep 'global' | awk '{print $2}')
 tfrGel=$(echo $fName_global | cut -d'_' -f1)
-TARNAME=$fName_global"locatingArchive_"$(date '+%d%b%Y').tar
+#TARNAME=$fName_global"locatingArchive_"$(date '+%d%b%Y').tar
+TARNAME=$fName_global"logFilesArchive_"$(date '+%d%b%Y').tar
 #echo $TARNAME
 
 
@@ -29,12 +30,14 @@ mv $PROJECT'/dplPath/*_hv00000_*' $PROJECT'/dplPath/submissionLogs'
 #echo $PROJECT'/dplPath/submissionLogs'
 
 #mv $PROJECT/dplPath/*log $PROJECT/dplPath/submissionLogs
+
 cp $YAMLPATH $PROJECT
-tar -cvf $TRANSFER/$tfrGel/$TARNAME \
+tar -cf $TRANSFER/$tfrGel/$TARNAME \
          $PROJECT/log/ \
          $PROJECT/locations/ \
          $PROJECT/dplPath/submissionLogs/ \
          $PROJECT/$YAMLFNAME
+
 
 #check this works on a small subset of files
 #tar -cvf $TRANSFER/$tfrGel/$TARNAME \
