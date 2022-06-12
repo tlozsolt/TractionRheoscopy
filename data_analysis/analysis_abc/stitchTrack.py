@@ -83,6 +83,9 @@ class StitchTrack(Analysis):
         using Tukey windows, and the nubmer of particleCounts per hashValue. Useful for diagnosing
         problems during particle locating at the coarsest level...if particle counts dropped dramitically
         there was likely an error with thresholding the images before particle locating
+
+        open quality control with:
+        >> with open('./dpl_quality_control.pkl','rb') as f: qc = pkl.load(f)
         """
         #dplMetaPath = self.paths['stem'] + self.paths['dplMetaData']
         dplMetaPath = self.dpl_metaDataPath
@@ -260,6 +263,8 @@ class StitchTrack(Analysis):
         coordList = ['{} (um, imageStack)'.format(coord) for coord in self.xyz]
         ovitoPath = './ovito'
 
+        if ~os.path.exists(ovitoPath): os.mkdir(ovitoPath)
+
         for frameDict in [first,last]:
             da.df2xyz(frameDict['posDF'].loc[idx][coordList],
                       fPath=ovitoPath, fName='/sed_t{:03}_complete.xyz'.format(frameDict['n']))
@@ -301,8 +306,8 @@ class StitchTrack(Analysis):
         return True
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018g'
-    param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/f_imageStack'
+    param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
                  stepParamFile = './step_param.yml', test=False)
     os.chdir(testPath)
     test = StitchTrack(**param)

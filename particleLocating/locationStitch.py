@@ -9,7 +9,6 @@ import numba
 from numba import prange
 import trackpy as tp
 from tqdm import tqdm
-import math
 
 
 class ParticleStitch(dpl.dplHash):
@@ -352,7 +351,15 @@ class ParticleStitch(dpl.dplHash):
                 stitch = self.stitch(hvList, cutOff=cutOff)
                 path = self.dpl.getPath2File(0,kwrd='locations', computer=self.computer, pathOnlyBool=True)
                 fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_{}'.format(mat)+'_t{:03d}.h5'.format(t)
-                stitch.to_hdf(path +'/{}'.format(fName), str(t))
+
+                # if hdf file already exists, it should be removed before writing to disk.
+                # Otherwise, it will likely throw an error as the hdf file is corrupted. Default is to append, so
+                # this effectivelty forces an overwrite Zsolt, Jun 2022
+                # Better solution: dataFrame.to_hdf(mode='w')
+                hdfName = path + '/{}'.format(fName)
+                #if os.path.exists(hdfName): os.remove(hdfName)
+
+                stitch.to_hdf(hdfName, str(t),mode='w')
             print("stitched t={}".format(t))
         return True
 
