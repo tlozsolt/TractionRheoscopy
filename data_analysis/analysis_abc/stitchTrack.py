@@ -273,6 +273,32 @@ class StitchTrack(Analysis):
 
         return True
 
+    def writexyz(self, frames: list= None):
+        """
+        Write xyz files for complete trajecotires on first and last frames to ovito subfolder
+        """
+        first = dict(n=0, posDF=self.sed(0))
+        last = dict(n=self.frames - 1, posDF=self.sed(self.frames - 1))
+
+        idx = first['posDF'].index.intersection(last['posDF'].index)
+
+        coordList = ['{} (um, imageStack)'.format(coord) for coord in self.xyz]
+        ovitoPath = './ovito'
+
+        if not os.path.exists(ovitoPath): os.mkdir(ovitoPath)
+
+        if frames is None: frames = range(self.frames)
+
+        for t in frames:
+            print('Exporting frame {} to xyz'.format(t))
+            frameDict = dict(n=t, posDF = self.sed(t))
+            da.df2xyz(frameDict['posDF'].loc[idx][coordList],
+                      fPath=ovitoPath, fName='/sed_t{:03}_complete.xyz'.format(frameDict['n']))
+            da.df2xyz(frameDict['posDF'][coordList],
+                      fPath=ovitoPath, fName='/sed_t{:03}_all.xyz'.format(frameDict['n']))
+
+        return True
+
     def __call__(self, verbose: bool = True):
 
         pipeline = self.stepParam['stitchTrack']['pipeline']

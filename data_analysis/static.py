@@ -750,7 +750,8 @@ def df2xyz(df, fPath,fName, mode='w'):
     with open(fPath_frmt.format(fName),mode) as f:
         f.write(str(df.shape[0]))
         f.write('\n ')
-        df.to_csv(f,mode=mode, sep=' ', na_rep='NAN')
+        f.write('Lattice="236.0 0.0 0.0 0.0 236.0 0.0 0.0 0.0 120" Properties=id:I:1:pos:R:3 Origin="0.0 0.0 0.0"\n')
+        df.to_csv(f,mode=mode, sep=' ', na_rep='NAN', header=False)
     return fPath_frmt.format(fName)
 
 def traj2frameParticle(sedStrain_traj):
