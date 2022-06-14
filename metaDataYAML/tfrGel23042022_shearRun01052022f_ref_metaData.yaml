@@ -10,7 +10,7 @@ filePaths:
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /No/longer/used
   projectDirectory_IMAC: /Volumes/PROJECT/tfrGel23042022/strainRamp/f_ref
-  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel23042022/strainRamp/f_imageStack
+  projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel23042022/strainRamp/f_ref
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
   tractionRheoscopyGit_IMAC: /Users/zsolt/Colloid_git/TractionRheoscopy # Hard 100 Mb limit
@@ -143,7 +143,7 @@ imageParam:
   stackInterval: NAN # time between successive stacks, note: stackInterval > stackTime
   gelSedimentLocation: 956 # location in z of gel/sediment transition in imaging stack. If tilted, report height to give thickest gel
   interfaceRange: [950,956]
-  shearPostLocation: 806 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
+  shearPostLocation: 1522 # location in z of shearpost in imaging stack. If tilted, report height as rough average.
   gelSedimentLocation_fullStack: 951 # location of gel/sediment transition in full stack image, not imaging stack
   reference2ImageStack: [951,219]
   coverSlipReferenceStack: 21
