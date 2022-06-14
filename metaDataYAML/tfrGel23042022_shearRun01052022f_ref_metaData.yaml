@@ -88,7 +88,7 @@ filePaths:
   ilastik_IMAC: /Applications/ilastik-1.4.0b13-OSX.app/Contents/ilastik-release/run_ilastik.sh
 ################
 fileNamePrefix:
-  global: tfrGel23042022_shearRun01052022f_ref
+  global: tfrGel23042022_shearRun01052022f_ref_
   preprocessing: preProcess_
   decon: decon_
   postDecon: postDecon8Bit_
