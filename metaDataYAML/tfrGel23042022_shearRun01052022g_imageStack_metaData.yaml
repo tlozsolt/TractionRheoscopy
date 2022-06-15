@@ -1,7 +1,7 @@
 # traction rheoscopy metaData template
 filePaths:
   scratchDirectory_MBP: /No/longer/used
-  scratchDirectory_IMAC: /Volumes/SCRATCH/tfrGel23042022/strainRamp/g
+  scratchDirectory_IMAC: /Volumes/SCRATCH/tfrGel23042022/strainRamp/g_imageStack
   scratchDirectory_SS: /mnt/serverdata/zsolt/zsolt/tfrGel23042022_shearRun01052022_strainRamp/tfrGel23042022_shearRun01052022_g_imageStack_20220503_092444
   scratchDirectory_ODSY: /n/holyscratch01/spaepen_lab/zsolt/mnt/serverdata/zsolt/zsolt/tfrGel23042022_shearRun01052022_strainRamp/g_imageStack
   scratchDirectory_AWS: s3://some/path/to/debug/bucket/maybe
@@ -9,7 +9,7 @@ filePaths:
 
   # projectDirectory is permanent and specific to this metaDataFile
   projectDirectory_MBP: /No/longer/used
-  projectDirectory_IMAC: /Volumes/PROJECT/tfrGel23042022/strainRamp/g
+  projectDirectory_IMAC: /Volumes/PROJECT/tfrGel23042022/strainRamp/g_imageStack
   projectDirectory_ODSY: /n/holylfs02/TRANSFER/jzterdik/PROJECT/tfrGel23042022/strainRamp/g_imageStack
   tractionRheoscopyGit_ODSY: /n/home04/jzterdik/TractionRheoscopy # Hard 100 MB limit but updated with git
   tractionRheoscopyGit_MBP: /Users/zsolt/Colloid/SCRIPTS/tractionForceRheology_git/TractionRheoscopy # Hard 100 Mb limit
@@ -99,7 +99,7 @@ fileNamePrefix:
   metaDataYAML: metaData
   log: log_
   # tfrGel23042022_shearRun01052022_f_imageStack_t000097_z0471.tif
-  rawTiff: tfrGel23042022_shearRun01052022_f_imageStack_ # may not be necessary as I only read from the raw directory and never write to it.
+  rawTiff: tfrGel23042022_shearRun01052022_g_imageStack_ # may not be necessary as I only read from the raw directory and never write to it.
   tPadding: 6
   zPadding: 4
   dplPath: dplScript_
@@ -244,7 +244,8 @@ ilastik:
       #classfier_subPath: '/Volumes/TFR/tfrGel10212018A_shearRun10292018f/interfaceLocating/pixelClassification_multiLaneTraining/tfrGel09052019a_shearRun10292018f_pxClassifier.ilp' # This needs to be updated to place the ilastik file in the calibration directory
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier.ilp'
       #classifier_fName: 'tfrGel09052019a_shearRun10292018f_pxClassifier_w_gridTraining_nonFluorChunk.ilp'
-      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_21MAY2022.ilp'
+      #classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_21MAY2022.ilp'
+      classifier_fName: 'tfrGel23042022_shearRun23042022_imageStack_16JUN2022.ilp'
       channels: # list of the channels and what they label
         gel_Background: 0
         gel_Tracer: 1
