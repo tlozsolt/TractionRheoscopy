@@ -31,6 +31,7 @@ class Analysis(ABC):
                      'gelThickness':  self.globalParam['experiment']['gelThickness']}
         self.dtypes = self.globalParam['locatingOutput']['dtypes']
         self.gelGlobal = self.globalParam['experiment']['gelGlobal']
+        self.exptPath = self.globalParam['experiment']['path']
 
         #legacy
         self.zyx = ['z','y','x']
@@ -78,8 +79,10 @@ class Analysis(ABC):
                     'sed_Colloid', 'sed_Background',
                     'fluorescent_chunk', 'nonfluorescent_chunk']}
 
-        try: self.gelGlobal_mIdx = pd.read_hdf(self.gelGlobal['mIdx'])
-        except FileNotFoundError: pass
+        try: self.gelGlobal_mIdx = pd.read_hdf(self.exptPath + self.gelGlobal['mIdx'])
+        except FileNotFoundError:
+            print('gelGlobal mIdx file not found. See analysis_abc, initialization')
+            pass
 
     @abstractmethod
     def __call__(self): pass
@@ -118,7 +121,8 @@ class Analysis(ABC):
             mIdx = pd.MultiIndex.from_tuples(self.gelGlobal_mIdx['mIdx'])
             frame = mIdx.get_loc((step, frame))
             #tmp = {}
-            with tp.PandasHDFStoreBig(self.gelGlobal['path'],'r') as steps:
+            #with tp.PandasHDFStoreBig(self.gelGlobal['path'],'r') as steps: #removed Jun 20 2022
+            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'],'r') as steps:
                 out =steps.get(frame)
                 #tmp[frame] = steps.get(frame).set_index(['particle'])
             #out.set_index('particle', inplace=True)

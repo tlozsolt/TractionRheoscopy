@@ -162,8 +162,8 @@ class locationOverlay():
             signal.oaconvolve(np.pad(self.inputImg, 1), g.deltaKernel), 'uint8')
         self.deltaImage = deltaImg.astype('uint8')
 
-    def send2pyFiji(self):
-        pyFiji.send2Fiji([self.glyphImage, self.inputPadded, self.deltaImage])
+    def send2pyFiji(self,**kwargs):
+        pyFiji.send2Fiji([self.glyphImage, self.inputPadded, self.deltaImage], **kwargs)
 
     def runImac(self, hv: int):
         self.loadFromFile(hv)
@@ -236,8 +236,8 @@ if __name__ == "__main__":
     """
 
     # input information
-    metaPath = '/Users/zsolt/Colloid_git/TractionRheoscopy/metaDataYAML/tfrGel23042022_shearRun01052022f_imageStack_metaData.yaml'
-    hv = 21325 #pick a random example
+    metaPath = '/Volumes/PROJECT/tfrGel23042022/strainRamp/f/dplPath/tfrGel23042022_shearRun01052022f_imageStack_metaData.yaml'
+    hv = 25 #pick a random example
 
     # initialize
     inst = locationOverlay(metaPath)
@@ -255,6 +255,6 @@ if __name__ == "__main__":
     inst.makeGlyphImg()
 
     # save to tiff and copy fiji commands to clipboard
-    inst.send2pyFiji()
+    inst.send2pyFiji(wdir='/Volumes/PROJECT/tfrGel23042022/strainRamp/f/pyFiji')
 
 

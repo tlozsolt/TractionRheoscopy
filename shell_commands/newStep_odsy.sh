@@ -19,5 +19,5 @@ exit()
 #fix make sbatch command
 
 chmod +x tfrGel10212018A_shearRun10292018f_dplScript_exec_pipeline.x
-./
+./tfrGel10212018A_shearRun10292018f_dplScript_exec_pipeline.x 0 # test hashvalue 0
 

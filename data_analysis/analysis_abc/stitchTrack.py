@@ -41,6 +41,8 @@ class StitchTrack(Analysis):
         self.max_disp = self.stepParam['stitchTrack']['linking']['max_disp']
         self.locationCSV_frmt = self.stepParam['paths']['locationCSV']
 
+        self.stitchCentroid = self.stepParam['stitchTrack']['stitchCentroid']
+
         # add attributes inherited from dpl class without inheriting the methods etc
         # this was added to Analysis paraent class
         #self.dpl = dpl.dplHash(self.dpl_metaDataPath)
@@ -118,6 +120,13 @@ class StitchTrack(Analysis):
         # number of jobs could probably be a 18 or so on IMAC
         inst.parStitchAll(0, self.frames -1 , n_jobs=12)
 
+        if self.stitchCentroid:
+            print('Stitching centroid Locations as well')
+            inst = ls.ParticleStitch(metaPath,lsqCentroid='centroid')
+            inst.parStitchAll(0,self.frames -1, n_jobs=12)
+
+
+
     def track(self, mat: str,
               forceRecompute: bool = True,
               verbose: bool = True):
@@ -191,7 +200,10 @@ class StitchTrack(Analysis):
 
                 # open correspodning yaml file to find out time steps. Note this cant be done in analysis abc
                 # as it is not just for this step, but rather all the steps
-                _ = dpl.dplHash(path+'tfrGel10212018A_shearRun10292018{}_metaData.yaml'.format(step))
+                #_ = dpl.dplHash(self.dpl_metaDataPath)
+                #_ = dpl.dplHash(self.gelGlobal['metaPath_frmt'].format(step=self.exptStepList[n][step]))
+                _ = dpl.dplHash(pathList[n] + self.gelGlobal['metaPath_frmt'].format(step=stepList[n]))
+                #_ = dpl.dplHash(path+'tfrGel10212018A_shearRun10292018{}_metaData.yaml'.format(step))
                 metaData, hash_df = _.metaData, _.hash_df  # not sure if I need all the metaData or just the hash_df
                 del _
 

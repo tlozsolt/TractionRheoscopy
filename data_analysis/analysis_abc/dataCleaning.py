@@ -14,7 +14,9 @@ class Cleaning(Analysis):
 
     def __init__(self, globalParamFile, stepParamFile, test=False):
         super().__init__(globalParamFile, stepParamFile)
-        if test: self.frames = 3
+        if test and self.frames > 3:
+            self.frames = 3
+            print('Creating dataCleaning instance in test mode with {} frames'.format(self.frames))
 
         self.interfaceIdx = da.readOvitoIdx(self.paths['sed_interface_idx'])
 
@@ -252,7 +254,8 @@ class Cleaning(Analysis):
                 gen = posDF_gen
             elif mat == 'gel':
                 #posDF_gen = tp.PandasHDFStoreBig(self.paths['gel'])
-                posDF_gen = tp.PandasHDFStoreBig(self.gelGlobal['path'])
+                #posDF_gen = tp.PandasHDFStoreBig(self.gelGlobal['path'])
+                posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
                 gen = self.gelGlobal2Local(posDF_gen)
                 #_ = self.gelGlobal_mIdx
                 #gelGlobal = _[_['step'] == self.step]
@@ -269,6 +272,12 @@ class Cleaning(Analysis):
                 # remap frame to local index so that I can use interfacefits in local frames
                 #frame = frameGlobal + shift
                 # set particle index
+
+                # maybe this will work for test cases?
+                if frame >= self.frames:
+                    print('Cutting generator short for test flag')
+                    break
+
                 posDF.set_index('particle', inplace=True)
 
                 # compute distance from plane
@@ -345,7 +354,7 @@ class Cleaning(Analysis):
 
         elif mat == 'gel':
             fName_frmt = self.name + fNameFlag + '_gel_t{:03}.xyz'
-            posDF_gen = tp.PandasHDFStoreBig(self.gelGlobal['path'])
+            posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
 
         if os.path.exists(outPath + fName_frmt.format(0)) and forceWrite is False:
             print('xyz files already exist')
@@ -356,6 +365,10 @@ class Cleaning(Analysis):
             else: gen = posDF_gen
 
             for frame, posDF in enumerate(gen):
+
+                if frame >= self.frames:
+                    print('Cutting generator in xyzClean short due to test flag')
+                    break
                 # set up the output filename, formatted to frame
                 fName = fName_frmt.format(frame)
                 # set particle index

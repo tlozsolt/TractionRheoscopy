@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 
 class ParticleStitch(dpl.dplHash):
-    def __init__(self,metaDataPath,computer='IMAC'):
+    def __init__(self,metaDataPath,computer='IMAC', lsqCentroid = 'lsq'):
         self.dpl = dpl.dplHash(metaDataPath)
         self.computer= computer
         #self.locations = pd.DataFrame(columns = ['z (px, hash)', 'y (px, hash)', 'x (px, hash)',\
@@ -22,6 +22,7 @@ class ParticleStitch(dpl.dplHash):
         #                                          ]\
         #                              )
         self.locations = pd.DataFrame()
+        self.lsqCentroid = lsqCentroid
 
     @staticmethod
     def csv2DataFrame(path, hv, mat, frame, sep=' '):
@@ -57,7 +58,8 @@ class ParticleStitch(dpl.dplHash):
         specifying the hashValue and material string with no other modification
         :return:
         """
-        pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
+        if self.lsqCentroid == 'lsq': pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy_lsqRefine.csv"
+        elif self.lsqCentroid == 'centroid': pxLocationExtension = '_' + self.dpl.sedOrGel(hv) + "_trackPy.csv"
         if path is None:
             path = self.dpl.getPath2File(hv, kwrd='locations', extension=pxLocationExtension, computer=self.computer)
         else:
@@ -121,6 +123,13 @@ class ParticleStitch(dpl.dplHash):
                   'z': self.dpl.metaData['imageParam']['zDim']}
         # This path should be paired to the location and log directories
         origin,dim = self.dpl.integrateTransVect(hv,computer=computer)
+
+        # add a step to rename col for centroid locations
+        if self.lsqCentroid == 'centroid':
+            for c in ['z','y','x']:
+                coord = '{}_centroid (px)'.format(c)
+                df['{} (px, hash)'.format(c)] = df['{}'.format(coord)]
+
         if coordStr =='(px, imageStack)':
             df['x '+ coordStr] = df['x (px, hash)'] + origin[0]
             df['y '+ coordStr] = df['y (px, hash)'] + origin[1]
@@ -196,13 +205,21 @@ class ParticleStitch(dpl.dplHash):
         """
         Wrapper function around np_sumError to handle dataFrame inputs
         """
-        z = df[pos_keyList[0]].to_numpy()
-        y = df[pos_keyList[1]].to_numpy()
-        x = df[pos_keyList[2]].to_numpy()
-        zPx = px2Micron[0]
-        yPx = px2Micron[1]
-        xPx = px2Micron[2]
-        totalError = ParticleStitch.sumError(z, y, x, zPx, yPx, xPx)
+        try:
+            z = df[pos_keyList[0]].to_numpy()
+            y = df[pos_keyList[1]].to_numpy()
+            x = df[pos_keyList[2]].to_numpy()
+            zPx = px2Micron[0]
+            yPx = px2Micron[1]
+            xPx = px2Micron[2]
+            totalError = ParticleStitch.sumError(z, y, x, zPx, yPx, xPx)
+        except KeyError:
+            print('locationStitch.computeError did not find key {} in location datFrame'.format(pos_keyList[0]))
+            print('assigning -1 to totalError column and continuing')
+            print('This will result in overlaps being resolved by just picking one of the two randomly (lowest index?)')
+            totalError = np.empty(df.shape[0])
+            totalError[:] = -1.0
+
         return pd.Series(totalError, index=df.index, name='totalError')
 
     @staticmethod
@@ -350,7 +367,8 @@ class ParticleStitch(dpl.dplHash):
                 hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
                 stitch = self.stitch(hvList, cutOff=cutOff)
                 path = self.dpl.getPath2File(0,kwrd='locations', computer=self.computer, pathOnlyBool=True)
-                fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_{}'.format(mat)+'_t{:03d}.h5'.format(t)
+                if self.lsqCentroid == 'lsq': fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_{}'.format(mat)+'_t{:03d}.h5'.format(t)
+                elif self.lsqCentroid == 'centroid': fName = self.dpl.metaData['fileNamePrefix']['global']+'stitched_centroid_{}'.format(mat)+'_t{:03d}.h5'.format(t)
 
                 # if hdf file already exists, it should be removed before writing to disk.
                 # Otherwise, it will likely throw an error as the hdf file is corrupted. Default is to append, so

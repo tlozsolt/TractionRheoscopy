@@ -43,7 +43,9 @@ class Stress(Analysis):
         # load yaml metaData for both expt and step
         super().__init__(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
 
-        if test == True: self.frames = 3
+        if test and self.frames > 3:
+            self.frames = 3
+            print('Creating stress instance in test mode with {} frames'.format(self.frames))
 
         # add additional attributes I will need
         self.strainInst = Strain(**self.abcParam)
@@ -60,7 +62,7 @@ class Stress(Analysis):
         self.gelThickness = self.rheo['gelThickness']
 
         #cache some commonly used time points
-        self.globalRefGel = self.gel(0,step='ref')
+        self.globalRefGel = self.gel(0,step='f_ref')
         self.stepRefGel = self.gel(0)
 
         # attributes that will be populated with functions in the class
@@ -92,7 +94,8 @@ class Stress(Analysis):
         for frame in range(self.frames): self.zScaledFractionalHeight(frame=frame)
 
         #reset self.refGel to have new columns
-        self.globalRefGel = self.gel(0, step='ref')
+        print('WARNING: using hard coded value of gel(0, f_imageStack) as globalRefGel')
+        self.globalRefGel = self.gel(0, step='f_imageStack')
 
         # compute displacement
         for frame in range(self.frames): self.disp(frame)
@@ -165,7 +168,7 @@ class Stress(Analysis):
 
         if save2hdf:
             posDF[key] = zScaled
-            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(posDF.reset_index())
+            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(posDF.reset_index())
         return zScaled
 
     def disp(self,
@@ -229,7 +232,7 @@ class Stress(Analysis):
             out = posDF.join(disp_gel)
 
             # write it global with tp knowing what key to put it on with frame column
-            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(out.reset_index())
+            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
 
         return disp_gel
 
@@ -323,7 +326,7 @@ class Stress(Analysis):
             try: posDF.drop(newCols, axis=1, inplace=True)
             except KeyError: pass
             out = posDF.join(driftCorrDF)
-            with tp.PandasHDFStoreBig(self.gelGlobal['path']) as s: s.put(out.reset_index())
+            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
 
         return driftCorrDF
 
@@ -356,6 +359,7 @@ class Stress(Analysis):
 
     def gelStrain_boundary(self,
                            coord: str = '(um, rheo_sedHeight driftCorr)',
+                           verbose: bool = False,
                            forceRecompute: bool = True):
         """
         This computes the strain the gel using the drift corrected displacement of the sediment
@@ -367,9 +371,12 @@ class Stress(Analysis):
 
         ref = self.sed(0)
         lowerIdx = self.lowerIdx
-        upperIdx = self.upperIdx
+        #upperIdx = self.upperIdx
+
+        out = {}
 
         for t in range(self.frames):
+            if verbose and t % 10 == 0: print('Computing gelStrain_boundary frame={}'.format(t))
             cur = self.sed(t)
             idx = ref.index.intersection(cur.index)
 
@@ -381,14 +388,13 @@ class Stress(Analysis):
             disp['y'] = disp['y'].loc[lowerIdx].dropna().mean()
 
             # return the displacement dataframe that has been de-drifted.
+            out[str(t)] = disp/self.gelThickness
 
-            return disp
+        outCol = {'x': 'bd sigma_xz {}'.format(coord), 'y': 'bd sigma_yz {}'.format(coord)}
 
-
-
-
-
-
+        outDF = pd.DataFrame(out).T.rename(columns=outCol)
+        outDF.index = outDF.index.astype(int)
+        return outDF
 
     def xyResiduals_frame(self, cur: int, ref: int=0):
         """
@@ -431,10 +437,29 @@ class Stress(Analysis):
         Return a dataFrame of stress and avg strain computed in multiple ways index by frame
         with constant reference
         """
-        if stressStr != 'theilSen_mxz': raise NotImplementedError
-        else:
-            if strainTupleList is None: strainTupleList = [(0,frame, 'falkLanger') for frame in range(1,self.frames)]
-            out = []
+        if strainTupleList is None: strainTupleList = [(0, frame, 'falkLanger') for frame in range(1, self.frames)]
+        out = []
+
+        if stressStr == 'sedBoundary_regular':
+            stress = self.gelModulus * self.gelStrain_boundary(coord='(um, rheo_sedHeight)')
+            strain = self.strainInst.avgStrain(idString='ref0', strainTupleList=strainTupleList, forceRecompute=forceRecompute)
+            for coord in ['x', 'y']:
+                _stress = pd.Series(stress['bd sigma_{}z {}'.format(coord, '(um, rheo_sedHeight)')],
+                                    name = '{}z stress {} (mPa)'.format(coord, stressStr))
+                _strain = pd.Series( strain[avgStrainKey.format(coord)], name=avgStrainKey.format(coord))
+                out.append(_stress)
+                out.append(_strain)
+
+        elif stressStr == 'sedBoundary_driftCorr':
+            stress = self.gelModulus * self.gelStrain_boundary(coord='(um, rheo_sedHeight driftCorr)')
+            strain = self.strainInst.avgStrain(idString='ref0', strainTupleList=strainTupleList, forceRecompute=forceRecompute)
+            for coord in ['x', 'y']:
+                _stress = pd.Series(stress['bd sigma_{}z {}'.format(coord,'(um, rheo_sedHeight driftCorr)')],
+                                   name='{}z stress {} (mPa)'.format(coord, stressStr))
+                _strain = pd.Series(strain[avgStrainKey.format(coord)], name=avgStrainKey.format(coord))
+                out.append(_stress)
+                out.append(_strain)
+        elif stressStr == 'theilSen_mxz':
             for coord in ['x','y']:
                 stress = pd.Series(self.gelModulus * self.gelStrain_theilSen()['m_{}z'.format(coord)], name='{}z stress (mPa)'.format(coord))
                 strain = pd.Series(
@@ -444,7 +469,10 @@ class Stress(Analysis):
                     name = avgStrainKey.format(coord))
                 out.append(stress)
                 out.append(strain)
-            return pd.concat(out,axis=1)
+        else: raise NotImplementedError
+
+        return pd.concat(out,axis=1)
+
 
 if __name__ == '__main__':
     testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'

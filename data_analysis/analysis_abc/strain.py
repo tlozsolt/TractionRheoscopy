@@ -18,7 +18,9 @@ class Strain(Analysis):
         # load yaml metaData for both expt and step
         super().__init__(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
 
-        if test: self.frames = 3
+        if test and self.frames > 3:
+            self.frames = 3
+            print('Creating strain instance in test mode with {} frames'.format(self.frames))
 
         # add additional attributes that I will need here
         self.figPath = self.paths['figPath']
@@ -71,7 +73,7 @@ class Strain(Analysis):
             ##                                    for all files matching frameAverage_{idString}.h5
             ##       - Zsolt Nov 27 2021
 
-            #self.avgStrain(path,strainTupleList=tupleList[0:int(len(tupleList)/2)])
+            self.avgStrain(path,strainTupleList=tupleList[0:int(len(tupleList)/2)])
 
     def sed(self, frame: int):
         """ get sed positions that are used for strain computation"""
