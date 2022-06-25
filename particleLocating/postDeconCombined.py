@@ -600,7 +600,7 @@ class PostDecon_dask(dpl.dplHash):
                                                            imgArray_refine = self.refine_array)
 
         # integrate pxProb channels and add as columns to output locations df_refine
-        if df_loc.shape[0] != 0
+        if df_loc.shape[0] != 0:
             pxIntegrate = ilastik.ilastikIntegrate(self.metaDataPath, computer=self.computer)
             #set hashvalue
             pxIntegrate.setHashValue(self.hashValue)
