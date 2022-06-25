@@ -255,9 +255,14 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
 
 
     #particleDF = pd.concat(locList)
-    particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
-                                                    "y": "y_centroid (px)",
-                                                    "z": "z_centroid (px)"})
+    try:
+        particleDF = pd.concat(locList).rename(columns={"x": "x_centroid (px)",
+                                                        "y": "y_centroid (px)",
+                                                        "z": "z_centroid (px)"})
+        refineDF = pd.concat(refineList)
+    except ValueError:
+        particleDF = pd.DataFrame(columns=['x_centroid (px)', 'y_centroid (px)', 'z_centroid (px)'])
+        refineDF = pd.DataFrame(columns=['x', 'y', 'z'])
     """
     if refineBool:
         if refine_dtypes == None:
@@ -274,7 +279,6 @@ def iterate(imgArray, metaData, material, metaDataYAMLPath=None, daskClient=None
         _, loc_refine = lsq_refine_combined(particleDF, imgArray_refine, daskClient, **combined_dict)
     refineDF = loc_refine
     """
-    refineDF = pd.concat(refineList)
     logDict = {'locating' : {'particles': particleDF.shape[0],
                              'iterations': iterCount,
                              'refine_lsq': paramDict['refine_lsq']['bool']}}

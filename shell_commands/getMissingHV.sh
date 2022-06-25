@@ -136,3 +136,15 @@ df -h ~
 
 # comand for getting summary of running and pending jobs on ODSY
 squeue -u jzterdik -h -t pending,running -r -O "state" | uniq -c
+
+# list all files modified after a certain date
+find . -type f -newermt '1/30/2017 0:00:00'
+
+# partial command to strip only hv from name of location file
+ cut -d'_' -f5 | cut -c 3- | awk '{printf "%s ", $0 + 0}'
+
+# python command to read csv files and find intersection or set difference of indices in two csv files
+submitted_hv = pd.read_csv('./gel_hv.csv', sep=' ').T.index
+completed_hv = pd.read_csv('./completed_gelResub.text', sep=' ').T.index
+submitted_hv[~submitted_hv.isin(completed_hv)]
+pd.DataFrame(submitted_hv[~submitted_hv.isin(completed_hv)].to_numpy()).to_csv('../missing_gelResub_24JUN2022.text', sep=' ')

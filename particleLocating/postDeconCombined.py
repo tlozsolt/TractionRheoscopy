@@ -600,21 +600,24 @@ class PostDecon_dask(dpl.dplHash):
                                                            imgArray_refine = self.refine_array)
 
         # integrate pxProb channels and add as columns to output locations df_refine
-        pxIntegrate = ilastik.ilastikIntegrate(self.metaDataPath, computer=self.computer)
-        #set hashvalue
-        pxIntegrate.setHashValue(self.hashValue)
-        #read pxProb
-        pxIntegrate._readPxProb(None)
-        df_ilastik = pxIntegrate.integratePxProb(df_refine)
-        loc_idx = df_refine.index
-        df_refine = df_refine.join(df_ilastik.set_index(loc_idx))
+        if df_loc.shape[0] != 0
+            pxIntegrate = ilastik.ilastikIntegrate(self.metaDataPath, computer=self.computer)
+            #set hashvalue
+            pxIntegrate.setHashValue(self.hashValue)
+            #read pxProb
+            pxIntegrate._readPxProb(None)
+            df_ilastik = pxIntegrate.integratePxProb(df_refine)
+            loc_idx = df_refine.index
+            df_refine = df_refine.join(df_ilastik.set_index(loc_idx))
 
-        # set hashvalue
-        pxIntegrate.setHashValue(self.hashValue)
-        #read pxProb and crop
-        #pxIntegrate._readPxProb(None)
-        # integrate with df_refine, and maybe check that column labels are correct
-        #df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
+            # set hashvalue
+            pxIntegrate.setHashValue(self.hashValue)
+            #read pxProb and crop
+            #pxIntegrate._readPxProb(None)
+            # integrate with df_refine, and maybe check that column labels are correct
+            #df_refine_ilastik = pxIntegrate.integratePxProb(df_refine)
+
+        else: print('Skipping ilastik integrate as no particles were found')
 
         # save input image  to visualize directory
         if computer == 'IMAC' or self.metaData['postDeconCombined']['locInput']:
