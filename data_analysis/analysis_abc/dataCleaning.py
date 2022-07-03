@@ -255,7 +255,9 @@ class Cleaning(Analysis):
             elif mat == 'gel':
                 #posDF_gen = tp.PandasHDFStoreBig(self.paths['gel'])
                 #posDF_gen = tp.PandasHDFStoreBig(self.gelGlobal['path'])
-                posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
+                p = os.path.join(self.exptPath, self.gelGlobal['path'])
+                posDF_gen = tp.PandasHDFStoreBig(p)
+                #posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
                 gen = self.gelGlobal2Local(posDF_gen)
                 #_ = self.gelGlobal_mIdx
                 #gelGlobal = _[_['step'] == self.step]
@@ -354,7 +356,9 @@ class Cleaning(Analysis):
 
         elif mat == 'gel':
             fName_frmt = self.name + fNameFlag + '_gel_t{:03}.xyz'
-            posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
+            p = os.path.join(self.exptPath, self.gelGlobal['path'])
+            posDF_gen = tp.PandasHDFStoreBig(p)
+            #posDF_gen = tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'])
 
         if os.path.exists(outPath + fName_frmt.format(0)) and forceWrite is False:
             print('xyz files already exist')

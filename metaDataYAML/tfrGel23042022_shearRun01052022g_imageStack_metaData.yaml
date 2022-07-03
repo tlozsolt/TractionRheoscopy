@@ -333,7 +333,7 @@ postDecon:
       gel: MaxEnt
       sed: MaxEnt
     scaleFactor:
-      gel: 1.0
+      gel: 0.3
       sed: 1.0
     range: no-reset # in pricnple both imageJ and python
   postThresholdFilter: # if imageJ, use mosaic parameters
@@ -342,7 +342,7 @@ postDecon:
       methodParamList: # ordered list of dictionaries containing parameters
         #- { method: meanCurvature, iter: 10, n_jobs: 4}
         #- { method: gaussianBlur, sigma: 2, n_jobs: 4}
-        - {method: totalVariation, iter: 25, n_jobs: 4}
+        #- {method: totalVariation, iter: 25, n_jobs: 4}
         - { method: gaussianBlur, sigma: 2, n_jobs: 4}
     sed:
       bool: True
@@ -441,8 +441,7 @@ locating:
     #- { diameter: [15, 15, 15], minmass: 9000, preprocess: False, max_iterations: 20, separation: [ 9, 9, 9], percentile: 0.9, refine_lsq: { gauss: {max_iter: 25, fit_function: 'gauss', diameter: [13, 13, 13], compute_error: True}}}
   gel:
     #- {diameter: [21,25,25], minmass: 9000000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_shift: 0.05, max_rms_dev: 0.2, param_mode: {background: 'var',disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x:[6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
-    - {diameter: [21,25,25], minmass: 0, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_rms_dev: 0.2, param_mode: { background: 'var', disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x: [6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
-    - {diameter: [21,25,25], minmass: 9000, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_rms_dev: 0.2, param_mode: { background: 'var', disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x: [6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
+    - {diameter: [21,25,25], minmass: 6.0e+7, preprocess: False, max_iterations: 30, refine_lsq: { disc: {fit_function: 'disc', diameter: [16,21, 21], max_iter: 65, max_rms_dev: 0.2, param_mode: { background: 'var', disc_size: 'var', size_z: 'var', size_x: 'var', size_y: 'var'}, bounds: {'disc_size': [0.2,0.8], size_x: [6,12], size_y: [6,12], size_z: [4,11]}, param_val: {disc_size: 0.42, size_x: 9.5, size_y: 9.5, size_z: 7.05, background: 0 }, compute_error: True}}}
 dask_resources:
   IMAC:
     #ip: '10.0.0.33:8786'

@@ -6,6 +6,7 @@ from particleLocating import dplHash_v2 as dpl
 
 import data_analysis.static
 import trackpy as tp
+import os
 from datetime import datetime
 
 """
@@ -79,7 +80,10 @@ class Analysis(ABC):
                     'sed_Colloid', 'sed_Background',
                     'fluorescent_chunk', 'nonfluorescent_chunk']}
 
-        try: self.gelGlobal_mIdx = pd.read_hdf(self.exptPath + self.gelGlobal['mIdx'])
+        try:
+            p_mIdx = os.path.join(self.exptPath, self.gelGlobal['mIdx'])
+            self.gelGlobalPath = os.path.join(self.exptPath, self.gelGlobal['path'])
+            self.gelGlobal_mIdx = pd.read_hdf(p_mIdx)
         except FileNotFoundError:
             print('gelGlobal mIdx file not found. See analysis_abc, initialization')
             pass
@@ -122,7 +126,8 @@ class Analysis(ABC):
             frame = mIdx.get_loc((step, frame))
             #tmp = {}
             #with tp.PandasHDFStoreBig(self.gelGlobal['path'],'r') as steps: #removed Jun 20 2022
-            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path'],'r') as steps:
+            p = os.path.join(self.exptPath, self.gelGlobal['path'])
+            with tp.PandasHDFStoreBig(p,'r') as steps:
                 out =steps.get(frame)
                 #tmp[frame] = steps.get(frame).set_index(['particle'])
             #out.set_index('particle', inplace=True)

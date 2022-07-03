@@ -357,13 +357,15 @@ class ParticleStitch(dpl.dplHash):
             s.put(df)
         return stem+'/{}'.format(fName)
 
-    def stitchAll(self, tMin= None, tMax = None, cutOff=0.25):
+    def stitchAll(self, tMin= None, tMax = None, cutOff=0.25, matList= None):
         hash_df = self.dpl.hash_df
         if tMax is None and tMin is None:
             tMin = 0
             tMax = hash_df['t'].max()
+        if matList is None: matList = ['sed', 'gel']
+        else: matList = [matList]
         for t in range(tMin, tMax+1):
-            for mat in ['sed','gel']:
+            for mat in matList:
                 hvList = hash_df[(hash_df['t'] == t) & (hash_df['material'] == mat)].index
                 stitch = self.stitch(hvList, cutOff=cutOff)
                 path = self.dpl.getPath2File(0,kwrd='locations', computer=self.computer, pathOnlyBool=True)
@@ -378,7 +380,7 @@ class ParticleStitch(dpl.dplHash):
                 #if os.path.exists(hdfName): os.remove(hdfName)
 
                 stitch.to_hdf(hdfName, str(t),mode='w')
-            print("stitched t={}".format(t))
+                print("stitched material {} at time t={}".format(mat,t))
         return True
 
     def parStitchAll(self,tMin, tMax, n_jobs=16):

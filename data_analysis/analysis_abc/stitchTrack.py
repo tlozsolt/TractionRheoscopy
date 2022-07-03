@@ -181,7 +181,8 @@ class StitchTrack(Analysis):
         """
         from particleLocating import dplHash_v2 as dpl
 
-        global_stitch = self.gelGlobal['path']
+        #global_stitch = self.gelGlobal['path']
+        global_stitch = os.path.join(self.exptPath, self.gelGlobal['path'])
         max_disp = self.gelGlobal['max_disp']
 
         # linked list of step kwrds (ie ref, a,b,c..)  and relative paths [./path/to/a/, path/to/b/, ... ]
@@ -252,7 +253,7 @@ class StitchTrack(Analysis):
 
         self.gelGlobal_mIdx = tmp
         # save to dataFrame
-        self.gelGlobal_mIdx.to_hdf(self.gelGlobal['mIdx'], 'mIdx')
+        self.gelGlobal_mIdx.to_hdf(os.path.join(self.exptPath,self.gelGlobal['mIdx']), 'mIdx')
         return mIdx_tuples, global_stitch
 
     #def _xyzSed(self, frame: int, coordList: list, path: str, fName: str):
@@ -344,7 +345,7 @@ class StitchTrack(Analysis):
         return True
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/f_imageStack'
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/g_imageStack'
     param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
                  stepParamFile = './step_param.yml', test=False)
     os.chdir(testPath)

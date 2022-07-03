@@ -94,7 +94,7 @@ class Stress(Analysis):
         for frame in range(self.frames): self.zScaledFractionalHeight(frame=frame)
 
         #reset self.refGel to have new columns
-        print('WARNING: using hard coded value of gel(0, f_imageStack) as globalRefGel')
+        print('WARNING: using hard coded value of gel(0, f_imageStack) as globalRefGel in stress() call')
         self.globalRefGel = self.gel(0, step='f_imageStack')
 
         # compute displacement
@@ -168,7 +168,9 @@ class Stress(Analysis):
 
         if save2hdf:
             posDF[key] = zScaled
-            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(posDF.reset_index())
+            #p = os.path.join(self.exptPath + self.gelGlobal['path'])
+            with tp.PandasHDFStoreBig(self.gelGlobalPath) as s: s.put(posDF.reset_index())
+            #with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(posDF.reset_index())
         return zScaled
 
     def disp(self,
@@ -232,7 +234,8 @@ class Stress(Analysis):
             out = posDF.join(disp_gel)
 
             # write it global with tp knowing what key to put it on with frame column
-            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
+            with tp.PandasHDFStoreBig(self.gelGlobalPath) as s: s.put(out.reset_index())
+            #with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
 
         return disp_gel
 
@@ -326,7 +329,8 @@ class Stress(Analysis):
             try: posDF.drop(newCols, axis=1, inplace=True)
             except KeyError: pass
             out = posDF.join(driftCorrDF)
-            with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
+            #with tp.PandasHDFStoreBig(self.exptPath + self.gelGlobal['path']) as s: s.put(out.reset_index())
+            with tp.PandasHDFStoreBig(self.gelGlobalPath) as s: s.put(out.reset_index())
 
         return driftCorrDF
 
@@ -359,41 +363,75 @@ class Stress(Analysis):
 
     def gelStrain_boundary(self,
                            coord: str = '(um, rheo_sedHeight driftCorr)',
-                           verbose: bool = False,
-                           forceRecompute: bool = True):
+                           verbose: bool = True,
+                           save2hdf: bool = True,
+                           out_frmt = 'bd sigma_{xy}z {coord}',
+                           forceRecompute: bool = False):
         """
         This computes the strain the gel using the drift corrected displacement of the sediment
         particles in the interface (ie first layer above the gel.
         """
-        # get the particle ids in the first layer
-        # compute the displacement relative to time zero (not global)
-        # divide by the gel thickness
+
+        if forceRecompute == False:
+            try:
+                gelStrain_df = pd.read_hdf('./gelStrain.h5')
+                try:
+                    if verbose: print('Return saved gelStrain data')
+                    return gelStrain_df[[out_frmt.format(xy=xy, coord=coord) for xy in ['x','y']]]
+                except KeyError:
+                    if verbose: print('Forcing recompute as column not found in saved file.')
+                    pass
+            except FileNotFoundError:
+                if verbose: print('forceRecompute on gelStrain_boundary is False, but no gelStrain h5 file found at ./gelStrain.h5')
+                pass
 
         ref = self.sed(0)
+        # get the particle ids in the first layer
         lowerIdx = self.lowerIdx
         #upperIdx = self.upperIdx
 
-        out = {}
+        outDict = {}
+        outList = []
 
         for t in range(self.frames):
-            if verbose and t % 10 == 0: print('Computing gelStrain_boundary frame={}'.format(t))
+            if verbose and t % 10 == 0: print('Computing gelStrain_boundary; coord sys is {} ; frame={}'.format(coord, t))
             cur = self.sed(t)
             idx = ref.index.intersection(cur.index)
 
             # now compute displacement
+            # compute the displacement relative to time zero (not global)
             disp = dict( x=cur['x ' + coord] - ref['x ' + coord],
                          y=cur['y ' + coord] - ref['y ' + coord])
+            x,y = disp['x'].loc[lowerIdx].dropna().mean(), disp['y'].loc[lowerIdx].dropna().mean()
 
-            disp['x'] = disp['x'].loc[lowerIdx].dropna().mean()
-            disp['y'] = disp['y'].loc[lowerIdx].dropna().mean()
-
+            #disp['x'] = disp['x'].loc[lowerIdx].dropna().mean()
+            #disp['y'] = disp['y'].loc[lowerIdx].dropna().mean()
             # return the displacement dataframe that has been de-drifted.
-            out[str(t)] = disp/self.gelThickness
+            #out[str(t)] = disp/self.gelThickness
+            #out[str(t)] = [disp['x']/ self.gelThickness, disp['y']/self.gelThickness]
 
-        outCol = {'x': 'bd sigma_xz {}'.format(coord), 'y': 'bd sigma_yz {}'.format(coord)}
+            # divide by the gel thickness
+            outDict[str(t)] = [x/self.gelThickness, y/self.gelThickness]
+            outList.append((x/self.gelThickness, y/self.gelThickness))
 
-        outDF = pd.DataFrame(out).T.rename(columns=outCol)
-        outDF.index = outDF.index.astype(int)
+        outCol = {'x': out_frmt.format(xy='x', coord = coord), 'y': out_frmt.format(xy='y', coord = coord)}
+
+        #outDF = pd.DataFrame(outDict,columns=['x','y']).T.rename(columns=outCol)
+        outDF = pd.DataFrame(outList,columns=outCol.values())
+        #outDF.index = outDF.index.astype(int)
+        if save2hdf:
+            newCols = outCol.values()
+            # open with option of appending, not overwrite
+            try: gelStrain_df = pd.read_hdf('./gelStrain.h5', mode='a')
+            except FileNotFoundError:
+                outDF.to_hdf('./gelStrain.h5','gelStrain')
+                return outDF
+            # join new column
+            try: gelStrain_df.drop(newCols, axis=1, inplace=True)
+            except KeyError: pass
+            # save
+            gelStrain_joined = gelStrain_df.join(outDF)
+            gelStrain_joined.to_hdf('./gelStrain.h5','gelStrain',mode='w')
         return outDF
 
     def xyResiduals_frame(self, cur: int, ref: int=0):
@@ -475,9 +513,9 @@ class Stress(Analysis):
 
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018e'
-    param = dict(globalParamFile = '../tfrGel10212018A_globalParam.yml',
-                 stepParamFile = './step_param.yml', test=False)
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/f_imageStack'
+    param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
+                 stepParamFile = './step_param.yml', test=True)
     os.chdir(testPath)
     test = Stress(**param)
 
