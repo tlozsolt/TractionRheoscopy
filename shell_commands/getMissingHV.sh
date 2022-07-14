@@ -139,6 +139,7 @@ squeue -u jzterdik -h -t pending,running -r -O "state" | uniq -c
 
 # list all files modified after a certain date
 find . -type f -newermt '1/30/2017 0:00:00'
+find . -type f -newermt '01/07/2022 0:00:00' -name 'tfrGel23042022_shearRun01052022g_imageStack_locations_hv*_gel_trackPy.csv'
 
 # partial command to strip only hv from name of location file
  cut -d'_' -f5 | cut -c 3- | awk '{printf "%s ", $0 + 0}'
