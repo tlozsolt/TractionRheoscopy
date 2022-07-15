@@ -79,7 +79,7 @@ python
 # make additional directories:q
 mkdir log locations
 chmod +x tfrGel10212018A_shearRun10292018f_dplScript_exec_pipeline.x
-./tfrGel10212018A_shearRun10292018f_dplScript_exec_pipeline.x
+./tfrGel10212018A_shearRun10292018f_dplScript_exec_pipeline.x 1
 
 # update anaconda environment from local machine
 # make sure the working environment is activated and then run
