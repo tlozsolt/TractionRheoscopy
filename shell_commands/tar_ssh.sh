@@ -1,9 +1,9 @@
 # /usr/bin/env bash
 
 # set up variables including number of time frames, output path
-p=$1
-N=122
-fName='tfrGel23042022_shearRun01052022f_imageStack'
+p=$1 #path on storage server containing the raw tiff files
+N=122 # number of time frames
+fName='tfrGel23042022_shearRun01052022f_imageStack' # Name of the step
 
 cd $p
 #mkdir tarFiles/
