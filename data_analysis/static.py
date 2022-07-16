@@ -666,7 +666,7 @@ def localStrain(pos_df, t0, tf, nnb_cutoff=2.2, pos_keys=None, verbose=False):
 
     if verbose == True: print('computing local strain')
     localStrainArray_np = computeLocalStrain(refConfig,curConfig,nnbIdx_np)
-    localStrainArray_df = pd.DataFrame(localStrainArray_np,columns=['D2_min',
+    localStrainArray_df = pd.DataFrame(localStrainArray_np,columns=['D2_min', 'vM',
                                                                     'exx', 'exy', 'exz', 'eyy', 'eyz', 'ezz',
                                                                     'rxy', 'rxz','ryz'], index = idx).join(nnb_count)
     return localStrainArray_df
