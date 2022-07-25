@@ -158,6 +158,8 @@ class StitchTrack(Analysis):
                 # get a dictionary of dtypes for keys common to data and self.dtypes
                 dtype_dict = da.insersectDict(self.dtypes, dict(data.dtypes))
                 data = data.astype(dtype_dict)
+                if mat == 'gel':
+                    data = data[(data['gel_Tracer'] + data['fluorescent_chunk']) > data['gel_Background']]
                 s.put(data)
 
         if verbose: print('Starting tracking')
@@ -345,8 +347,11 @@ class StitchTrack(Analysis):
         return True
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/g_imageStack'
-    param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
+    for step in ['e']:
+        print('Start step {}'.format(step))
+        testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/{}_imageStack'.format(step)
+        param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
                  stepParamFile = './step_param.yml', test=False)
-    os.chdir(testPath)
-    test = StitchTrack(**param)
+        os.chdir(testPath)
+        test = StitchTrack(**param)
+        test()

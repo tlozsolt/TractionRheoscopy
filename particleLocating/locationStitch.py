@@ -267,6 +267,13 @@ class ParticleStitch(dpl.dplHash):
         # split into sed and gel for a given timeFrame and delete the combined list
         df_partial = df[(df['material'] == material) &
                         (df['frame'] == frame)].reset_index(drop=True)
+
+        # do some filtering based on ilastik keys
+        # new, Jul 20 2022
+        if material == 'gel':
+            try: df_partial = df_partial[(df_partial['gel_Tracer'] > df_partial['gel_Background'])]
+            except: KeyError('Could not filter with ilastik keys. Stitching centroid?')
+
         # create the search tree (fast scipy cKDTree)
         tree = cKDTree(df_partial[list(posKeyList)])
 
