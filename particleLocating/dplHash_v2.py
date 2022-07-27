@@ -606,7 +606,12 @@ class dplHash:
             if stackBool == True:
                 # file name is zero padded to 4, pre upgrade to new version of andor iq
                 #fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
-                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + fileExt
+                try:
+                    refBool = self.metaData['fileNamePrefix']['refBool']
+                except KeyError('refBool not found in metaData yaml'):
+                    refBool = False
+                if not refBool: fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + fileExt
+                else: fName= self.metaData['fileNamePrefix']['rawTiff'] + fileExt
             elif stackBool == False:
                 fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + '_z*' + fileExt
             else:

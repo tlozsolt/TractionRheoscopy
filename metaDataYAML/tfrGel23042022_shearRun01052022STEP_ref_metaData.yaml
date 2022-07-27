@@ -89,6 +89,7 @@ filePaths:
 ################
 fileNamePrefix:
   global: tfrGel23042022_shearRun01052022STEP_
+  refBool: True
   preprocessing: preProcess_
   decon: decon_
   postDecon: postDecon8Bit_
