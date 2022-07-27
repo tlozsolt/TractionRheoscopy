@@ -100,7 +100,7 @@ fileNamePrefix:
   metaDataYAML: metaData
   log: log_
   # tfrGel23042022_shearRun01052022_f_imageStack_t000097_z0471.tif
-  rawTiff: tfeGel23042022_shearRun01052022STEP_ # may not be necessary as I only read from the raw directory and never write to it.
+  rawTiff: tfrGel23042022_shearRun01052022STEP_ # may not be necessary as I only read from the raw directory and never write to it.
   tPadding: 6
   zPadding: 4
   dplPath: dplScript_

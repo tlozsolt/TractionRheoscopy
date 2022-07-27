@@ -616,7 +616,7 @@ class dplHash:
                 else: fName= self.metaData['fileNamePrefix']['rawTiff'] + fileExt
             elif stackBool == False:
                 if refBool: fName= self.metaData['fileNamePrefix']['rawTiff'] + '_z*' + fileExt
-                else: fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + '_z*' + fileExt
+                else: fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + 'z*' + fileExt
             else:
                 raise ValueError(
                     'stackBool value {} is not True or False when calling getPath2File on rawTiff keyword'.format(
