@@ -603,17 +603,20 @@ class dplHash:
             stackBool = self.metaData['imageParam']['stackBool']
             # assemble the right fileName for the given timeStep
             tPadding = self.metaData['fileNamePrefix']['tPadding']
+
+            # is this a reference stack in which there is NO time series and hence no file suffix _t000*_?
+            try: refBool = self.metaData['fileNamePrefix']['refBool']
+            except KeyError('refBool not found in metaData yaml'): refBool = False
+
             if stackBool == True:
                 # file name is zero padded to 4, pre upgrade to new version of andor iq
                 #fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(4) + fileExt
-                try:
-                    refBool = self.metaData['fileNamePrefix']['refBool']
-                except KeyError('refBool not found in metaData yaml'):
-                    refBool = False
+
                 if not refBool: fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + fileExt
                 else: fName= self.metaData['fileNamePrefix']['rawTiff'] + fileExt
             elif stackBool == False:
-                fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + '_z*' + fileExt
+                if refBool: fName= self.metaData['fileNamePrefix']['rawTiff'] + fileExt
+                else: fName = self.metaData['fileNamePrefix']['rawTiff'] + 't' + str(timeStep).zfill(tPadding) + '_z*' + fileExt
             else:
                 raise ValueError(
                     'stackBool value {} is not True or False when calling getPath2File on rawTiff keyword'.format(
