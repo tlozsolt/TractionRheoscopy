@@ -24,9 +24,13 @@ class Strain(Analysis):
 
         # add additional attributes that I will need here
         self.figPath = self.paths['figPath']
+        try: os.mkdir(self.figPath)
+        except FileExistsError: pass
         # I dont think I need this as there is no single strain hdf data store, but rather a directory of strain pandas dataframes.
         #self.strainHDF = self.paths['strainHDF']
         self.strainDataDir = self.paths['strainDataDir']
+        try: os.mkdir(self.strainDataDir)
+        except FileExistsError: pass
 
         self.strain = self.stepParam['strain']
         self.verbose = self.strain['verbose']
@@ -41,6 +45,7 @@ class Strain(Analysis):
         # stress
         self.gelModulus = self.rheo['gelModulus']
         self.gelThickness = self.rheo['gelThickness']
+
 
     def __call__(self, strainPaths: dict = None):
         """

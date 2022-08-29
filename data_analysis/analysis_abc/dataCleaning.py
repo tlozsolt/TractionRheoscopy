@@ -346,7 +346,10 @@ class Cleaning(Analysis):
         # set the outPath, using relative path
         outPath = './xyz/{}/'.format(keepBool_str)
 
-        #create the directory if necesary
+        #create the directories if necesary
+        try: os.mkdir('./xyz/')
+        except FileExistsError: pass
+
         try: os.mkdir(outPath)
         except FileExistsError: pass
 

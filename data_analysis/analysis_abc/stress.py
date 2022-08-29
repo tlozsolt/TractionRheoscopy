@@ -62,7 +62,18 @@ class Stress(Analysis):
         self.gelThickness = self.rheo['gelThickness']
 
         #cache some commonly used time points
-        self.globalRefGel = self.gel(0,step='f_ref')
+
+        # this is one option...set the reference gel to the first fullStack prior to shear
+        # problem is that it doesnt remove drift and hence absolute stress values
+        # based on displacement will be way wrong.
+        #self.globalRefGel = self.gel(0,step='a_preShearFullStack')
+
+        # set the globalRefGel to be preShearFullStack corresponding to this step
+        # this will require **adding** the residual stress as preStress to the next step
+        # based on refStack gel tracking.
+        _ = self.step.split('_')[0]  # a, b, c, d,..
+        print('Setting globalRefGel to be {}_preShearFullStack'.format(_))
+        self.globalRefGel = self.gel(0,'{}_preShearFullStack'.format(_))
         self.stepRefGel = self.gel(0)
 
         # attributes that will be populated with functions in the class
@@ -94,8 +105,9 @@ class Stress(Analysis):
         for frame in range(self.frames): self.zScaledFractionalHeight(frame=frame)
 
         #reset self.refGel to have new columns
-        print('WARNING: using hard coded value of gel(0, f_imageStack) as globalRefGel in stress() call')
-        self.globalRefGel = self.gel(0, step='f_imageStack')
+        #print('WARNING: using hard coded value of gel(0, f_imageStack) as globalRefGel in stress() call')
+        #self.globalRefGel = self.gel(0, step='f_imageStack')
+        self.globalRefGel = self.gel(0)
 
         # compute displacement
         for frame in range(self.frames): self.disp(frame)
@@ -268,6 +280,9 @@ class Stress(Analysis):
             for cur in range(self.frames):
                 # hmmm disp should update the posDF datastore or create its own new dataStore
                 # this should read it hopefully with just the self.gel() method.
+                if forceRecompute:
+                    if cur % 10 == 0: print('Recompute displacement in gel frame {}'.format(cur))
+                    self.disp(cur)
                 g = self.gel(cur)
 
                 inputDF = {}

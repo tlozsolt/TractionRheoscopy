@@ -306,11 +306,14 @@ class StitchTrack(Analysis):
 
         for t in frames:
             print('Exporting frame {} to xyz'.format(t))
-            frameDict = dict(n=t, posDF = self.sed(t))
-            da.df2xyz(frameDict['posDF'].loc[idx][coordList],
-                      fPath=ovitoPath, fName='/sed_t{:03}_complete.xyz'.format(frameDict['n']))
-            da.df2xyz(frameDict['posDF'][coordList],
-                      fPath=ovitoPath, fName='/sed_t{:03}_all.xyz'.format(frameDict['n']))
+            frameDict = dict(n=t, posDF = self.sed(t), gelDF = self.gel(t,gelGlobal=False))
+
+            # export sed
+            da.df2xyz(frameDict['posDF'].loc[idx][coordList], fPath=ovitoPath, fName='/sed_t{:03}_complete.xyz'.format(frameDict['n']))
+            da.df2xyz(frameDict['posDF'][coordList], fPath=ovitoPath, fName='/sed_t{:03}_all.xyz'.format(frameDict['n']))
+
+            # export gel
+            da.df2xyz(frameDict['gelDF'][coordList], fPath=ovitoPath, fName='/gel_t{:03}_all.xyz'.format(frameDict['n']))
 
         return True
 
@@ -347,11 +350,30 @@ class StitchTrack(Analysis):
         return True
 
 if __name__ == '__main__':
-    for step in ['e']:
+
+    #refList =["a_preShearFullStack", "b_preShearFullStack",
+    #             "c_preShearFullStack", "d_postFullShearStack",
+    #             "d_preShearFullStack", "e_postShearFullStack",
+    #             "e_preShearFullStack", "f_postShearFullStack",
+    #             "f_preShearFullStack", "g_preShearFullStack"]
+
+    globalParamFile = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/tfrGel23042022_strainRamp_globalParam.yml'
+    with open(globalParamFile, 'r') as f: globalParam = yaml.load(f, Loader=yaml.SafeLoader)
+
+    stepList = globalParam['experiment']['exptSteps']
+    exptDir = globalParam['experiment']['path']
+    for step in stepList:
+        #if step == 'a_imageStack': pass
+        #else: continue
+        os.chdir(exptDir)
+        os.chdir(step)
+        print(os.getcwd())
         print('Start step {}'.format(step))
-        testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/{}_imageStack'.format(step)
+        #testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/{}_imageStack'.format(step)
+        #testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/{}'.format(step)
         param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
-                 stepParamFile = './step_param.yml', test=False)
-        os.chdir(testPath)
+                 stepParamFile = '{}/step_param.yml'.format(step), test=False)
         test = StitchTrack(**param)
-        test()
+        #test()
+        p = test.stepParam['stitchTrack']
+        test.track('gel', **p['track'])

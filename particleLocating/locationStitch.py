@@ -271,7 +271,11 @@ class ParticleStitch(dpl.dplHash):
         # do some filtering based on ilastik keys
         # new, Jul 20 2022
         if material == 'gel':
-            try: df_partial = df_partial[(df_partial['gel_Tracer'] > df_partial['gel_Background'])]
+            try:
+                # Note that you have to reset_index of the dataFrame as the removeDoubles routine will involved
+                # iloc and numpy arrays to match the keepBool column. This bug took me all day to find. Sigh.
+                # Zsolt, Aug 2 2022
+                df_partial = df_partial[(df_partial['gel_Tracer'] > df_partial['gel_Background'])].reset_index(drop=True)
             except: KeyError('Could not filter with ilastik keys. Stitching centroid?')
 
         # create the search tree (fast scipy cKDTree)

@@ -107,7 +107,11 @@ def compileOutliers(particleCount, binHash, k=1.5):
             out.append(outlier)
             #print(hv_modt)
             #print(detectOutliersTukey(particleCount_slice))
-    return pd.concat(out)
+    try: out = pd.concat(out)
+    except:
+        print('No outliers to concatenate')
+        pass
+    return out
 
 def test(logPath, metaPath):
     hash_df = dpl.dplHash(metaPath).hash_df

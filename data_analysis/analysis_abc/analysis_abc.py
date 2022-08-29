@@ -22,11 +22,16 @@ class Analysis(ABC):
         self.abcParam = dict(globalParamFile=globalParamFile, stepParamFile=stepParamFile)
 
         with open(globalParamFile, 'r') as f: self.globalParam = yaml.load(f,Loader=yaml.SafeLoader)
+        self.exptDir = self.globalParam['experiment']['path']
+
+        # change to expt directory
+        os.chdir(self.exptDir)
         with open(stepParamFile, 'r') as f: self.stepParam = yaml.load(f,Loader=yaml.SafeLoader)
 
         # some useful things from global parameters
         self.keySets = self.globalParam['keySets']
-        self.exptStepList = self.globalParam['experiment']['steps']
+        #self.exptStepList = self.globalParam['experiment']['steps']
+        self.exptStepList = self.globalParam['experiment']['exptSteps']
         self.dim = self.globalParam['experiment']['dimensions']
         self.rheo = {'gelModulus' : self.globalParam['experiment']['gelModulus'],
                      'gelThickness':  self.globalParam['experiment']['gelThickness']}
@@ -44,6 +49,7 @@ class Analysis(ABC):
         # paths are **always** given under steps until I write a function to concatenate or form a union of paths
         # specified in global and step
 
+
         self.step = self.stepParam['step']
         self.paths = self.stepParam['paths']
         self.name = self.stepParam['name']
@@ -51,6 +57,10 @@ class Analysis(ABC):
         #self.frames = self.stepParam['frames']
         self.frames = self.globalParam['experiment']['frames'][self.step]
 
+        # change to local directory
+        os.chdir(self.step)
+
+        #load step specific details
         self.dpl = dpl.dplHash(self.paths['dplMetaData'])
         self.dplMeta = self.dpl.metaData
         self.hash_df = self.dpl.hash_df

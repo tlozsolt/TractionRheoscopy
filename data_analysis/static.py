@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from deprecated import deprecated
 from multiprocessing import Pool
+import statsmodels.api as sm
 #from shapely.ops import polygonize, unary_union
 #from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
 
@@ -1440,6 +1441,34 @@ def tukey(df: pd.DataFrame, col: list, k: float = 1.5):
         else:
             df = tukey(df, colKey, k)
             return tukey(df, col, k)
+
+def loadExpt(globalParamFile: str):
+   with open(globalParamFile, 'r') as f: globalParam = yaml.load(f, Loader=yaml.SafeLoader)
+   # return expt step list, and goto function
+   exptStepList = globalParam['experiment']['exptSteps']
+   stem = globalParam['experiment']['path']
+   def goto(step):
+       os.chdir(stem)
+       os.chdir(step)
+   return stem, exptStepList, globalParam, goto
+
+def parseStep(step:str):
+    """Based on step str, return refStack or imageStack"""
+    parsed = step.split(sep='_')
+    if parsed[1] == 'imageStack': return 'imageStack'
+    else: return 'refStack'
+
+def linearFit(dataFrame: pd.DataFrame, xKey: str, yKey: str):
+    """
+    Use stats module to fit data to linear regression by directly passing dataFrame with x and y keys
+    """
+    x = dataFrame[xKey].values
+    x = sm.add_constant(x)
+    y = dataFrame[yKey].values
+
+    linearOLS = sm.OLS(y, x)
+    results = linearOLS.fit()
+    return results
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'
