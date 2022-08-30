@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+import freud
 
 # This consists of two functions. One to read xyz files and form pandas dataFrames
 # and another to take a pandas dataFrame, stream an xyz file to ovito and load into ovito
@@ -106,18 +107,7 @@ def compute(ovitoPipeline, frame):
     return df_pos, df_tables, dataOvito
 
 
-#print(data.tables['coordination-rdf'].xy())
-#rdf_dict={}
-#for frame in range(pipeline.source.num_frames):
-#    print('Processing frame {}'.format(frame))
-#    data = pipeline.compute(frame)
-#
-#    #plot the rdf
-#    plt.clf()
-#    rdf = pd.DataFrame(data.tables['coordination-rdf'].xy(),columns=['r (um)', 'g(r)'])
-#    rdf_dict[frame] = rdf
-#    if frame %10 == 0:
-#        sns.lineplot(data=rdf, x='r (um)', y='g(r)', sort=False)
+
 def ovitoObj2Pandas(ovitoTable, key: str):
     """
     Guesses data type given dimensions in ovitoTable and then maps to scalar, vector, tensor
@@ -139,22 +129,43 @@ def ovitoObj2Pandas(ovitoTable, key: str):
         return pd.DataFrame({key + '.{}'.format(str(n)) : ovitoTable[...][:,n] for n in range(dim)})
         plt.show()
 
+if __name__ == '__main__':
 
-testFile = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/d_imageStack/xyz/cleanSedGel_keepBool/stepd_sed_t*.xyz'
-pipeline = makePipeLine(testFile)
-pos, dataTables, dataOvito = compute(pipeline, 11)
+    testFile = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/d_imageStack/xyz/cleanSedGel_keepBool/stepd_sed_t*.xyz'
+    pipeline = makePipeLine(testFile)
+    pos, dataTables, dataOvito = compute(pipeline, 11)
 
-# data tables on cluster
-#data.tables # returns dict of key value, with values internal objects in ovito
-"""
-data = pipeline.compute(10)
-data.tables['clusters'].values() # rerturn list of ovito object with str key...ie [Property('Cluster Identifier')]
-data.tables['clusters'].get('Cluster Size') # return array of 'Cluster Size' values from Property('Cluster Size')
-# how to index cluster index into particle level data? There is a column in particle level data of 'Cluster' that
-# is the cluster id equal 0 reserved for 'Not in any cluster'
-df[df['Cluster'] == 1] # returns a dataFrame of all particle that are in largest cluster (near grid)
-# compute an average of any property over clusters
-df.groupby('Cluster').mean()
-"""
+    # plot rdf for each time point
+    """
+    print(data.tables['coordination-rdf'].xy())
+    rdf_dict={}
+    for frame in range(pipeline.source.num_frames):
+        print('Processing frame {}'.format(frame))
+        data = pipeline.compute(frame)
+    
+        #plot the rdf
+        plt.clf()
+        rdf = pd.DataFrame(data.tables['coordination-rdf'].xy(),columns=['r (um)', 'g(r)'])
+        rdf_dict[frame] = rdf
+        if frame %10 == 0:
+            sns.lineplot(data=rdf, x='r (um)', y='g(r)', sort=False)
+    """
+
+    # data tables on cluster
+    """
+    data.tables # returns dict of key value, with values internal objects in ovito
+    data = pipeline.compute(10)
+    data.tables['clusters'].values() # rerturn list of ovito object with str key...ie [Property('Cluster Identifier')]
+    data.tables['clusters'].get('Cluster Size') # return array of 'Cluster Size' values from Property('Cluster Size')
+    """
+    # how to index cluster index into particle level data? There is a column in particle level data of 'Cluster' that
+    # is the cluster id equal 0 reserved for 'Not in any cluster' -> yes
+    """
+    df[df['Cluster'] == 1] # returns a dataFrame of all particle that are in largest cluster (near grid)
+    """
+    # compute an average of any property over clusters
+    """
+    df.groupby('Cluster').mean()
+    """
 
 
