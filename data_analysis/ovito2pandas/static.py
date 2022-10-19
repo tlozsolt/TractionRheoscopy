@@ -12,7 +12,7 @@ import freud
 
 #testFile = 'outFile.xyz'
 
-def makePipeLine(file:str):
+def makePipeline(file:str):
     pipeline = import_file(file,
                            columns = ['Particle Identifier', 'Position.Z', 'Position.Y', 'Position.X', 'None', 'None', 'None', 'dz', 'dy', 'dx', 'dTotal', 'Dist Intferface'])
     #pipeline = import_file('/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/f_imageStack/xyz/cleanSedGel_keepBool/stepf_sed_t000.xyz',
@@ -38,7 +38,8 @@ def makePipeLine(file:str):
         output_stretch_tensors = True,
         output_rotations = True,
         output_nonaffine_squared_displacements = True,
-        use_frame_offset = True))
+        use_frame_offset = True,
+        frame_offset = -1))
 
     # Assing LowStrainBool = True if ShearStrain < 0.025 - Expression selection:
     pipeline.modifiers.append(ExpressionSelectionModifier(expression = 'ShearStrain < 0.025'))
@@ -64,6 +65,12 @@ def makePipeLine(file:str):
         cluster_coloring = True))
 
     return pipeline
+
+def sed():
+    # make an ovito pipeline that just imports the sed xyz positions, then parses
+
+def gel()
+    # analogous, but for gel position
 
 def compute(ovitoPipeline, frame):
     dataOvito = ovitoPipeline.compute(frame)
@@ -106,6 +113,11 @@ def compute(ovitoPipeline, frame):
 
     return df_pos, df_tables, dataOvito
 
+def flat2Mat(strain_flat):
+    """From a list of strain values ordered as in ovito, return an array"""
+    xx,yy,zz = strain_flat[0], strain_flat[1],strain_flat[2]
+    xy, xz, yz = strain_flat[3], strain_flat[4],strain_flat[5]
+    return np.array([[xx,xy,xz],[xy,yy,yz],[xz,yz,zz]])
 
 
 def ovitoObj2Pandas(ovitoTable, key: str):
@@ -127,7 +139,6 @@ def ovitoObj2Pandas(ovitoTable, key: str):
     else:
         print('Did not recognize data type for key {} when converting ovitoObj to pd.DataFrame.'.format(key))
         return pd.DataFrame({key + '.{}'.format(str(n)) : ovitoTable[...][:,n] for n in range(dim)})
-        plt.show()
 
 if __name__ == '__main__':
 

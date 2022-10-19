@@ -6,6 +6,9 @@ from data_analysis.analysis_abc.analysis_abc import Analysis
 from data_analysis.analysis_abc.dataCleaning import Cleaning
 from data_analysis import static as da
 
+# if computing strain, use static, not static_noNumba
+#from data_analysis import static as da
+
 import pandas as pd
 from scipy.spatial import cKDTree
 import numpy as np
@@ -325,12 +328,17 @@ class Strain(Analysis):
             self.computeStrain(strainCall, forceRecompute)
         return True
 
-    def compute_atomicStrainOvito(self, ref: int, cur: int, cutoff: float=2.2, **kwargs) -> pd.DataFrame:
+    def compute_atomicStrainOvito(self, ref: int, cur: int, cutoff: float=2.8, **kwargs) -> pd.DataFrame:
         """
         Computes the atomic strain using ovito atomic strain setting the reference frame at ref and
         current frame as cur
 
         If some of the kwargs are not identical to the param in hdf, then raise an error or write to a new hdf
+
+        ~~~~~~~~~~~~~~~~~
+        Sept 2 2022
+        I think this should just be an access function? Maybe call ovito.compute for a ref and cur configuration
+        assuming that moving reference and setting the offset to match ref,cur
         """
         # load the configurations ref, cur from pytables
         # select the columns
@@ -353,6 +361,10 @@ class Strain(Analysis):
         Additionally, add option to compute local strain with fixed number of nearest neighbors and report center rg
         of particle with nnb shell.
         """
+        try: from data_analysis import falkLanger as fl
+        except ImportError:
+            print('Cant import falkLanger code, likely due to incompatibility of numba with numpy and ovito')
+
         p = {'falkLanger': {'nnb_cutoff': nnb_cutoff}}
 
         # get dataFrame of particle positions with index of particle id for the ref and cur configurations
@@ -394,7 +406,8 @@ class Strain(Analysis):
         nnbIdx_np = np.array([padN(nnbIdx[m], m, N=max_nnb + 1) for m in range(len(nnbIdx))])
 
         if verbose: print('computing local strain')
-        localStrainArray_np = da.computeLocalStrain(refConfig, curConfig, nnbIdx_np)
+        #localStrainArray_np = da.computeLocalStrain(refConfig, curConfig, nnbIdx_np)
+        localStrainArray_np = fl.computeLocalStrain(refConfig, curConfig, nnbIdx_np)
         localStrainArray_df = pd.DataFrame(localStrainArray_np, columns=['D2_min', 'vonMises',
                                                                          'exx', 'exy', 'exz', 'eyy', 'eyz', 'ezz',
                                                                          'rxy', 'rxz', 'ryz'], index=idx).join(nnb_count)
@@ -741,6 +754,10 @@ class Strain(Analysis):
         s = s[s['z (um, rheo_sedHeight)'] <= extremaDict['s_zum_max']]
         ref = ref[ref['z (um, rheo_sedHeight)'] <= extremaDict['r_zum_max']]
 
+        # discard everything z um rheo_sedHeight greater than min of upper partition. Maybe this will get rid of stray bins
+        #s = s[s['z (um, rheo_sedHeight)'] <= extremaDict['s_zum_min']]
+        #ref = ref[ref['z (um, rheo_sedHeight)'] <= extremaDict['r_zum_min']]
+
         # now compute displacement
         disp = (s - ref).dropna()
         disp.rename(
@@ -780,13 +797,17 @@ class Strain(Analysis):
 
         # add partition column to sed
         s['partition'] = 'bulk'
-        s.at[self.lowerIdx, 'partition'] = 'lower'
-        s.at[self.upperIdx, 'partition'] = 'upper'
+
+        # hmm, this is now throwing an error. Sept 7 2022. Replacing at with loc
+        #s.at[self.lowerIdx, 'partition'] = 'lower'
+        #s.at[self.upperIdx, 'partition'] = 'upper'
+        s.loc[self.lowerIdx, 'partition'] = 'lower'
+        s.loc[self.upperIdx, 'partition'] = 'upper'
 
         s_triIdx = s[(s['dist from sed_gel interface (um, imageStack)'] > extremaDict['s_sedGel']) & (
                     s['partition'] == 'bulk')].index
-        s.at[
-            s_triIdx, 'partition'] = 'triangle'  # could have used anything other than bulk, lower, or upper. Will not be called.
+        #s.at[ s_triIdx, 'partition'] = 'triangle'  # could have used anything other than bulk, lower, or upper. Will not be called.
+        s.loc[ s_triIdx, 'partition'] = 'triangle'  # could have used anything other than bulk, lower, or upper. Will not be called.
 
         # concatenate and reset index
         tmp = pd.concat([s, g]).reset_index()
@@ -803,7 +824,7 @@ class Strain(Analysis):
         # and can use len to get number of color patches
         s_bound = int(bulk[bulk['mat'] == 'sed'][interface_dist].max())
         g_bound = int(bulk[bulk['mat'] == 'gel'][interface_dist].min())
-        d = 3
+        d = 5
         gelBins = [(-x - d - 0.5, -x - 0.5) for x in range(0, -1 * g_bound, d)]
         gelBins.reverse()
         sedBins = [(x + 0.5, x + d + 0.5) for x in range(0, s_bound, d)]
@@ -831,7 +852,7 @@ class Strain(Analysis):
 
         # add this to bulk
         tmp = pd.concat([bulk, lower, upper])
-        return tmp, sedBins, gelBins
+        return tmp[~tmp['bin mid'].isna()], sedBins, gelBins
 
     def filteredStrain(self, ref: int, cur: int,
                      nnbCount: int = 4,

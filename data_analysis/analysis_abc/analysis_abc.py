@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 import yaml
-from particleLocating import dplHash_v2 as dpl
+#from particleLocating import dplHash_v2 as dpl
+from particleLocating import dplHash_lite as dpl
 
-import data_analysis.static
+#import data_analysis.static
 import trackpy as tp
 import os
 from datetime import datetime
@@ -24,7 +25,7 @@ class Analysis(ABC):
         with open(globalParamFile, 'r') as f: self.globalParam = yaml.load(f,Loader=yaml.SafeLoader)
         self.exptDir = self.globalParam['experiment']['path']
 
-        # change to expt directory
+        # change to expt directory...I dont know if this is necessary. It seems like I keep chaning the convention
         os.chdir(self.exptDir)
         with open(stepParamFile, 'r') as f: self.stepParam = yaml.load(f,Loader=yaml.SafeLoader)
 
@@ -58,12 +59,14 @@ class Analysis(ABC):
         self.frames = self.globalParam['experiment']['frames'][self.step]
 
         # change to local directory
+        #print(self.step)
         os.chdir(self.step)
 
         #load step specific details
         self.dpl = dpl.dplHash(self.paths['dplMetaData'])
         self.dplMeta = self.dpl.metaData
         self.hash_df = self.dpl.hash_df
+
 
         self.posKeys_dict = {
             'sed': ['z (px, hash)', 'y (px, hash)', 'x (px, hash)', 'hashValue',

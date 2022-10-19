@@ -1,6 +1,5 @@
 import pandas as pd
 import trackpy as tp
-#import numba
 from scipy.spatial import cKDTree
 import numpy as np
 import os
@@ -9,8 +8,6 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from deprecated import deprecated
-#from multiprocessing import Pool
 import statsmodels.api as sm
 #from shapely.ops import polygonize, unary_union
 #from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
@@ -197,58 +194,58 @@ def readOvitoIdx(path):
         print('No ovito idx file found at path {}. Returning None'.format(path))
         return None
     else:
-        #tmp = pd.read_csv(path, sep='\n').drop(0).set_axis(['particle id'], axis=1)
-        tmp = pd.read_csv(path).drop(0).set_axis(['particle id'], axis=1)
+        tmp = pd.read_csv(path, sep='\n').drop(0).set_axis(['particle id'], axis=1)
         return pd.Index(np.array(tmp['particle id']).astype(np.int))
 
-@deprecated(version='pre-Pandas', reason='This function assumes a dictionary of fit parameters as opposed to DataFrame.\n '
-                                          'Use pt2Plane and distFromPlane_df instead')
-def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_fit'):
-    """
-    Compute the vertical distance for particle coordinates
-    and fit parameters a,b,c where the plane is defined by the euqation z_0 = ax + by + c
-    Negative values mean points lie below the plane, and positive values above the plane.
 
-    Parameters
-    ~~~~~~~~~~
-
-    : df dataframe of particle positions with hierarchical index of (frame, particle id)
-    : out_key: str giving the key to save the output distance from plane
-    : fit_dict: dictionary of output from fitTopSurface() function. Keys are from np.linagl.lstsq()
-                - t: int giving the frame number
-                - fit_dict[t] = {'fit ax + by + c': fit, 'residual': residual, 'rank' : rank, 's': s}
-    : pos_keys: dictionary of strings to use as particle positions
-    : frame: list of int giving the frames to compute. If frame==None, compute all frames
-    : method: str, giving small modifications to procedure
-               - `best_fit`: simply subtract the best fit plan
-               - `max` : after best best fit, find the max deviation and subtract it from all the values
-
-    : return None: modifies df in place to include computed out_key column
-    """
-    if pos_keys == None:
-        pos_keys = {}
-        pos_keys['x'] = 'x (um, imageStack)'
-        pos_keys['y'] = 'y (um, imageStack)'
-        pos_keys['z'] = 'z (um, imageStack)'
-
-    if frame == None:
-        frame = range(max(df.index.get_level_values('frame') + 1))
-    elif type(frame) == int:
-        frame = [frame]
-    else: pass
-
-    for t in frame:
-        # extract fit paramters from fit dict at the right frame
-        a,b,c = fit_dict[t]['fit ax + by + c']
-        x = df.xs(t, level='frame')[pos_keys['x']].to_numpy()
-        y = df.xs(t, level='frame')[pos_keys['y']].to_numpy()
-        z = df.xs(t, level='frame')[pos_keys['z']].to_numpy()
-        dist = z - (a*x + b*y +c)
-        #pos.xs(t,level='frame')[out_key] = dist
-        if method == 'best_fit': df.loc[t,out_key] = dist
-        elif method =='max': df.loc[t,out_key] = dist - max(dist)
-        else: raise ValueError('Unrognized option {} for method in distFromPlane'.format(method))
-    return None
+#@deprecated(version='pre-Pandas', reason='This function assumes a dictionary of fit parameters as opposed to DataFrame.\n '
+#                                          'Use pt2Plane and distFromPlane_df instead')
+#def distFromPlane(df,out_key, fit_dict,pos_keys=None, frame=None, method='best_fit'):
+#    """
+#    Compute the vertical distance for particle coordinates
+#    and fit parameters a,b,c where the plane is defined by the euqation z_0 = ax + by + c
+#    Negative values mean points lie below the plane, and positive values above the plane.
+#
+#    Parameters
+#    ~~~~~~~~~~
+#
+#    : df dataframe of particle positions with hierarchical index of (frame, particle id)
+#    : out_key: str giving the key to save the output distance from plane
+#    : fit_dict: dictionary of output from fitTopSurface() function. Keys are from np.linagl.lstsq()
+#                - t: int giving the frame number
+#                - fit_dict[t] = {'fit ax + by + c': fit, 'residual': residual, 'rank' : rank, 's': s}
+#    : pos_keys: dictionary of strings to use as particle positions
+#    : frame: list of int giving the frames to compute. If frame==None, compute all frames
+#    : method: str, giving small modifications to procedure
+#               - `best_fit`: simply subtract the best fit plan
+#               - `max` : after best best fit, find the max deviation and subtract it from all the values
+#
+#    : return None: modifies df in place to include computed out_key column
+#    """
+#    if pos_keys == None:
+#        pos_keys = {}
+#        pos_keys['x'] = 'x (um, imageStack)'
+#        pos_keys['y'] = 'y (um, imageStack)'
+#        pos_keys['z'] = 'z (um, imageStack)'
+#
+#    if frame == None:
+#        frame = range(max(df.index.get_level_values('frame') + 1))
+#    elif type(frame) == int:
+#        frame = [frame]
+#    else: pass
+#
+#    for t in frame:
+#        # extract fit paramters from fit dict at the right frame
+#        a,b,c = fit_dict[t]['fit ax + by + c']
+#        x = df.xs(t, level='frame')[pos_keys['x']].to_numpy()
+#        y = df.xs(t, level='frame')[pos_keys['y']].to_numpy()
+#        z = df.xs(t, level='frame')[pos_keys['z']].to_numpy()
+#        dist = z - (a*x + b*y +c)
+#        #pos.xs(t,level='frame')[out_key] = dist
+#        if method == 'best_fit': df.loc[t,out_key] = dist
+#        elif method =='max': df.loc[t,out_key] = dist - max(dist)
+#        else: raise ValueError('Unrognized option {} for method in distFromPlane'.format(method))
+#    return None
 
 def pt2Plane(pt_zyx, plane_abc):
     """
@@ -498,27 +495,27 @@ def plotSpatialGelStress(gelStrain_df, t,sedPos_df, pos_keys=None, type='mean', 
         yaml.dump({t: statistics},f)
     return "File saved to {}".format(path+fName)
 
+
 #@numba.jit(nopython=True, nogil=True, cache=False)
-def computeRotation(pos,R):
-    """
-    Rotates the position in pos array using the rotation matrix R
-
-    Parameters
-    __________
-
-    pos: numpy array of particle positions
-         pos[i] gives the [x,y,z] position of the particles
-    R: numpy matrix, typically 2D
-
-    returns: numpy array of same dimension of pos, with with rotated positions.
-    """
-    print("Warning, I removed numba decorator. Use falkLanger.computeRotation for number jit flag")
-    out = np.zeros(pos.shape)
-    for n in range(len(pos)):
-        x,y = pos[n][0], pos[n][1]
-        out[n] = R.dot((x,y))
-    return out
-
+#def computeRotation(pos,R):
+#    """
+#    Rotates the position in pos array using the rotation matrix R
+#
+#    Parameters
+#    __________
+#
+#    pos: numpy array of particle positions
+#         pos[i] gives the [x,y,z] position of the particles
+#    R: numpy matrix, typically 2D
+#
+#    returns: numpy array of same dimension of pos, with with rotated positions.
+#    """
+#    out = np.zeros(pos.shape)
+#    for n in range(len(pos)):
+#        x,y = pos[n][0], pos[n][1]
+#        out[n] = R.dot((x,y))
+#    return out
+#
 #@numba.jit(nopython=True,nogil=True,cache=False)
 #def computeLocalStrain(refPos, curPos, nnbArray):
 #    """
@@ -733,104 +730,104 @@ def computeRotation(pos,R):
 #    tmp = localStrain(pos_df, ref, cur, nnb_cutoff=nnbCutoff)
 #    mIdx = pd.MultiIndex.from_product([[tPair], tmp.index], names=['frame', 'particle'])
 #    return tmp.set_index(mIdx)
-
-def loadParticle(t, path_partial=None, fName_frmt=None):
-    if path_partial is None:
-        path_partial = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/partial_data_Aidan/'
-    if fName_frmt is None:
-        fName_frmt = 'shearRun10292018f_centerParticles_t{:02}.h5'
-
-    pos_t = pd.read_hdf(path_partial + fName_frmt.format(t))
-    idx_t = pd.MultiIndex.from_product([[t], pos_t.index], names=['frame', 'particle'])
-
-    return pos_t.set_index(idx_t)
-
-def df2xyz(df, fPath,fName, mode='w'):
-    """
-    Write a pandas dataFrame to xyz file
-    """
-    fPath_frmt = fPath+'{}'
-    with open(fPath_frmt.format(fName),mode) as f:
-        f.write(str(df.shape[0]))
-        f.write('\n ')
-        f.write('Lattice="236.0 0.0 0.0 0.0 236.0 0.0 0.0 0.0 120" Properties=id:I:1:pos:R:3 Origin="0.0 0.0 0.0"\n')
-        df.to_csv(f,mode=mode, sep=' ', na_rep='NAN', header=False)
-    return fPath_frmt.format(fName)
-
-def traj2frameParticle(sedStrain_traj):
-    """
-    Coverts dataFrame of sedStrain_traj with multiIndex (particle,value) and columns of time '(0,3)' to
-    dataFrame with multiIndex (frame, particle) and columns of value: ('(0,3)', 5634)
-    is particle 5634 on time interval '(0,3)'
-    """
-    sedStrain_tmp = sedStrain_traj.transpose().stack('particle')
-    idx = sedStrain_tmp.index.set_names(['frame', 'particle'])
-    sedStrain_frameParticle = pd.DataFrame(sedStrain_tmp, index=idx)
-    return sedStrain_frameParticle
-
-def strainDiag(strain_fp, signature=None):
-    """
-    compute dataFrame of eigen vectors and eigen values from strain dataFrame in frameParticle format
-
-    This function is slow as hell. I am not sure why. Perhaps it takes a long to to diagonalize?
-    Perhaps the list comprehension is not the right way to go and instead I should loop
-    like rotation matrix code using jit.
-
-    It would be ideal if this function, especially the wrapper part was rewritten with multiprocessing
-    and write to file, applied automatically across time indices.
-
-    """
-    if signature is None:
-        _keys = ['exx','exy','exz','eyy','eyz','ezz']
-        _sig = np.array([(0,0), (0,1), (0,2), (1,1), (1,2), (2,2)])
-        _join = ['nnb count', 'D2_min']
-        _out = ['u','ux','uy','uz','v','vx','vy','vz','w','wx','wy','wz']
-    else:
-        _keys = signature['keys']
-        _sig = signature['sig']
-        _join = signature['join']
-
-    def _strainDiag(strain_1d):
-        exx,exy,exz,eyy,eyz,ezz = strain_1d
-        e = np.array([[exx, exy, exz],
-                      [exy, eyy, eyz],
-                      [exz, eyz, ezz]])
-        eigen_val, eigen_vec = np.linalg.eig(e)
-        # now sort by eigen value
-        idx = eigen_val.argsort()[::-1]
-        # return sorted val and vec
-        tmp = eigen_val[idx],eigen_vec[:,idx]
-        return np.array([np.concatenate((tmp[0][n],tmp[1][n]),axis=None) for n in range(3)]).flatten()
-    eigen = [_strainDiag(elt) for elt in strain_fp[_keys].to_numpy()]
-    m_idx = strain_fp.index
-    eigen_df = pd.DataFrame(np.array(eigen), index=m_idx, columns=_out)
-    return eigen_df
-
-def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
-    """
-    Given a certain particle_idx (or list of IDs) in the tracked output of trackpy and a frame number,
-    return all the locating statistics.
-
-    Untested as of Jul 6, 2021
-    -zsolt
-    """
-    #
-    if tracked_df is None and id_type != 'index':
-        raise KeyError('if id_type is not index, you must provide the tracked_df output from trackpy')
-
-    # load the stitched dataframe
-    mat = 'sed'
-    path = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations'
-    fName_frmt = 'tfrGel10212018A_shearRun10292018f_stitched_{}'.format(mat)+'_t{:03}.h5'
-    fName = path + '/' + fName_frmt.format(frame)
-    stitched = pd.read_hdf(fName, key='{}'.format(frame))
-
-    # index into with particle_idx provided
-    if id_type == 'index': return stitched[stitched['keepBool' == True]].loc[particle_idx]
-    elif id_type == 'particle_id':
-        _idx = tracked_df.loc[tracked_df['particle'].isin(particle_idx)].index
-        return stitched[stitched['keepBool' == True]].loc[_idx]
-    else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
+#
+#def loadParticle(t, path_partial=None, fName_frmt=None):
+#    if path_partial is None:
+#        path_partial = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/partial_data_Aidan/'
+#    if fName_frmt is None:
+#        fName_frmt = 'shearRun10292018f_centerParticles_t{:02}.h5'
+#
+#    pos_t = pd.read_hdf(path_partial + fName_frmt.format(t))
+#    idx_t = pd.MultiIndex.from_product([[t], pos_t.index], names=['frame', 'particle'])
+#
+#    return pos_t.set_index(idx_t)
+#
+#def df2xyz(df, fPath,fName, mode='w'):
+#    """
+#    Write a pandas dataFrame to xyz file
+#    """
+#    fPath_frmt = fPath+'{}'
+#    with open(fPath_frmt.format(fName),mode) as f:
+#        f.write(str(df.shape[0]))
+#        f.write('\n ')
+#        f.write('Lattice="236.0 0.0 0.0 0.0 236.0 0.0 0.0 0.0 120" Properties=id:I:1:pos:R:3 Origin="0.0 0.0 0.0"\n')
+#        df.to_csv(f,mode=mode, sep=' ', na_rep='NAN', header=False)
+#    return fPath_frmt.format(fName)
+#
+#def traj2frameParticle(sedStrain_traj):
+#    """
+#    Coverts dataFrame of sedStrain_traj with multiIndex (particle,value) and columns of time '(0,3)' to
+#    dataFrame with multiIndex (frame, particle) and columns of value: ('(0,3)', 5634)
+#    is particle 5634 on time interval '(0,3)'
+#    """
+#    sedStrain_tmp = sedStrain_traj.transpose().stack('particle')
+#    idx = sedStrain_tmp.index.set_names(['frame', 'particle'])
+#    sedStrain_frameParticle = pd.DataFrame(sedStrain_tmp, index=idx)
+#    return sedStrain_frameParticle
+#
+#def strainDiag(strain_fp, signature=None):
+#    """
+#    compute dataFrame of eigen vectors and eigen values from strain dataFrame in frameParticle format
+#
+#    This function is slow as hell. I am not sure why. Perhaps it takes a long to to diagonalize?
+#    Perhaps the list comprehension is not the right way to go and instead I should loop
+#    like rotation matrix code using jit.
+#
+#    It would be ideal if this function, especially the wrapper part was rewritten with multiprocessing
+#    and write to file, applied automatically across time indices.
+#
+#    """
+#    if signature is None:
+#        _keys = ['exx','exy','exz','eyy','eyz','ezz']
+#        _sig = np.array([(0,0), (0,1), (0,2), (1,1), (1,2), (2,2)])
+#        _join = ['nnb count', 'D2_min']
+#        _out = ['u','ux','uy','uz','v','vx','vy','vz','w','wx','wy','wz']
+#    else:
+#        _keys = signature['keys']
+#        _sig = signature['sig']
+#        _join = signature['join']
+#
+#    def _strainDiag(strain_1d):
+#        exx,exy,exz,eyy,eyz,ezz = strain_1d
+#        e = np.array([[exx, exy, exz],
+#                      [exy, eyy, eyz],
+#                      [exz, eyz, ezz]])
+#        eigen_val, eigen_vec = np.linalg.eig(e)
+#        # now sort by eigen value
+#        idx = eigen_val.argsort()[::-1]
+#        # return sorted val and vec
+#        tmp = eigen_val[idx],eigen_vec[:,idx]
+#        return np.array([np.concatenate((tmp[0][n],tmp[1][n]),axis=None) for n in range(3)]).flatten()
+#    eigen = [_strainDiag(elt) for elt in strain_fp[_keys].to_numpy()]
+#    m_idx = strain_fp.index
+#    eigen_df = pd.DataFrame(np.array(eigen), index=m_idx, columns=_out)
+#    return eigen_df
+#
+#def getLocatingStats(particle_idx, frame, tracked_df = None, id_type='index' ):
+#    """
+#    Given a certain particle_idx (or list of IDs) in the tracked output of trackpy and a frame number,
+#    return all the locating statistics.
+#
+#    Untested as of Jul 6, 2021
+#    -zsolt
+#    """
+#    #
+#    if tracked_df is None and id_type != 'index':
+#        raise KeyError('if id_type is not index, you must provide the tracked_df output from trackpy')
+#
+#    # load the stitched dataframe
+#    mat = 'sed'
+#    path = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations'
+#    fName_frmt = 'tfrGel10212018A_shearRun10292018f_stitched_{}'.format(mat)+'_t{:03}.h5'
+#    fName = path + '/' + fName_frmt.format(frame)
+#    stitched = pd.read_hdf(fName, key='{}'.format(frame))
+#
+#    # index into with particle_idx provided
+#    if id_type == 'index': return stitched[stitched['keepBool' == True]].loc[particle_idx]
+#    elif id_type == 'particle_id':
+#        _idx = tracked_df.loc[tracked_df['particle'].isin(particle_idx)].index
+#        return stitched[stitched['keepBool' == True]].loc[_idx]
+#    else: raise KeyError("id_type was {}, but must be either \'index\' or \'particle_id\' ".format(id_type))
 
 def insersectDict(parent: dict, child: dict) -> dict:
     """
@@ -1027,7 +1024,7 @@ def heatMap(disp_df, out_frmt = None, interactive = False):
             sns.heatmap(abs(1000 * tmp), vmin=v[coord][0], vmax=v[coord][1], cmap='viridis')
             if out_frmt is None: out = input("Full path (without quotes) to output figure for coordinate {}: ".format(coord))
             else:
-                if coord == 'x' or coord == 'y': out = out_frmt.format(coord=coord)
+                if coord is 'x' or coord is 'y': out = out_frmt.format(coord=coord)
                 else: out = out_frmt.format(coord='mag')
             plt.savefig(out, bbox_inches='tight')
     return True
@@ -1060,11 +1057,9 @@ def plot_heatMap(disp_dict, **kwargs):
             plt.clf()
             tmp = binned_disp['disp {}'.format(coord)].reindex(binned_mIdx).unstack().T
             plt.figure(i)
-            #if mat is 'sed' or mat is 'gel': sns.heatmap(abs(1000 * tmp), vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
-            if mat == 'sed' or mat == 'gel': sns.heatmap(abs(1000 * tmp), vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
+            if mat is 'sed' or mat is 'gel': sns.heatmap(abs(1000 * tmp), vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
             else: sns.heatmap(1000 * tmp, vmin=vmin[coord], vmax=vmax[coord], cmap=cmap, center=center)
-            #if coord is 'x' or coord is 'y': out = out_frmt.format(coord=coord)
-            if coord == 'x' or coord == 'y': out = out_frmt.format(coord=coord)
+            if coord is 'x' or coord is 'y': out = out_frmt.format(coord=coord)
             else: out = out_frmt.format(coord='mag')
             plt.savefig(out, bbox_inches='tight')
         return True
@@ -1473,37 +1468,6 @@ def linearFit(dataFrame: pd.DataFrame, xKey: str, yKey: str):
     linearOLS = sm.OLS(y, x)
     results = linearOLS.fit()
     return results
-
-def vonMisesStrainYield(yieldStress, modulus):
-    """
-    Compute quantities associated with von Mises yield criterion. See wikipedia on von Mises yield criterion.
-    """
-    out = {}
-    out['e_vM'] = np.sqrt(yieldStress/np.sqrt(3)/modulus)
-    out['modulus (mPa)'] = modulus
-    out['sigma_y (mPa)'] = yieldStress
-    out['J2 (mPa**2)'] = (yieldStress/np.sqrt(3))**2
-    out['Wd (mPa)'] = (yieldStress/np.sqrt(3))**2/(2*modulus)
-    out['kT/vol(Particle)/Wd (N)'] = 0.97/((yieldStress/np.sqrt(3))**2/(2*modulus))
-    return out
-
-def flat2Mat(strain_flat):
-    """From a list of strain values ordered as in ovito, return an array"""
-    xx,yy,zz = strain_flat[0], strain_flat[1],strain_flat[2]
-    xy, xz, yz = strain_flat[3], strain_flat[4],strain_flat[5]
-    return np.array([[xx,xy,xz],[xy,yy,yz],[xz,yz,zz]])
-
-def mat2Flat(symMatrix, signature={'xx':(0,0), 'yy':(1,1),'zz':(2,2), 'xy':(0,1), 'xz': (0,2), 'yz':(1,2)}):
-    e = symMatrix
-    s = signature
-    return  np.array([e[s['xx']], e[s['yy']], e[s['zz']], e[s['xy']], e[s['xz']], e[s['yz']]],dtype=float)
-
-def vM_ovito(df):
-    "Compute von Mises from strain Tensor compute with Ovito"
-    xx,yy,zz = [df['Strain Tensor.{}'.format(c)] for c in ['xx','yy','zz']]
-    xy, xz, yz = [df['Strain Tensor.{}'.format(c)] for c in ['xy','xz','yz']]
-    return np.sqrt(1/2*((xx-yy)**2 + (yy-zz)**2 + (zz-xx)**2) + 3*(xy**2 + yz**2 + xz**2))
-
 
 if __name__ == '__main__':
     hdf_stem = '/Users/zsolt/Colloid/DATA/tfrGel10212018x/tfrGel10212018A_shearRun10292018f/locations_stitch/'

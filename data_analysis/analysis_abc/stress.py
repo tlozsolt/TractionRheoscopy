@@ -2,6 +2,8 @@ import sys
 import os
 import pandas as pd
 import numpy as np
+import statsmodels.regression.linear_model
+import statsmodels.tools
 import trackpy as tp
 
 from data_analysis.analysis_abc.analysis_abc import Analysis
@@ -78,9 +80,11 @@ class Stress(Analysis):
 
         # attributes that will be populated with functions in the class
         if os.path.exists('./theilSen.h5'): self.theilSen =  pd.read_hdf('./theilSen.h5',key='theilSen')
-        else:
-            self.theilSen = None
-            #self.gelStrain_theilSen()
+        else: self.theilSen = None
+
+        if os.path.exists('./OLS.h5'): self.OLS = pd.read_hdf('./OLS.h5', key='OLS')
+        else: self.OLS = None
+        #self.gelStrain_theilSen()
 
         # constant z bins across all frames (possibly all steps as well)
         self.zBin_dim = (118,145,3)
@@ -251,12 +255,29 @@ class Stress(Analysis):
 
         return disp_gel
 
-    def gelStrain_theilSen(self,
-                           coord: str = '(um, rheo_sedHeight)',
+    def gelStrain_theilSen(self, coord: str = '(um, rheo_sedHeight)',
                            fractionalHeight: bool = True,
                            add2Inst: bool = True,
                            save2hdf: bool = True,
                            forceRecompute: bool = False):
+        return self._gelStrain(regressionModel='theilSen', coord=coord, fractionalHeight=fractionalHeight,
+                              add2Inst=add2Inst, save2hdf=save2hdf, forceRecompute=forceRecompute)
+
+    def gelStrain_OLS(self, coord: str = '(um, rheo_sedHeight)',
+                      fractionalHeight: bool = True,
+                      add2Inst: bool = True,
+                      save2hdf: bool = True,
+                      forceRecompute: bool = False):
+        return self._gelStrain(regressionModel='OLS', coord=coord, fractionalHeight=fractionalHeight,
+                              add2Inst=add2Inst, save2hdf=save2hdf, forceRecompute=forceRecompute)
+
+    def _gelStrain(self,
+                  regressionModel: str,
+                  coord: str = '(um, rheo_sedHeight)',
+                  fractionalHeight: bool = True,
+                  add2Inst: bool = True,
+                  save2hdf: bool = True,
+                  forceRecompute: bool = False):
         """
         Return a dataFrame of fit parameters for all frames and both XZ and YZ using median of slopes of all
         lines of pairwise points: ThielSen robust linear regression
@@ -265,7 +286,7 @@ class Stress(Analysis):
 
         Optionally saves output, and adds as class attribute and checks if previously computed
         """
-        if forceRecompute or not os.path.exists('./theilSen.h5'):
+        if forceRecompute or not os.path.exists('./{}.h5'.format(regressionModel)):
             xz = {}
             yz = {}
             if fractionalHeight:
@@ -289,27 +310,58 @@ class Stress(Analysis):
                 for var, col in keys.items(): inputDF[var] = g[col]
                 inputDF = pd.DataFrame(inputDF).dropna()
 
-                m, b, m05, m95 = theilSen(inputDF['dx'], inputDF['z'])
-                xz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
+                if regressionModel == 'theilSen':
+                    m, b, m05, m95 = theilSen(inputDF['dx'], inputDF['z'])
+                    xz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
 
-                m, b, m05, m95 = theilSen(inputDF['dy'], inputDF['z'])
-                yz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
+                    m, b, m05, m95 = theilSen(inputDF['dy'], inputDF['z'])
+                    yz[cur] = dict(m=m, b=b, m05=m05, m95=m95)
+                elif regressionModel == 'OLS':
+                    for d in ['x','y']:
+                        Y = inputDF['d{}'.format(d)]
+                        X = inputDF['z']
+                        X = statsmodels.tools.add_constant(X)
+                        model = statsmodels.regression.linear_model.OLS(Y,X)
+                        results = model.fit()
+                        b,m = results.params
+                        b_std, m_std = results.bse
+                        b_2_5, m_2_5 = results.conf_int()[0]
+                        b_97_5, m_97_5 = results.conf_int()[1]
+
+                        if d == 'x': xz[cur] = dict(b=b, m=m,
+                                                    b_std=b_std, m_std=m_std,
+                                                    b_2_5=b_2_5, b_97_5=b_97_5,
+                                                    m_2_5=m_2_5, m_97_5=m_97_5)
+                        if d == 'y': yz[cur] = dict(b=b, m=m,
+                                                    b_std=b_std, m_std=m_std,
+                                                    b_2_5=b_2_5, b_97_5=b_97_5,
+                                                    m_2_5=m_2_5, m_97_5=m_97_5)
 
             xz_df = pd.DataFrame(xz).T
             yz_df = pd.DataFrame(yz).T
             out = xz_df.join(yz_df, lsuffix='_xz', rsuffix='_yz')
 
-            if add2Inst: self.theilSen = out
-            if save2hdf: out.to_hdf('./theilSen.h5', 'theilSen')
+            if add2Inst:
+                if regressionModel == 'theilSen': self.theilSen = out
+                elif regressionModel == 'OLS': self.OLS = out
+            if save2hdf:
+                out.to_hdf('./{}.h5'.format(regressionModel), '{}'.format(regressionModel))
             return out
-
         else:
-            if self.theilSen is not None:
-                return self.theilSen
-            else:
-                out = pd.read_hdf('./theilSen.h5')
-                if add2Inst: self.theilSen = out
-                return out
+            if regressionModel == 'theilSen':
+                if self.theilSen is not None: return self.theilSen
+                else:
+                    out = pd.read_hdf('./theilSen.h5')
+                    if add2Inst: self.theilSen = out
+                    return out
+            elif regressionModel == 'OLS':
+                if self.OLS is not None:
+                    return self.OLS
+                else:
+                    out = pd.read_hdf('./{}.h5'.format(regressionModel))
+                    if add2Inst: self.OLS = out
+                    return out
+            else: raise KeyError('regressionModel {} not recognized'.format(regressionModel))
 
     def driftCorrResid(self,
                        frame: int,
@@ -528,9 +580,10 @@ class Stress(Analysis):
 
 
 if __name__ == '__main__':
-    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/f_imageStack'
+    testPath = '/Users/zsolt/Colloid/DATA/tfrGel23042022/strainRamp/d_imageStack'
+    step = 'd_imageStack'
     param = dict(globalParamFile = '../tfrGel23042022_strainRamp_globalParam.yml',
-                 stepParamFile = './step_param.yml', test=True)
+                 stepParamFile = './{}/step_param.yml'.format(step), test=False)
     os.chdir(testPath)
     test = Stress(**param)
 
